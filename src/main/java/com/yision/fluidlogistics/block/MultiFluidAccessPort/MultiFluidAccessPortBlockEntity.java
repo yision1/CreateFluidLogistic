@@ -22,6 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.AttachFace;
@@ -62,32 +63,44 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
             filters = new EnumMap<>(Direction.class);
         }
         filters.clear();
-        addFilterBehaviour(behaviours, getLeftOutputDirection());
-        addFilterBehaviour(behaviours, getRightOutputDirection());
-        addFilterBehaviour(behaviours, getBackOutputDirection());
+        addFilterBehaviour(behaviours, OutputSlot.LEFT, getLeftOutputDirection());
+        addFilterBehaviour(behaviours, OutputSlot.RIGHT, getRightOutputDirection());
+        addFilterBehaviour(behaviours, OutputSlot.BACK, getBackOutputDirection());
     }
 
-    private void addFilterBehaviour(List<BlockEntityBehaviour> behaviours, Direction side) {
-        FilteringBehaviour behaviour = new PortFilteringBehaviour(this, new OutputFilterSlot(side), typeFor(side));
-        createFilter(side, behaviour);
+    private void addFilterBehaviour(List<BlockEntityBehaviour> behaviours, OutputSlot slot, Direction side) {
+        FilteringBehaviour behaviour = new PortFilteringBehaviour(this, new OutputFilterSlot(slot), typeFor(slot));
+        createFilter(slot, behaviour);
         filters.put(side, behaviour);
         behaviours.add(behaviour);
     }
 
-    private FilteringBehaviour createFilter(Direction side, FilteringBehaviour behaviour) {
+    private FilteringBehaviour createFilter(OutputSlot slot, FilteringBehaviour behaviour) {
         behaviour.forFluids();
-        behaviour.setLabel(Component.translatable(getFilterLabelKey(side)).copy());
+        behaviour.setLabel(Component.translatable(getFilterLabelKey(slot)).copy());
+        behaviour.withCallback($ -> onFilterChanged());
         return behaviour;
     }
 
-    private String getFilterLabelKey(Direction side) {
-        if (side == getLeftOutputDirection()) {
-            return "block.fluidlogistics.multi_fluid_access_port.filter_left";
+    private void onFilterChanged() {
+        if (level == null || level.isClientSide()) {
+            return;
         }
-        if (side == getRightOutputDirection()) {
-            return "block.fluidlogistics.multi_fluid_access_port.filter_right";
+        notifyUpdate();
+        for (Direction side : Direction.values()) {
+            BlockEntity be = level.getBlockEntity(worldPosition.relative(side));
+            if (be instanceof com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity packager) {
+                packager.triggerStockCheck();
+            }
         }
-        return "block.fluidlogistics.multi_fluid_access_port.filter_back";
+    }
+
+    private String getFilterLabelKey(OutputSlot slot) {
+        return switch (slot) {
+            case LEFT -> "block.fluidlogistics.multi_fluid_access_port.filter_left";
+            case RIGHT -> "block.fluidlogistics.multi_fluid_access_port.filter_right";
+            case BACK -> "block.fluidlogistics.multi_fluid_access_port.filter_back";
+        };
     }
 
     public static void registerCapabilities(RegisterCapabilitiesEvent event) {
@@ -213,8 +226,8 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
 
     private DisplayedFluid getMatchingDisplayedFluid(Direction side, IFluidHandler handler) {
         for (int tank = 0; tank < handler.getTanks(); tank++) {
-            FluidStack fluid = handler.getFluidInTank(tank);
-            if (!fluid.isEmpty() && testFilter(side, fluid)) {
+            FluidStack fluid = getVisibleFluid(side, handler, tank);
+            if (!fluid.isEmpty()) {
                 return new DisplayedFluid(fluid.copy(), handler.getTankCapacity(tank));
             }
         }
@@ -238,15 +251,21 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
     }
 
     Direction getBackOutputDirection() {
-        return getBlockState().getValue(MultiFluidAccessPortBlock.FACING).getOpposite();
+        return DirectedDirectionalBlock.getTargetDirection(getBlockState()).getOpposite();
     }
 
     Direction getLeftOutputDirection() {
-        return getBlockState().getValue(MultiFluidAccessPortBlock.FACING).getCounterClockWise();
+        Direction facing = getBlockState().getValue(MultiFluidAccessPortBlock.FACING);
+        return isVerticalTarget() ? facing.getClockWise() : facing.getCounterClockWise();
     }
 
     Direction getRightOutputDirection() {
-        return getBlockState().getValue(MultiFluidAccessPortBlock.FACING).getClockWise();
+        Direction facing = getBlockState().getValue(MultiFluidAccessPortBlock.FACING);
+        return isVerticalTarget() ? facing.getCounterClockWise() : facing.getClockWise();
+    }
+
+    private boolean isVerticalTarget() {
+        return getBlockState().getValue(MultiFluidAccessPortBlock.TARGET) != AttachFace.WALL;
     }
 
     ItemStack getFilterItem(Direction side) {
@@ -266,6 +285,9 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
     }
 
     private Direction normalizeOutputSide(Direction side) {
+        if (side == null) {
+            return null;
+        }
         Direction left = getLeftOutputDirection();
         Direction right = getRightOutputDirection();
         Direction back = getBackOutputDirection();
@@ -275,24 +297,37 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
         if (side == right) {
             return right;
         }
-        return back;
+        if (side == back) {
+            return back;
+        }
+        return null;
     }
 
-    private BehaviourType<?> typeFor(Direction side) {
-        if (side == getLeftOutputDirection()) {
-            return PortFilteringBehaviour.LEFT_TYPE;
-        }
-        if (side == getRightOutputDirection()) {
-            return PortFilteringBehaviour.RIGHT_TYPE;
-        }
-        return PortFilteringBehaviour.BACK_TYPE;
+    private BehaviourType<?> typeFor(OutputSlot slot) {
+        return switch (slot) {
+            case LEFT -> PortFilteringBehaviour.LEFT_TYPE;
+            case RIGHT -> PortFilteringBehaviour.RIGHT_TYPE;
+            case BACK -> PortFilteringBehaviour.BACK_TYPE;
+        };
     }
 
-    private FluidStack getMatchingFluid(Direction side, IFluidHandler handler) {
+    private FluidStack getVisibleFluid(Direction side, IFluidHandler handler, int tank) {
+        if (tank < 0 || tank >= handler.getTanks()) {
+            return FluidStack.EMPTY;
+        }
+
+        FluidStack fluid = handler.getFluidInTank(tank);
+        if (fluid.isEmpty() || !testFilter(side, fluid)) {
+            return FluidStack.EMPTY;
+        }
+        return fluid.copy();
+    }
+
+    private FluidStack getFirstVisibleFluid(Direction side, IFluidHandler handler) {
         for (int tank = 0; tank < handler.getTanks(); tank++) {
-            FluidStack fluid = handler.getFluidInTank(tank);
-            if (!fluid.isEmpty() && testFilter(side, fluid)) {
-                return fluid.copy();
+            FluidStack fluid = getVisibleFluid(side, handler, tank);
+            if (!fluid.isEmpty()) {
+                return fluid;
             }
         }
         return FluidStack.EMPTY;
@@ -337,47 +372,45 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
 
         @Override
         public int getTanks() {
-            return 1;
+            return preventRecursion(() -> {
+                IFluidHandler handler = blockEntity.getConnectedFluidHandler();
+                return handler == null ? 0 : handler.getTanks();
+            }, 0);
         }
 
         @Override
         public FluidStack getFluidInTank(int tank) {
-            if (tank != 0) {
-                return FluidStack.EMPTY;
-            }
             return preventRecursion(() -> {
                 IFluidHandler handler = blockEntity.getConnectedFluidHandler();
-                return handler == null ? FluidStack.EMPTY : blockEntity.getMatchingFluid(side, handler);
+                return handler == null ? FluidStack.EMPTY : blockEntity.getVisibleFluid(side, handler, tank);
             }, FluidStack.EMPTY);
         }
 
         @Override
         public int getTankCapacity(int tank) {
-            if (tank != 0) {
-                return 0;
-            }
             return preventRecursion(() -> {
                 IFluidHandler handler = blockEntity.getConnectedFluidHandler();
-                if (handler == null) {
+                if (handler == null || tank < 0 || tank >= handler.getTanks()) {
                     return 0;
                 }
-                FluidStack match = blockEntity.getMatchingFluid(side, handler);
-                if (match.isEmpty()) {
-                    return handler.getTanks() > 0 ? handler.getTankCapacity(0) : 0;
-                }
-                for (int i = 0; i < handler.getTanks(); i++) {
-                    FluidStack fluid = handler.getFluidInTank(i);
-                    if (FluidStack.isSameFluidSameComponents(fluid, match)) {
-                        return handler.getTankCapacity(i);
-                    }
-                }
-                return 0;
+                return handler.getTankCapacity(tank);
             }, 0);
         }
 
         @Override
         public boolean isFluidValid(int tank, FluidStack stack) {
-            return tank == 0 && blockEntity.testFilter(side, stack);
+            return preventRecursion(() -> {
+                IFluidHandler handler = blockEntity.getConnectedFluidHandler();
+                if (handler == null || tank < 0 || tank >= handler.getTanks() || stack.isEmpty()) {
+                    return false;
+                }
+                if (!blockEntity.testFilter(side, stack)) {
+                    return false;
+                }
+
+                FluidStack existing = handler.getFluidInTank(tank);
+                return existing.isEmpty() || FluidStack.isSameFluidSameComponents(existing, stack);
+            }, false);
         }
 
         @Override
@@ -409,7 +442,7 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
                 if (handler == null || maxDrain <= 0) {
                     return FluidStack.EMPTY;
                 }
-                FluidStack matching = blockEntity.getMatchingFluid(side, handler);
+                FluidStack matching = blockEntity.getFirstVisibleFluid(side, handler);
                 if (matching.isEmpty()) {
                     return FluidStack.EMPTY;
                 }
@@ -419,10 +452,10 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
     }
 
     private static class OutputFilterSlot extends ValueBoxTransform {
-        private final Direction outputSide;
+        private final OutputSlot slot;
 
-        private OutputFilterSlot(Direction outputSide) {
-            this.outputSide = outputSide;
+        private OutputFilterSlot(OutputSlot slot) {
+            this.slot = slot;
         }
 
         @Override
@@ -446,9 +479,9 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
                 TransformStack transform = TransformStack.of(ms)
                     .rotateYDegrees(wallRotation(facing))
                     .rotateXDegrees(90);
-                if (outputSide == facing.getCounterClockWise()) {
+                if (slot == OutputSlot.LEFT) {
                     transform.rotateZDegrees(90);
-                } else if (outputSide == facing.getClockWise()) {
+                } else if (slot == OutputSlot.RIGHT) {
                     transform.rotateZDegrees(-90);
                 }
                 return;
@@ -486,26 +519,26 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
         }
 
         private Vec3 baseTopLocation(Direction facing) {
-            if (outputSide == facing.getCounterClockWise()) {
+            if (slot == OutputSlot.LEFT) {
                 return VecHelper.voxelSpace(13, 15.75, 8);
             }
-            if (outputSide == facing.getClockWise()) {
+            if (slot == OutputSlot.RIGHT) {
                 return VecHelper.voxelSpace(3, 15.75, 8);
             }
-            if (outputSide == facing.getOpposite()) {
+            if (slot == OutputSlot.BACK) {
                 return VecHelper.voxelSpace(8, 15.75, 3);
             }
             return null;
         }
 
         private Vec3 baseVerticalLocation(Direction facing, AttachFace target) {
-            if (outputSide == facing.getCounterClockWise()) {
+            if (slot == OutputSlot.LEFT) {
                 return VecHelper.voxelSpace(3, 8, 15.75);
             }
-            if (outputSide == facing.getClockWise()) {
+            if (slot == OutputSlot.RIGHT) {
                 return VecHelper.voxelSpace(13, 8, 15.75);
             }
-            if (outputSide == facing.getOpposite()) {
+            if (slot == OutputSlot.BACK) {
                 return VecHelper.voxelSpace(8, target == AttachFace.FLOOR ? 13 : 3, 15.75);
             }
             return null;
@@ -547,8 +580,14 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
 
     }
 
-    static ValueBoxTransform createSlotTransform(Direction side) {
-        return new OutputFilterSlot(side);
+    static ValueBoxTransform createSlotTransform(OutputSlot slot) {
+        return new OutputFilterSlot(slot);
+    }
+
+    private enum OutputSlot {
+        LEFT,
+        RIGHT,
+        BACK
     }
 
     private static class PortFilteringBehaviour extends FilteringBehaviour {
