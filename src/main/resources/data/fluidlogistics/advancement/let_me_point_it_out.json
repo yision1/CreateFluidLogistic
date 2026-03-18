@@ -1,0 +1,30 @@
+{
+  "parent": "fluidlogistics:recipes/hand_pointer",
+  "criteria": {
+    "enter_mode": {
+      "trigger": "fluidlogistics:hand_pointer_mode"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancement.fluidlogistics.let_me_point_it_out.desc"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "count": 1,
+      "id": "fluidlogistics:hand_pointer"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancement.fluidlogistics.let_me_point_it_out"
+    }
+  },
+  "requirements": [
+    [
+      "enter_mode"
+    ]
+  ],
+  "sends_telemetry_event": true
+}

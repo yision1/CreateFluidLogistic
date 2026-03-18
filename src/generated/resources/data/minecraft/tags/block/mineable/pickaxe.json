@@ -1,6 +1,7 @@
 {
   "values": [
     "fluidlogistics:fluid_packager",
+    "fluidlogistics:multi_fluid_access_port",
     "fluidlogistics:multi_fluid_tank",
     "fluidlogistics:horizontal_multi_fluid_tank"
   ]

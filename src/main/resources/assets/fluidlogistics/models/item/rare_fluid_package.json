@@ -37,6 +37,7 @@
 			}
 		}
 	],
+	"display": {},
 	"groups": [
 		{
 			"name": "fluid_package",

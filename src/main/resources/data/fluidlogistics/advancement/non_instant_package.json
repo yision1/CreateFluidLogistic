@@ -1,0 +1,30 @@
+{
+  "parent": "fluidlogistics:recipes/fluid_packager",
+  "criteria": {
+    "fluid_package_created": {
+      "trigger": "fluidlogistics:fluid_package_created"
+    }
+  },
+  "display": {
+    "announce_to_chat": true,
+    "description": {
+      "translate": "advancement.fluidlogistics.non_instant_package.desc"
+    },
+    "frame": "task",
+    "hidden": false,
+    "icon": {
+      "count": 1,
+      "id": "fluidlogistics:rare_fluid_package"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancement.fluidlogistics.non_instant_package"
+    }
+  },
+  "requirements": [
+    [
+      "fluid_package_created"
+    ]
+  ],
+  "sends_telemetry_event": true
+}
