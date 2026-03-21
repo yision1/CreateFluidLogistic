@@ -1,5 +1,7 @@
 package com.yision.fluidlogistics.registry;
 
+import java.util.List;
+
 import com.yision.fluidlogistics.FluidLogistics;
 
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
@@ -28,6 +30,15 @@ public class AllPartialModels {
 
     private static PartialModel rigging(String size) {
         return PartialModel.of(ResourceLocation.fromNamespaceAndPath("create", "item/package/rigging_" + size));
+    }
+
+    public static List<ResourceLocation> customModelLocations() {
+        return List.of(
+                FLUID_PACKAGER_TRAY.modelLocation(),
+                FLUID_PACKAGER_HATCH_OPEN.modelLocation(),
+                FLUID_PACKAGER_HATCH_CLOSED.modelLocation(),
+                FLUID_PACKAGE.modelLocation()
+        );
     }
 
     public static void register() {
