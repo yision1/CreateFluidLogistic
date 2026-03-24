@@ -3,9 +3,16 @@ package com.yision.fluidlogistics.mixin.item;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Share;
+import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageItem;
@@ -29,81 +36,112 @@ public abstract class PackageItemMixin {
         throw new AssertionError();
     }
 
-    @Overwrite(remap = false)
-    public void appendHoverText(ItemStack stack, Item.TooltipContext tooltipContext, 
-            List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
-        
-        if (stack.has(AllDataComponents.PACKAGE_ADDRESS))
-            tooltipComponents.add(Component.literal("\u2192 " + stack.get(AllDataComponents.PACKAGE_ADDRESS))
-                .withStyle(ChatFormatting.GOLD));
+    @WrapOperation(
+            method = "appendHoverText",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/neoforged/neoforge/items/ItemStackHandler;getStackInSlot(I)Lnet/minecraft/world/item/ItemStack;"
+            )
+    )
+    private ItemStack fluidlogistics$hideFluidTooltipEntries(ItemStackHandler contents, int slot, Operation<ItemStack> original,
+                                                             @Share("fluidlogistics$mergedFluids") LocalRef<List<FluidStack>> mergedFluidsRef) {
+        ItemStack itemStack = original.call(contents, slot);
+        if (!fluidlogistics$shouldRenderAsFluidTooltip(itemStack)) {
+            return itemStack;
+        }
 
-        if (!stack.has(AllDataComponents.PACKAGE_CONTENTS))
+        List<FluidStack> mergedFluids = mergedFluidsRef.get();
+        if (mergedFluids == null) {
+            mergedFluids = new ArrayList<>();
+            mergedFluidsRef.set(mergedFluids);
+        }
+
+        FluidStack fluid = CompressedTankItem.getFluid(itemStack).copy();
+        fluid.setAmount(fluid.getAmount() * itemStack.getCount());
+        fluidlogistics$mergeFluid(mergedFluids, fluid);
+        return ItemStack.EMPTY;
+    }
+
+    @Inject(
+            method = "appendHoverText",
+            at = @At("TAIL")
+    )
+    private void fluidlogistics$appendFluidHoverText(ItemStack stack, Item.TooltipContext tooltipContext,
+                                                     List<Component> tooltipComponents, TooltipFlag tooltipFlag,
+                                                     CallbackInfo ci,
+                                                     @Share("fluidlogistics$mergedFluids") LocalRef<List<FluidStack>> mergedFluidsRef) {
+        List<FluidStack> mergedFluids = mergedFluidsRef.get();
+        if (mergedFluids == null || mergedFluids.isEmpty() || !stack.has(AllDataComponents.PACKAGE_CONTENTS)) {
             return;
+        }
 
+        ItemStackHandler contents = getContents(stack);
         int visibleNames = 0;
         int skippedNames = 0;
-        ItemStackHandler contents = getContents(stack);
-        
-        List<FluidStack> mergedFluids = new ArrayList<>();
-        List<Integer> mergedAmounts = new ArrayList<>();
-        
         for (int i = 0; i < contents.getSlots(); i++) {
-            ItemStack itemstack = contents.getStackInSlot(i);
-            if (itemstack.isEmpty())
+            ItemStack itemStack = contents.getStackInSlot(i);
+            if (itemStack.isEmpty()) {
                 continue;
-            if (itemstack.getItem() instanceof SpawnEggItem)
-                continue;
-            
-            if (itemstack.getItem() instanceof CompressedTankItem) {
-                FluidStack fluid = CompressedTankItem.getFluid(itemstack);
-                if (!fluid.isEmpty()) {
-                    int amount = fluid.getAmount() * itemstack.getCount();
-                    boolean merged = false;
-                    for (int j = 0; j < mergedFluids.size(); j++) {
-                        if (FluidStack.isSameFluidSameComponents(mergedFluids.get(j), fluid)) {
-                            mergedAmounts.set(j, mergedAmounts.get(j) + amount);
-                            merged = true;
-                            break;
-                        }
-                    }
-                    if (!merged) {
-                        mergedFluids.add(fluid.copy());
-                        mergedAmounts.add(amount);
-                    }
-                    continue;
-                }
             }
-            
+            if (itemStack.getItem() instanceof SpawnEggItem) {
+                continue;
+            }
+            if (fluidlogistics$shouldRenderAsFluidTooltip(itemStack)) {
+                continue;
+            }
             if (visibleNames > 2) {
                 skippedNames++;
                 continue;
             }
             visibleNames++;
-            tooltipComponents.add(itemstack.getHoverName()
-                .copy()
-                .append(" x")
-                .append(String.valueOf(itemstack.getCount()))
-                .withStyle(ChatFormatting.GRAY));
-        }
-        
-        int addedFluids = 0;
-        for (int i = 0; i < mergedFluids.size(); i++) {
-            if (addedFluids >= 3 - visibleNames) {
-                skippedNames += mergedFluids.size() - i;
-                break;
-            }
-            FluidStack fluid = mergedFluids.get(i);
-            int totalAmount = mergedAmounts.get(i);
-            String amountStr = FluidAmountHelper.format(totalAmount);
-            tooltipComponents.add(Component.literal("")
-                    .append(fluid.getHoverName())
-                    .append(" " + amountStr)
-                    .withStyle(ChatFormatting.GRAY));
-            addedFluids++;
         }
 
-        if (skippedNames > 0)
-            tooltipComponents.add(Component.translatable("container.shulkerBox.more", skippedNames)
-                .withStyle(ChatFormatting.ITALIC));
+        int insertionIndex = tooltipComponents.size();
+        if (skippedNames > 0) {
+            String originalMoreLine = Component.translatable("container.shulkerBox.more", skippedNames).getString();
+            for (int i = tooltipComponents.size() - 1; i >= 0; i--) {
+                if (tooltipComponents.get(i).getString().equals(originalMoreLine)) {
+                    tooltipComponents.remove(i);
+                    insertionIndex = i;
+                    break;
+                }
+            }
+        }
+
+        int remainingSlots = Math.max(0, 3 - visibleNames);
+        int addedFluids = Math.min(remainingSlots, mergedFluids.size());
+        for (int i = 0; i < addedFluids; i++) {
+            FluidStack fluid = mergedFluids.get(i);
+            tooltipComponents.add(insertionIndex + i, Component.literal("")
+                    .append(fluid.getHoverName())
+                    .append(" " + FluidAmountHelper.format(fluid.getAmount()))
+                    .withStyle(ChatFormatting.GRAY));
+        }
+
+        int totalSkippedNames = skippedNames + Math.max(0, mergedFluids.size() - addedFluids);
+        if (totalSkippedNames > 0) {
+            tooltipComponents.add(insertionIndex + addedFluids,
+                    Component.translatable("container.shulkerBox.more", totalSkippedNames)
+                            .withStyle(ChatFormatting.ITALIC));
+        }
+    }
+
+    @Unique
+    private static boolean fluidlogistics$shouldRenderAsFluidTooltip(ItemStack itemStack) {
+        if (!(itemStack.getItem() instanceof CompressedTankItem)) {
+            return false;
+        }
+        return !CompressedTankItem.getFluid(itemStack).isEmpty();
+    }
+
+    @Unique
+    private static void fluidlogistics$mergeFluid(List<FluidStack> mergedFluids, FluidStack fluid) {
+        for (FluidStack existing : mergedFluids) {
+            if (FluidStack.isSameFluidSameComponents(existing, fluid)) {
+                existing.grow(fluid.getAmount());
+                return;
+            }
+        }
+        mergedFluids.add(fluid);
     }
 }
