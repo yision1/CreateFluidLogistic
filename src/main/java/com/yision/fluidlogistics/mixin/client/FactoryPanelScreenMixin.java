@@ -164,7 +164,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             @Local(argsOnly = true) BigItemStack itemStack) {
         if (fluidlogistics$isVirtualTank && fluidlogistics$cachedFluid != null) {
             String fluidName = fluidlogistics$cachedFluid.getHoverName().getString();
-            String amountText = FluidAmountHelper.format(itemStack.count);
+            String amountText = FluidAmountHelper.formatPrecise(itemStack.count);
             List<Component> newTooltips = new ArrayList<>();
             
             if (restocker) {
@@ -341,7 +341,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             FluidStack fluid = CompressedTankItem.getFluid(outputConfig.stack);
             if (!fluid.isEmpty()) {
                 String fluidName = fluid.getHoverName().getString();
-                String amountText = FluidAmountHelper.format(outputConfig.count);
+                String amountText = FluidAmountHelper.formatPrecise(outputConfig.count);
                 
                 MutableComponent c1 = CreateLang
                     .translate("gui.factory_panel.expected_output", 
@@ -386,7 +386,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                 int promised = behaviour.getPromised();
                 if (promised > 0) {
                     String fluidName = fluid.getHoverName().getString();
-                    String amountText = FluidAmountHelper.format(promised);
+                    String amountText = FluidAmountHelper.formatPrecise(promised);
                     List<Component> newTooltips = List.of(
                         CreateLang.translate("gui.factory_panel.promised_items")
                             .color(ScrollInput.HEADER_RGB)

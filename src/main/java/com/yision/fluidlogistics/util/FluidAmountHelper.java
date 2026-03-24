@@ -1,5 +1,7 @@
 package com.yision.fluidlogistics.util;
 
+import java.math.BigDecimal;
+
 import com.simibubi.create.content.logistics.BigItemStack;
 
 public final class FluidAmountHelper {
@@ -20,6 +22,18 @@ public final class FluidAmountHelper {
             return String.format("%.1fB", buckets);
         }
         return amount + "mB";
+    }
+
+    public static String formatPrecise(int amount) {
+        if (amount >= BigItemStack.INF) {
+            return "+";
+        }
+        if (amount < MB_PER_BUCKET) {
+            return amount + "mB";
+        }
+        return BigDecimal.valueOf(amount, 3)
+            .stripTrailingZeros()
+            .toPlainString() + "B";
     }
 
     public static String formatDetailed(int amount) {
