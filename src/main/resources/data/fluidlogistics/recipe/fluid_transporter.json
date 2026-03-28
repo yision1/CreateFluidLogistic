@@ -1,0 +1,33 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:fluid_transporter"
+    }
+  ],
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "tag": "c:ingots/brass"
+    },
+    "C": {
+      "item": "minecraft:copper_block"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    },
+    "P": {
+      "item": "create:smart_fluid_pipe"
+    }
+  },
+  "pattern": [
+    "PAP",
+    "ECE",
+    "PAP"
+  ],
+  "result": {
+    "count": 1,
+    "id": "fluidlogistics:fluid_transporter"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "fluidlogistics:block/fluid_transporter/block_vertical",
+  "textures": {
+    "4": "fluidlogistics:block/fluid_transporter/brass_funnel_powered"
+  }
+}
