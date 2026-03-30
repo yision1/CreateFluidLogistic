@@ -15,6 +15,14 @@ Similar to **regular packager**,but for fluids.
 
 Similar to **regular package**,but for fluids.
 
+### Smart Faucet
+
+Perform **intelligent filling** on items based on the type of **fluid** or **filtration**.
+
+### Fluid Transporter
+
+**Transfer** the fluid from **one container** to **another** according to the configured filter.
+
 ### Multi-Fluid Tank
 
 Capable of simultaneously storing up to **eight different types** of fluids.
@@ -30,6 +38,16 @@ Three **fluid filtration tanks** are provided, allowing for the simultaneous **i
 ### Hand Pointer
 
 A versatile tool for configuring **interaction points** of mechanical components.
+
+## Tips
+
+### Factory Gauge/Redstone Requester
+
+Hold down **Alt** and **right-click** on an item containing fluid to request the fluid.
+
+### Clipboard
+
+Enter a package address in the Clipboard and then **right-click** on packager/repackager to set its address.
 
 ## Others
 
