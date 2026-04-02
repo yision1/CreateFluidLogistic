@@ -36,8 +36,7 @@
   "item.fluidlogistics.hand_pointer.tooltip.behaviour2": "可以_配置_蛙港/邮箱的_交互点_",
   "item.fluidlogistics.hand_pointer.tooltip.condition3": "右键可接入物流网络的元件时",
   "item.fluidlogistics.hand_pointer.tooltip.behaviour3": "可以_配置_该元件的_物流网络_",
-
-
+  "create.fluidlogistics.factory_panel.hold_alt_to_set_contained_fluid": "按住 Alt 以设置物品内含的流体",
   "create.fluidlogistics.hand_pointer.mode_exited": "取消配置",
   "create.fluidlogistics.hand_pointer.too_far": "太远了",
   "create.fluidlogistics.hand_pointer.frogport.selected": "点击锁链以更新",
@@ -59,6 +58,7 @@
   "create.fluidlogistics.hand_pointer.address_clear_blocked_by_sign": "无法清除使用告示牌设置的包裹地址",
   "create.fluidlogistics.hand_pointer.fluid_packager.powered_on": "该流体打包机已强制充能",
   "create.fluidlogistics.hand_pointer.fluid_packager.powered_off": "该流体打包机已恢复默认",
+  "create.fluid_packager.no_portable_fluid_interface": "流体打包机不能与移动式流体接口直接连接",
   "create.goggles.packager_title": "打包机状态：",
   "create.goggles.repackager_title": "理包机状态：",
   "create.goggles.fluid_packager_title": "流体打包机状态：",
@@ -82,9 +82,6 @@
   "fluidlogistics.configuration.compressedTankCapacity.tooltip": "压缩储罐可以容纳的最大流体量（单位：mB）",
   "fluidlogistics.configuration.fluidPackageCapacity": "流体包裹容量",
   "fluidlogistics.configuration.fluidPackageCapacity.tooltip": "流体包裹可以容纳的最大流体量（单位：mB），实际最大值会被限制为当前压缩储罐容量的9倍",
-
-  "tooltip.fluidlogistics.alt_click_hint": "按住Alt并点击流体容器以请求流体",
-  "tooltip.fluidlogistics.redstone_requester.fluid_slot": "Alt + 点击流体容器",
 
   "fluidlogistics.ponder.fluid_packager.header": "流体打包和拆解流体包裹",
   "fluidlogistics.ponder.fluid_packager.text_1": "流体打包机可以将流体储罐中的流体打包成流体包裹",

@@ -36,7 +36,7 @@
   "item.fluidlogistics.hand_pointer.tooltip.behaviour2": "Can configure the interaction point of the Frogport/Mailbox",
   "item.fluidlogistics.hand_pointer.tooltip.condition3": "When right-clicking a logistics-network compatible component",
   "item.fluidlogistics.hand_pointer.tooltip.behaviour3": "Can configure the logistics network of that component",
-
+  "create.fluidlogistics.factory_panel.hold_alt_to_set_contained_fluid": "Hold Alt to set the fluid contained in the item",
   "fluidlogistics.configuration.title": "Fluid Logistics Configuration",
   "fluidlogistics.configuration.section.fluidlogistics.common.toml": "Fluid Logistics Configuration",
   "fluidlogistics.configuration.section.fluidlogistics.common.toml.title": "Fluid Logistics Configuration",
@@ -46,9 +46,6 @@
   "fluidlogistics.configuration.compressedTankCapacity.tooltip": "Maximum fluid amount the compressed storage tank can hold (in mB)",
   "fluidlogistics.configuration.fluidPackageCapacity": "Fluid Package Capacity",
   "fluidlogistics.configuration.fluidPackageCapacity.tooltip": "Maximum fluid amount a fluid package can hold (in mB); the effective maximum is limited to 9x the current compressed tank capacity",
-
-  "tooltip.fluidlogistics.alt_click_hint": "Alt + Click a fluid container to request fluid",
-  "tooltip.fluidlogistics.redstone_requester.fluid_slot": "Alt + Click fluid container",
 
   "create.fluidlogistics.hand_pointer.mode_exited": "Selection mode exited",
   "create.fluidlogistics.hand_pointer.too_far": "Too far",
@@ -74,6 +71,7 @@
   "create.fluidlogistics.clipboard.address_set": "Set %s address to: %s",
   "create.fluidlogistics.hand_pointer.fluid_packager.powered_on": "This Fluid Packager is now force-powered",
   "create.fluidlogistics.hand_pointer.fluid_packager.powered_off": "This Fluid Packager has been restored to default",
+  "create.fluid_packager.no_portable_fluid_interface": "Fluid Packagers cannot interface with Portable Fluid Interface directly",
   "create.goggles.packager_title": "Packager Status:",
   "create.goggles.repackager_title": "Repackager Status:",
   "create.goggles.fluid_packager_title": "Fluid Packager Status:",

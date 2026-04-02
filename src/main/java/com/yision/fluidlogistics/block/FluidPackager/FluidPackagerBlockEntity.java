@@ -18,6 +18,7 @@ import com.simibubi.create.content.fluids.tank.CreativeFluidTankBlockEntity.Crea
 import com.simibubi.create.api.packager.unpacking.UnpackingHandler;
 import com.simibubi.create.compat.computercraft.AbstractComputerBehaviour;
 import com.simibubi.create.compat.computercraft.events.PackageEvent;
+import com.simibubi.create.content.contraptions.actors.psi.PortableFluidInterfaceBlockEntity;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
@@ -44,6 +45,7 @@ import com.yision.fluidlogistics.api.IFluidPackager;
 import com.yision.fluidlogistics.advancement.AllTriggers;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.item.FluidPackageItem;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
@@ -140,10 +142,16 @@ public class FluidPackagerBlockEntity extends SmartBlockEntity implements Cleara
 
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
-        behaviours.add(fluidTarget = new TankManipulationBehaviour(this, InterfaceProvider.oppositeOfBlockFacing()));
-        behaviours.add(itemTarget = new InvManipulationBehaviour(this, InterfaceProvider.oppositeOfBlockFacing()));
+        behaviours.add(fluidTarget = new TankManipulationBehaviour(this, InterfaceProvider.oppositeOfBlockFacing())
+            .withFilter(this::supportsBlockEntity));
+        behaviours.add(itemTarget = new InvManipulationBehaviour(this, InterfaceProvider.oppositeOfBlockFacing())
+            .withFilter(this::supportsBlockEntity));
         behaviours.add(invVersionTracker = new VersionedInventoryTrackerBehaviour(this));
         behaviours.add(advancements = new AdvancementBehaviour(this, AllAdvancements.PACKAGER));
+    }
+
+    private boolean supportsBlockEntity(BlockEntity target) {
+        return target != null && !(target instanceof PortableFluidInterfaceBlockEntity);
     }
 
     @Override
@@ -509,7 +517,7 @@ public class FluidPackagerBlockEntity extends SmartBlockEntity implements Cleara
     private ItemStack createFluidPackage(FluidStack fluid) {
         ItemStackHandler packageContents = new ItemStackHandler(PackageItem.SLOTS);
         int tankCapacity = CompressedTankItem.getCapacity();
-        int maxTanks = 9;
+        int maxTanks = PackageItem.SLOTS;
         int tanksCreated = 0;
 
         FluidStack remainingFluid = fluid.copy();
@@ -534,6 +542,8 @@ public class FluidPackagerBlockEntity extends SmartBlockEntity implements Cleara
 
     public boolean unwrapBox(ItemStack box, boolean simulate) {
         if (animationTicks > 0)
+            return false;
+        if (!FluidPackageItem.isFluidPackage(box))
             return false;
 
         Objects.requireNonNull(this.level);

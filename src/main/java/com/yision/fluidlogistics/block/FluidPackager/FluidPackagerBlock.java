@@ -10,6 +10,8 @@ import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
+import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.item.FluidPackageItem;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -32,6 +34,7 @@ import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.common.util.FakePlayer;
 
 public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IBE<FluidPackagerBlockEntity>, IWrenchable {
 
@@ -77,6 +80,16 @@ public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IB
             preferredFacing = player != null && player.isShiftKeyDown() ? facing : facing.getOpposite();
         }
 
+        if (player != null && !(player instanceof FakePlayer)) {
+            BlockPos targetPos = context.getClickedPos().relative(preferredFacing.getOpposite());
+            BlockState targetState = level.getBlockState(targetPos);
+            if (AllBlocks.PORTABLE_FLUID_INTERFACE.has(targetState)) {
+                CreateLang.translate("fluid_packager.no_portable_fluid_interface")
+                    .sendStatus(player);
+                return null;
+            }
+        }
+
         return super.getStateForPlacement(context)
                 .setValue(POWERED, context.getLevel().hasNeighborSignal(context.getClickedPos()))
                 .setValue(FACING, preferredFacing);
@@ -98,7 +111,7 @@ public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IB
             if (be.heldBox.isEmpty()) {
                 if (be.animationTicks > 0)
                     return ItemInteractionResult.SUCCESS;
-                if (PackageItem.isPackage(stack)) {
+                if (FluidPackageItem.isFluidPackage(stack)) {
                     if (level.isClientSide())
                         return ItemInteractionResult.SUCCESS;
                     if (!be.unwrapBox(stack.copy(), true))
