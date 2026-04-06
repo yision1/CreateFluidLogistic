@@ -16,19 +16,28 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelScreen;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.client.FluidAmountScrollInput;
+import com.yision.fluidlogistics.client.FluidLogisticsGuiTextures;
 import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.network.FactoryPanelSetFluidAdditionalStockPacket;
+import com.yision.fluidlogistics.network.FactoryPanelSetFluidPromiseLimitPacket;
+import com.yision.fluidlogistics.network.FactoryPanelSetFluidRestockThresholdPacket;
 import com.yision.fluidlogistics.render.FluidRenderEntry;
 import com.yision.fluidlogistics.render.FluidSlotRenderer;
+import com.yision.fluidlogistics.util.IFluidAdditionalStock;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
+import com.yision.fluidlogistics.util.FluidGaugeHelper;
+import com.yision.fluidlogistics.util.IFluidPromiseLimit;
+import com.yision.fluidlogistics.util.IFluidRestockThreshold;
 
 import net.createmod.catnip.gui.AbstractSimiScreen;
 import net.createmod.catnip.gui.element.GuiGameElement;
+import net.createmod.catnip.platform.CatnipServices;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -60,22 +69,13 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     }
 
     @Unique
-    private static final int fluidlogistics$MAX_BUCKETS = 1000;
-    
-    @Unique
-    private static final int fluidlogistics$MB_PER_BUCKET = 1000;
+    private static final int fluidlogistics$BOTTOM_ROW_X_OFFSET = -20;
 
     @Unique
     private boolean fluidlogistics$isVirtualTank = false;
 
     @Unique
     private FluidStack fluidlogistics$cachedFluid = null;
-    
-    @Unique
-    private int fluidlogistics$cachedFluidX = 0;
-    
-    @Unique
-    private int fluidlogistics$cachedFluidY = 0;
 
     @Inject(
         method = "renderInputItem",
@@ -87,13 +87,11 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         fluidlogistics$isVirtualTank = false;
         fluidlogistics$cachedFluid = null;
 
-        if (itemStack.stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(itemStack.stack)) {
+        if (FluidGaugeHelper.isVirtualFluidFilter(itemStack.stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(itemStack.stack);
             if (!fluid.isEmpty()) {
                 fluidlogistics$isVirtualTank = true;
                 fluidlogistics$cachedFluid = fluid;
-                fluidlogistics$cachedFluidX = guiLeft + (restocker ? 88 : 68 + (slot % 3 * 20));
-                fluidlogistics$cachedFluidY = guiTop + (restocker ? 12 : 28) + (slot / 3 * 20);
             }
         }
     }
@@ -198,7 +196,185 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     }
 
     @Unique
-    private static final int fluidlogistics$MB_PER_0_1_BUCKET = 100;
+    private ScrollInput fluidlogistics$restockThresholdInput;
+
+    @Unique
+    private ScrollInput fluidlogistics$additionalStockInput;
+
+    @Unique
+    private ScrollInput fluidlogistics$promiseLimitInput;
+
+    @Unique
+    private boolean fluidlogistics$hasVirtualFluidFilter() {
+        return FluidGaugeHelper.isVirtualFluidFilter(behaviour.getFilter());
+    }
+
+    @Unique
+    private boolean fluidlogistics$hasFluidRestockThresholdControl() {
+        return restocker
+            && behaviour instanceof IFluidRestockThreshold
+            && fluidlogistics$hasVirtualFluidFilter();
+    }
+
+    @Unique
+    private boolean fluidlogistics$hasFluidPromiseLimitControl() {
+        return behaviour instanceof IFluidPromiseLimit
+            && fluidlogistics$hasVirtualFluidFilter();
+    }
+
+    @Unique
+    private boolean fluidlogistics$hasFluidAdditionalStockControl() {
+        return restocker
+            && behaviour instanceof IFluidAdditionalStock
+            && fluidlogistics$hasVirtualFluidFilter();
+    }
+
+    @Inject(
+        method = "init",
+        at = @At("RETURN"),
+        remap = false
+    )
+    private void fluidlogistics$initRestockThresholdInput(CallbackInfo ci) {
+        fluidlogistics$restockThresholdInput = null;
+        fluidlogistics$additionalStockInput = null;
+        fluidlogistics$promiseLimitInput = null;
+        if (!fluidlogistics$hasFluidRestockThresholdControl()
+            && !fluidlogistics$hasFluidAdditionalStockControl()
+            && !fluidlogistics$hasFluidPromiseLimitControl()) {
+            return;
+        }
+
+        int x = guiLeft;
+        int y = guiTop;
+        if (fluidlogistics$hasFluidRestockThresholdControl()) {
+            IFluidRestockThreshold thresholdData = (IFluidRestockThreshold) behaviour;
+
+            FluidAmountScrollInput thresholdInput = new FluidAmountScrollInput(x + 5, y + windowHeight - 24, 47, 16);
+            fluidlogistics$configureFluidAmountInput(thresholdInput, 0, false);
+            thresholdInput.withSecondaryHeader(() -> CreateLang.text(fluidlogistics$formatRestockThresholdTooltip(
+                fluidlogistics$restockThresholdInput == null ? 0 : fluidlogistics$restockThresholdInput.getState()))
+                .component());
+            fluidlogistics$restockThresholdInput =
+                thresholdInput.setState(thresholdData.fluidlogistics$getRestockThreshold());
+            fluidlogistics$updateRestockThresholdLabel();
+            addRenderableWidget(fluidlogistics$restockThresholdInput);
+        }
+
+        fluidlogistics$initAdditionalStockInput(x, y);
+        fluidlogistics$initPromiseLimitInput(x, y);
+        fluidlogistics$clearCalCompatibilityControls();
+    }
+
+    @Unique
+    private void fluidlogistics$initAdditionalStockInput(int x, int y) {
+        if (!fluidlogistics$hasFluidAdditionalStockControl()) {
+            return;
+        }
+
+        IFluidAdditionalStock additionalStockData = (IFluidAdditionalStock) behaviour;
+        FluidAmountScrollInput additionalInput = new FluidAmountScrollInput(x + 44 + fluidlogistics$BOTTOM_ROW_X_OFFSET,
+            y + windowHeight + 1, 36, 16);
+        fluidlogistics$configureFluidAmountInput(additionalInput, 0, false);
+        additionalInput.withSecondaryHeader(() -> CreateLang.text(fluidlogistics$formatAdditionalStockTooltip(
+            fluidlogistics$additionalStockInput == null ? 0 : fluidlogistics$additionalStockInput.getState()))
+            .component());
+        fluidlogistics$additionalStockInput = additionalInput.setState(additionalStockData.fluidlogistics$getAdditionalStock());
+        fluidlogistics$updateAdditionalStockLabel();
+        addRenderableWidget(fluidlogistics$additionalStockInput);
+    }
+
+    @Unique
+    private void fluidlogistics$initPromiseLimitInput(int x, int y) {
+        if (!fluidlogistics$hasFluidPromiseLimitControl()) {
+            return;
+        }
+
+        IFluidPromiseLimit promiseLimitData = (IFluidPromiseLimit) behaviour;
+        int promiseInputX = restocker ? x + 88 + fluidlogistics$BOTTOM_ROW_X_OFFSET : x + 5;
+        int promiseInputY = restocker ? y + windowHeight + 1 : y + windowHeight - 24;
+        int promiseInputWidth = restocker ? 56 : 47;
+        FluidAmountScrollInput promiseInput =
+            new FluidAmountScrollInput(promiseInputX, promiseInputY, promiseInputWidth, 16);
+        fluidlogistics$configureFluidAmountInput(promiseInput, -1, true);
+        promiseInput.withSecondaryHeader(() -> CreateLang.text(fluidlogistics$formatPromiseLimitTooltip(
+            fluidlogistics$promiseLimitInput == null ? -1 : fluidlogistics$promiseLimitInput.getState()))
+            .component());
+        fluidlogistics$promiseLimitInput = promiseInput.setState(promiseLimitData.fluidlogistics$getPromiseLimit());
+        fluidlogistics$updatePromiseLimitLabel();
+        addRenderableWidget(fluidlogistics$promiseLimitInput);
+    }
+
+    @Unique
+    private void fluidlogistics$configureFluidAmountInput(FluidAmountScrollInput input, int minValue,
+        boolean allowUnlimited) {
+        input.withRange(minValue, FluidGaugeHelper.MAX_FLUID_AMOUNT + 1)
+            .withShiftStep(1)
+            .withStepFunction(context -> {
+                if (allowUnlimited && context.currentValue < 0) {
+                    return 1;
+                }
+
+                int next = FluidAmountHelper.adjustFactoryGaugeAmount(context.currentValue, context.forward,
+                    context.shift, context.control, 0, FluidGaugeHelper.MAX_FLUID_AMOUNT);
+                return Math.max(1, Math.abs(next - context.currentValue));
+            });
+    }
+
+    @Unique
+    private void fluidlogistics$updateRestockThresholdLabel() {
+        if (fluidlogistics$restockThresholdInput == null) {
+            return;
+        }
+
+        fluidlogistics$restockThresholdInput.titled(
+            CreateLang.translateDirect("fluidlogistics.gauge.restock_threshold")
+        );
+    }
+
+    @Unique
+    private void fluidlogistics$updatePromiseLimitLabel() {
+        if (fluidlogistics$promiseLimitInput == null) {
+            return;
+        }
+
+        String key = fluidlogistics$promiseLimitInput.getState() < 0
+            ? "fluidlogistics.gauge.promise_limit.none"
+            : "fluidlogistics.gauge.promise_limit";
+        fluidlogistics$promiseLimitInput.titled(CreateLang.translateDirect(key));
+    }
+
+    @Unique
+    private void fluidlogistics$updateAdditionalStockLabel() {
+        if (fluidlogistics$additionalStockInput == null) {
+            return;
+        }
+
+        String key = fluidlogistics$additionalStockInput.getState() <= 0
+            ? "fluidlogistics.gauge.request_additional.none"
+            : "fluidlogistics.gauge.request_additional";
+        fluidlogistics$additionalStockInput.titled(CreateLang.translateDirect(key));
+    }
+
+    @Inject(
+        method = "tick",
+        at = @At("RETURN"),
+        remap = false
+    )
+    private void fluidlogistics$tickRestockThresholdInput(CallbackInfo ci) {
+        fluidlogistics$updateRestockThresholdLabel();
+        fluidlogistics$updateAdditionalStockLabel();
+        fluidlogistics$updatePromiseLimitLabel();
+    }
+
+    @Inject(
+        method = "renderWindow",
+        at = @At("HEAD"),
+        remap = false
+    )
+    private void fluidlogistics$beforeRenderWindow(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks,
+            CallbackInfo ci) {
+        fluidlogistics$clearCalCompatibilityControls();
+    }
 
     @Redirect(
         method = "mouseScrolled",
@@ -211,49 +387,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     )
     private int fluidlogistics$redirectClamp(int value, int min, int max,
             @Local BigItemStack itemStack) {
-        if (itemStack.stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(itemStack.stack)) {
+        if (FluidGaugeHelper.isVirtualFluidFilter(itemStack.stack)) {
             FactoryPanelScreen self = (FactoryPanelScreen) (Object) this;
-            int currentAmount = itemStack.count;
-            
-            boolean useBuckets = currentAmount >= fluidlogistics$MB_PER_BUCKET;
-            int delta;
-            
-            if (useBuckets) {
-                int bucketDelta;
-                if (self.hasControlDown()) {
-                    bucketDelta = 100;
-                } else if (self.hasShiftDown()) {
-                    bucketDelta = 10;
-                } else {
-                    bucketDelta = 1;
-                }
-                delta = bucketDelta * fluidlogistics$MB_PER_BUCKET;
-            } else {
-                if (self.hasControlDown()) {
-                    delta = 100;
-                } else if (self.hasShiftDown()) {
-                    delta = 10;
-                } else {
-                    delta = 1;
-                }
-            }
-            
-            int scrollDirection = (int) Math.signum(value - itemStack.count);
-            int newAmount = currentAmount + scrollDirection * delta;
-            
-            if (scrollDirection > 0) {
-                if (currentAmount < fluidlogistics$MB_PER_0_1_BUCKET && newAmount >= fluidlogistics$MB_PER_0_1_BUCKET && newAmount < fluidlogistics$MB_PER_BUCKET) {
-                    newAmount = fluidlogistics$MB_PER_0_1_BUCKET;
-                } else if (currentAmount < fluidlogistics$MB_PER_BUCKET && newAmount >= fluidlogistics$MB_PER_BUCKET) {
-                    newAmount = fluidlogistics$MB_PER_BUCKET;
-                }
-            } else if (scrollDirection < 0) {
-                if (currentAmount >= fluidlogistics$MB_PER_BUCKET && newAmount < fluidlogistics$MB_PER_BUCKET && newAmount >= fluidlogistics$MB_PER_0_1_BUCKET) {
-                    newAmount = fluidlogistics$MB_PER_0_1_BUCKET;
-                }
-            }
-            
-            return Mth.clamp(newAmount, 1, fluidlogistics$MAX_BUCKETS * fluidlogistics$MB_PER_BUCKET);
+            return FluidAmountHelper.adjustFactoryGaugeAmount(itemStack.count, value > itemStack.count, self.hasShiftDown(),
+                self.hasControlDown(), 1, FluidGaugeHelper.MAX_FLUID_AMOUNT);
         }
         return Mth.clamp(value, min, max);
     }
@@ -463,6 +600,191 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             CallbackInfo ci) {
         for (FluidRenderEntry entry : fluidlogistics$pendingFluidRenders) {
             FluidSlotRenderer.renderFluidSlot(graphics, entry.x, entry.y, entry.fluid);
+        }
+    }
+
+    @Inject(
+        method = "renderWindow",
+        at = @At("RETURN"),
+        remap = false
+    )
+    private void fluidlogistics$renderRestockThresholdControl(GuiGraphics graphics, int mouseX, int mouseY,
+            float partialTicks, CallbackInfo ci) {
+        if (fluidlogistics$restockThresholdInput == null) {
+            if (fluidlogistics$additionalStockInput == null && fluidlogistics$promiseLimitInput == null) {
+                return;
+            }
+        }
+
+        if (fluidlogistics$restockThresholdInput != null) {
+            FluidLogisticsGuiTextures.ADDITIONAL_STOCK_BG.render(graphics, fluidlogistics$restockThresholdInput.getX() + 11,
+                fluidlogistics$restockThresholdInput.getY() - 1);
+            String label = " " + fluidlogistics$formatRestockThreshold(fluidlogistics$restockThresholdInput.getState());
+            graphics.drawString(font, CreateLang.text(label).component(), fluidlogistics$restockThresholdInput.getX() + 15,
+                fluidlogistics$restockThresholdInput.getY() + 4, 0xffeeeeee, true);
+        }
+
+        if (fluidlogistics$promiseLimitInput != null) {
+            if (restocker) {
+                FluidLogisticsGuiTextures.PROMISE_LIMIT_BG.render(graphics, fluidlogistics$promiseLimitInput.getX() - 8,
+                    fluidlogistics$promiseLimitInput.getY() - 4);
+            } else {
+                FluidLogisticsGuiTextures.ADDITIONAL_STOCK_BG.render(graphics, fluidlogistics$promiseLimitInput.getX() + 11,
+                    fluidlogistics$promiseLimitInput.getY() - 1);
+            }
+            String label = fluidlogistics$promiseLimitInput.getState() < 0 ? " ---"
+                : " " + fluidlogistics$formatPromiseLimit(fluidlogistics$promiseLimitInput.getState());
+            int promiseLabelX = fluidlogistics$promiseLimitInput.getX() + (restocker ? 3 : 15);
+            graphics.drawString(font, CreateLang.text(label).component(), promiseLabelX,
+                fluidlogistics$promiseLimitInput.getY() + 4, 0xffeeeeee, true);
+        }
+
+        if (fluidlogistics$additionalStockInput != null) {
+            FluidLogisticsGuiTextures.ADDITIONAL_STOCK_LEFT_BG.render(graphics, fluidlogistics$additionalStockInput.getX() - 1,
+                fluidlogistics$additionalStockInput.getY() - 4);
+            String label = " " + fluidlogistics$formatAdditionalStock(fluidlogistics$additionalStockInput.getState());
+            graphics.drawString(font, CreateLang.text(label).component(), fluidlogistics$additionalStockInput.getX() + 8,
+                fluidlogistics$additionalStockInput.getY() + 4, 0xffeeeeee, true);
+        }
+    }
+
+    @Inject(
+        method = "sendIt",
+        at = @At("RETURN"),
+        remap = false
+    )
+    private void fluidlogistics$sendRestockThreshold(CallbackInfo ci) {
+        if (!(behaviour instanceof IFluidRestockThreshold) || fluidlogistics$restockThresholdInput == null) {
+            if (!(behaviour instanceof IFluidPromiseLimit) || fluidlogistics$promiseLimitInput == null) {
+                if (!(behaviour instanceof IFluidAdditionalStock) || fluidlogistics$additionalStockInput == null) {
+                    return;
+                }
+            }
+        }
+
+        if (fluidlogistics$additionalStockInput != null) {
+            CatnipServices.NETWORK.sendToServer(new FactoryPanelSetFluidAdditionalStockPacket(
+                behaviour.getPanelPosition(),
+                fluidlogistics$additionalStockInput.getState()
+            ));
+        }
+
+        if (fluidlogistics$restockThresholdInput != null) {
+            CatnipServices.NETWORK.sendToServer(new FactoryPanelSetFluidRestockThresholdPacket(
+                behaviour.getPanelPosition(),
+                fluidlogistics$restockThresholdInput.getState()
+            ));
+        }
+
+        if (fluidlogistics$promiseLimitInput != null) {
+            CatnipServices.NETWORK.sendToServer(new FactoryPanelSetFluidPromiseLimitPacket(
+                behaviour.getPanelPosition(),
+                fluidlogistics$promiseLimitInput.getState()
+            ));
+        }
+    }
+
+    @Unique
+    private static String fluidlogistics$formatAdditionalStock(int amount) {
+        if (amount <= 0) {
+            return "---";
+        }
+        return FluidAmountHelper.format(amount);
+    }
+
+    @Unique
+    private static String fluidlogistics$formatAdditionalStockTooltip(int amount) {
+        if (amount <= 0) {
+            return "---";
+        }
+        return fluidlogistics$formatThresholdDisplay(amount);
+    }
+
+    @Unique
+    private void fluidlogistics$clearCalCompatibilityControls() {
+        boolean hasAdditionalStockControl = fluidlogistics$hasFluidAdditionalStockControl();
+        boolean hasPromiseLimitControl = fluidlogistics$hasFluidPromiseLimitControl();
+        if (!hasAdditionalStockControl && !hasPromiseLimitControl) {
+            return;
+        }
+
+        if (hasAdditionalStockControl) {
+            fluidlogistics$clearOptionalScrollInputField("CAL$requestAdditional");
+        }
+        if (hasPromiseLimitControl) {
+            fluidlogistics$clearOptionalScrollInputField("CAL$promiseLimit");
+        }
+    }
+
+    @Unique
+    private static String fluidlogistics$formatRestockThreshold(int threshold) {
+        if (threshold <= 0) {
+            return "---";
+        }
+        return FluidAmountHelper.format(threshold);
+    }
+
+    @Unique
+    private static String fluidlogistics$formatPromiseLimit(int threshold) {
+        return FluidAmountHelper.format(threshold);
+    }
+
+    @Unique
+    private static String fluidlogistics$formatRestockThresholdTooltip(int threshold) {
+        if (threshold <= 0) {
+            return "---";
+        }
+        return fluidlogistics$formatThresholdDisplay(threshold);
+    }
+
+    @Unique
+    private static String fluidlogistics$formatPromiseLimitTooltip(int threshold) {
+        if (threshold < 0) {
+            return "---";
+        }
+        return fluidlogistics$formatPromiseLimitDisplay(threshold);
+    }
+
+    @Unique
+    private static String fluidlogistics$formatPromiseLimitDisplay(int threshold) {
+        return "x" + FluidAmountHelper.formatPrecise(threshold);
+    }
+
+    @Unique
+    private static String fluidlogistics$formatThresholdDisplay(int threshold) {
+        return "x" + FluidAmountHelper.formatPrecise(threshold);
+    }
+
+    @Unique
+    private void fluidlogistics$clearOptionalScrollInputField(String fieldName) {
+        ScrollInput widget = fluidlogistics$getOptionalScrollInputField(fieldName);
+        if (widget == null) {
+            return;
+        }
+
+        removeWidget(widget);
+        fluidlogistics$setOptionalScrollInputField(fieldName, null);
+    }
+
+    @Unique
+    private ScrollInput fluidlogistics$getOptionalScrollInputField(String fieldName) {
+        try {
+            java.lang.reflect.Field field = ((Object) this).getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            Object value = field.get(this);
+            return value instanceof ScrollInput scrollInput ? scrollInput : null;
+        } catch (ReflectiveOperationException e) {
+            return null;
+        }
+    }
+
+    @Unique
+    private void fluidlogistics$setOptionalScrollInputField(String fieldName, ScrollInput value) {
+        try {
+            java.lang.reflect.Field field = ((Object) this).getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(this, value);
+        } catch (ReflectiveOperationException e) {
         }
     }
 }

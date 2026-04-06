@@ -13,6 +13,9 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 public enum FluidLogisticsPackets implements BasePacketPayload.PacketTypeProvider {
     CLIPBOARD_SET_ADDRESS(ClipboardSetAddressPacket.class, ClipboardSetAddressPacket.STREAM_CODEC),
     FACTORY_PANEL_SET_FLUID_FILTER(FactoryPanelSetFluidFilterPacket.class, FactoryPanelSetFluidFilterPacket.STREAM_CODEC),
+    FACTORY_PANEL_SET_FLUID_ADDITIONAL_STOCK(FactoryPanelSetFluidAdditionalStockPacket.class, FactoryPanelSetFluidAdditionalStockPacket.STREAM_CODEC),
+    FACTORY_PANEL_SET_FLUID_PROMISE_LIMIT(FactoryPanelSetFluidPromiseLimitPacket.class, FactoryPanelSetFluidPromiseLimitPacket.STREAM_CODEC),
+    FACTORY_PANEL_SET_FLUID_RESTOCK_THRESHOLD(FactoryPanelSetFluidRestockThresholdPacket.class, FactoryPanelSetFluidRestockThresholdPacket.STREAM_CODEC),
     HAND_POINTER_FROGPORT_CONNECTION(HandPointerFrogportConnectionPacket.class, HandPointerFrogportConnectionPacket.STREAM_CODEC),
     HAND_POINTER_MAILBOX_STATION_CONNECTION(HandPointerMailboxStationConnectionPacket.class, HandPointerMailboxStationConnectionPacket.STREAM_CODEC),
     HAND_POINTER_LOGISTICS_NETWORK(HandPointerLogisticsNetworkPacket.class, HandPointerLogisticsNetworkPacket.STREAM_CODEC),

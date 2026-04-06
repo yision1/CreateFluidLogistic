@@ -12,11 +12,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition;
+import com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour.RequestType;
@@ -27,7 +27,11 @@ import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBehavio
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.api.IFluidPackager;
+import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.util.FluidGaugeHelper;
+import com.yision.fluidlogistics.util.IFluidPromiseLimit;
+import com.yision.fluidlogistics.util.IFluidRestockThreshold;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -39,6 +43,15 @@ import net.neoforged.neoforge.fluids.FluidStack;
 
 @Mixin(FactoryPanelBehaviour.class)
 public abstract class FactoryPanelBehaviourMixin {
+
+    @Unique
+    private static final String fluidlogistics$CAL_PROMISE_LIMIT_FIELD = "CAL$promiseLimit";
+
+    @Unique
+    private static final String fluidlogistics$CAL_ADDITIONAL_STOCK_FIELD = "CAL$AdditionalStock";
+
+    @Unique
+    private static final String fluidlogistics$CAL_REMAINING_ADDITIONAL_FIELD = "CAL$RemainingAdditional";
 
     @Shadow(remap = false)
     public boolean satisfied;
@@ -69,8 +82,82 @@ public abstract class FactoryPanelBehaviourMixin {
     }
 
     @Unique
-    private static boolean fluidlogistics$isVirtualTank(ItemStack filter) {
-        return filter.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(filter);
+    private void fluidlogistics$disableCalFactoryPanelState() {
+        FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
+        if (!FluidGaugeHelper.isVirtualFluidFilter(self)) {
+            return;
+        }
+
+        fluidlogistics$setOptionalIntField(fluidlogistics$CAL_PROMISE_LIMIT_FIELD, -1);
+        fluidlogistics$setOptionalIntField(fluidlogistics$CAL_ADDITIONAL_STOCK_FIELD, 0);
+        fluidlogistics$setOptionalIntField(fluidlogistics$CAL_REMAINING_ADDITIONAL_FIELD, 0);
+    }
+
+    @Unique
+    private void fluidlogistics$setOptionalIntField(String fieldName, int value) {
+        try {
+            java.lang.reflect.Field field = FactoryPanelBehaviour.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.setInt(this, value);
+        } catch (ReflectiveOperationException e) {
+        }
+    }
+
+    @Inject(
+        method = "read",
+        at = @At("RETURN"),
+        remap = false
+    )
+    private void fluidlogistics$clearCalStateAfterRead(net.minecraft.nbt.CompoundTag nbt,
+            net.minecraft.core.HolderLookup.Provider registries, boolean clientPacket, CallbackInfo ci) {
+        fluidlogistics$disableCalFactoryPanelState();
+    }
+
+    @Inject(
+        method = "write",
+        at = @At("HEAD"),
+        remap = false
+    )
+    private void fluidlogistics$clearCalStateBeforeWrite(net.minecraft.nbt.CompoundTag nbt,
+            net.minecraft.core.HolderLookup.Provider registries, boolean clientPacket, CallbackInfo ci) {
+        fluidlogistics$disableCalFactoryPanelState();
+    }
+
+    @Inject(
+        method = "writeSafe",
+        at = @At("HEAD"),
+        remap = false
+    )
+    private void fluidlogistics$clearCalStateBeforeWriteSafe(net.minecraft.nbt.CompoundTag nbt,
+            net.minecraft.core.HolderLookup.Provider registries, CallbackInfo ci) {
+        fluidlogistics$disableCalFactoryPanelState();
+    }
+
+    @Inject(
+        method = "tickStorageMonitor",
+        at = @At("HEAD"),
+        remap = false
+    )
+    private void fluidlogistics$clearCalStateBeforeStorageTick(CallbackInfo ci) {
+        fluidlogistics$disableCalFactoryPanelState();
+    }
+
+    @Inject(
+        method = "tickRequests",
+        at = @At("HEAD"),
+        remap = false
+    )
+    private void fluidlogistics$clearCalStateBeforeRequestTick(CallbackInfo ci) {
+        fluidlogistics$disableCalFactoryPanelState();
+    }
+
+    @Inject(
+        method = "tryRestock",
+        at = @At("HEAD"),
+        remap = false
+    )
+    private void fluidlogistics$clearCalStateBeforeRestock(CallbackInfo ci) {
+        fluidlogistics$disableCalFactoryPanelState();
     }
 
     @Inject(
@@ -83,7 +170,7 @@ public abstract class FactoryPanelBehaviourMixin {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         FactoryPanelBlockEntity panelBE = self.panelBE();
         
-        IFluidPackager fluidPackager = fluidlogistics$getFluidPackager(panelBE);
+        IFluidPackager fluidPackager = FluidGaugeHelper.getFluidPackager(panelBE);
         if (fluidPackager == null) {
             return;
         }
@@ -105,7 +192,7 @@ public abstract class FactoryPanelBehaviourMixin {
             return;
         }
         
-        IFluidPackager fluidPackager = fluidlogistics$getFluidPackager(panelBE);
+        IFluidPackager fluidPackager = FluidGaugeHelper.getFluidPackager(panelBE);
         if (fluidPackager != null) {
             cir.setReturnValue(0);
         }
@@ -126,7 +213,7 @@ public abstract class FactoryPanelBehaviourMixin {
             return;
         }
         
-        IFluidPackager fluidPackager = fluidlogistics$getFluidPackager(panelBE);
+        IFluidPackager fluidPackager = FluidGaugeHelper.getFluidPackager(panelBE);
         if (fluidPackager == null) {
             return;
         }
@@ -136,9 +223,22 @@ public abstract class FactoryPanelBehaviourMixin {
             return;
         }
         
-        com.simibubi.create.content.logistics.packager.IdentifiedInventory identifiedInventory = 
+        int inStorage = self.getLevelInStorage();
+        int promised = self.getPromised();
+        int demand = FluidGaugeHelper.getRestockDemand(self);
+        int shortage = demand - promised - inStorage;
+
+        int threshold = FluidGaugeHelper.getEffectiveRestockThreshold(
+            self instanceof IFluidRestockThreshold thresholdData ? thresholdData : null);
+
+        if (shortage < threshold) {
+            ci.cancel();
+            return;
+        }
+
+        com.simibubi.create.content.logistics.packager.IdentifiedInventory identifiedInventory =
             fluidPackager.getIdentifiedInventory();
-        
+
         int availableOnNetwork = LogisticsManager.getStockOf(network, item, identifiedInventory);
         if (availableOnNetwork == 0) {
             sendEffect(self.getPanelPosition(), false);
@@ -146,18 +246,21 @@ public abstract class FactoryPanelBehaviourMixin {
             return;
         }
         
-        int inStorage = self.getLevelInStorage();
-        int promised = self.getPromised();
-        
         int maxPackageContent;
-        if (fluidlogistics$isVirtualTank(item)) {
-            maxPackageContent = CompressedTankItem.getCapacity() * 9;
+        if (FluidGaugeHelper.isVirtualFluidFilter(item)) {
+            maxPackageContent = Config.getFluidPerPackage();
         } else {
             maxPackageContent = item.getMaxStackSize() * 9;
         }
-        
-        int demand = self.getAmount();
-        int amountToOrder = Math.clamp(demand - promised - inStorage, 0, maxPackageContent);
+
+        int amountToOrder = Math.clamp(shortage, 0, maxPackageContent);
+        if (self instanceof IFluidPromiseLimit promiseLimitData && promiseLimitData.fluidlogistics$hasPromiseLimit()) {
+            amountToOrder = Math.min(amountToOrder, promiseLimitData.fluidlogistics$getPromiseLimit() - promised);
+        }
+        if (amountToOrder <= 0) {
+            ci.cancel();
+            return;
+        }
         
         BigItemStack orderedItem = new BigItemStack(item, Math.min(amountToOrder, availableOnNetwork));
         PackageOrderWithCrafts order = PackageOrderWithCrafts.simple(List.of(orderedItem));
@@ -174,32 +277,6 @@ public abstract class FactoryPanelBehaviourMixin {
         ci.cancel();
     }
 
-    @Unique
-    @org.jetbrains.annotations.Nullable
-    private static IFluidPackager fluidlogistics$getFluidPackager(FactoryPanelBlockEntity panelBE) {
-        if (panelBE.getLevel() == null) {
-            return null;
-        }
-        
-        net.minecraft.world.level.block.state.BlockState state = panelBE.getBlockState();
-        if (!com.simibubi.create.AllBlocks.FACTORY_GAUGE.has(state)) {
-            return null;
-        }
-        
-        net.minecraft.core.BlockPos packagerPos = panelBE.getBlockPos().relative(
-            com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlock.connectedDirection(state).getOpposite());
-        
-        if (!panelBE.getLevel().isLoaded(packagerPos)) {
-            return null;
-        }
-        
-        net.minecraft.world.level.block.entity.BlockEntity be = panelBE.getLevel().getBlockEntity(packagerPos);
-        if (be instanceof IFluidPackager fluidPackager) {
-            return fluidPackager;
-        }
-        return null;
-    }
-
     @Inject(
         method = "createBoard",
         at = @At("RETURN"),
@@ -210,7 +287,7 @@ public abstract class FactoryPanelBehaviourMixin {
             CallbackInfoReturnable<ValueSettingsBoard> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (fluidlogistics$isVirtualTank(filter)) {
+        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
             ValueSettingsBoard original = cir.getReturnValue();
             ValueSettingsBoard fluidBoard = new ValueSettingsBoard(
                 CreateLang.translate("factory_panel.target_amount").component(),
@@ -236,7 +313,7 @@ public abstract class FactoryPanelBehaviourMixin {
             CallbackInfoReturnable<MutableComponent> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (fluidlogistics$isVirtualTank(filter)) {
+        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
             if (value.value() == 0) {
                 if (value.row() == 1) {
                     cir.setReturnValue(Component.literal("1B"));
@@ -244,7 +321,9 @@ public abstract class FactoryPanelBehaviourMixin {
                     cir.setReturnValue(CreateLang.translateDirect("gui.factory_panel.inactive"));
                 }
             } else {
-                int displayValue = Math.max(0, value.value()) * 10;
+                int displayValue = value.row() == 1
+                    ? Math.min(100, Math.max(1, value.value()))
+                    : Math.max(0, value.value()) * 10;
                 boolean useBuckets = value.row() == 1;
                 String unit = useBuckets ? "B" : "mB";
                 cir.setReturnValue(Component.literal(displayValue + unit));
@@ -267,7 +346,7 @@ public abstract class FactoryPanelBehaviourMixin {
             boolean ctrlDown, CallbackInfo ci) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (fluidlogistics$isVirtualTank(filter)) {
+        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
             fluidlogistics$needsConversion.set(true);
             fluidlogistics$useBucketsMode.set(settings.row() == 1);
         } else {
@@ -288,10 +367,11 @@ public abstract class FactoryPanelBehaviourMixin {
     private int fluidlogistics$modifySettingsValue(int original) {
         if (fluidlogistics$needsConversion.get()) {
             if (fluidlogistics$useBucketsMode.get()) {
-                if (original == 0) {
+                int clampedBuckets = Math.clamp(original, 0, 100);
+                if (clampedBuckets == 0) {
                     return 1000;
                 }
-                return original * 10 * 1000;
+                return clampedBuckets * 1000;
             } else {
                 return original * 10;
             }
@@ -308,13 +388,13 @@ public abstract class FactoryPanelBehaviourMixin {
     private void fluidlogistics$onGetValueSettings(CallbackInfoReturnable<ValueSettingsBehaviour.ValueSettings> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (fluidlogistics$isVirtualTank(filter)) {
+        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
             int count = self.getAmount();
             boolean upTo = self.upTo;
             boolean useBuckets = count >= 1000;
             int displayValue;
             if (useBuckets) {
-                displayValue = (count / 1000) / 10;
+                displayValue = count <= 1000 ? 0 : Math.clamp(count / 1000, 0, 100);
             } else {
                 displayValue = count / 10;
             }
@@ -331,7 +411,7 @@ public abstract class FactoryPanelBehaviourMixin {
     private void fluidlogistics$onGetCountLabelForValueBox(CallbackInfoReturnable<MutableComponent> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (!fluidlogistics$isVirtualTank(filter)) {
+        if (!FluidGaugeHelper.isVirtualFluidFilter(filter)) {
             return;
         }
         
@@ -403,7 +483,7 @@ public abstract class FactoryPanelBehaviourMixin {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
         
-        if (!fluidlogistics$isVirtualTank(filter)) {
+        if (!FluidGaugeHelper.isVirtualFluidFilter(filter)) {
             return;
         }
         
@@ -446,5 +526,39 @@ public abstract class FactoryPanelBehaviourMixin {
         }
         
         cir.setReturnValue(CreateLang.text(fluidName).component());
+    }
+
+    @Inject(
+        method = "getFrogAddress",
+        at = @At("RETURN"),
+        cancellable = true,
+        remap = false
+    )
+    private void fluidlogistics$getFluidFrogAddress(CallbackInfoReturnable<String> cir) {
+        if (cir.getReturnValue() != null) {
+            return;
+        }
+        
+        FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
+        FactoryPanelBlockEntity panelBE = self.panelBE();
+        
+        if (!panelBE.restocker) {
+            return;
+        }
+        
+        IFluidPackager fluidPackager = FluidGaugeHelper.getFluidPackager(panelBE);
+        if (fluidPackager == null) {
+            return;
+        }
+        
+        if (!(fluidPackager instanceof net.minecraft.world.level.block.entity.BlockEntity be)) {
+            return;
+        }
+        
+        if (be.getLevel().getBlockEntity(be.getBlockPos().above()) instanceof FrogportBlockEntity fpbe) {
+            if (fpbe.addressFilter != null && !fpbe.addressFilter.isBlank()) {
+                cir.setReturnValue(fpbe.addressFilter + "");
+            }
+        }
     }
 }

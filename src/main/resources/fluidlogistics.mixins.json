@@ -11,6 +11,7 @@
         "logistics.FactoryPanelBehaviourAccessorMixin",
         "logistics.FactoryPanelBehaviourLegacyLinkCleanupMixin",
         "logistics.FactoryPanelBehaviourMixin",
+        "logistics.FactoryPanelRestockThresholdMixin",
         "logistics.FactoryPanelBlockEntityMixin",
         "logistics.FluidPackagerBlockEntityMixin",
         "logistics.FrogportBlockEntityMixin",
