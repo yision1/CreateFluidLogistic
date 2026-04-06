@@ -39,6 +39,7 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
@@ -106,23 +107,36 @@ public class FluidLogistics {
     }
 
     private void hideDisabledItems(final BuildCreativeModeTabContentsEvent event) {
-        if (FeatureToggle.isEnabled(FeatureToggle.FLUID_TRANSPORTER)) {
-            return;
-        }
         if (!Objects.equals(event.getTabKey(), FLUID_LOGISTICS_TAB) && !Objects.equals(event.getTabKey(), CreativeModeTabs.SEARCH)) {
             return;
         }
 
-        ItemStack hiddenItem = event.getSearchEntries().stream()
-                .filter(stack -> stack.getItem() == AllBlocks.FLUID_TRANSPORTER.asItem())
-                .findFirst()
-                .orElseGet(() -> event.getParentEntries().stream()
-                        .filter(stack -> stack.getItem() == AllBlocks.FLUID_TRANSPORTER.asItem())
-                        .findFirst()
-                        .orElse(ItemStack.EMPTY));
+        if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_TRANSPORTER)) {
+            ItemStack hiddenItem = event.getSearchEntries().stream()
+                    .filter(stack -> stack.getItem() == AllBlocks.FLUID_TRANSPORTER.asItem())
+                    .findFirst()
+                    .orElseGet(() -> event.getParentEntries().stream()
+                            .filter(stack -> stack.getItem() == AllBlocks.FLUID_TRANSPORTER.asItem())
+                            .findFirst()
+                            .orElse(ItemStack.EMPTY));
 
-        if (!hiddenItem.isEmpty()) {
-            event.remove(hiddenItem, CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+            if (!hiddenItem.isEmpty()) {
+                event.remove(hiddenItem, CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+            }
+        }
+
+        if (!ModList.get().isLoaded("create_mobile_packages") && !ModList.get().isLoaded("cmpackagecouriers")) {
+            ItemStack tickerItem = event.getSearchEntries().stream()
+                    .filter(stack -> stack.getItem() == AllItems.PORTABLE_STOCK_TICKER.asItem())
+                    .findFirst()
+                    .orElseGet(() -> event.getParentEntries().stream()
+                            .filter(stack -> stack.getItem() == AllItems.PORTABLE_STOCK_TICKER.asItem())
+                            .findFirst()
+                            .orElse(ItemStack.EMPTY));
+
+            if (!tickerItem.isEmpty()) {
+                event.remove(tickerItem, CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
+            }
         }
     }
 

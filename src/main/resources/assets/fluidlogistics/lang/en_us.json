@@ -41,7 +41,7 @@
   "create.fluidlogistics.gauge.promise_limit.none": "Promised fluid is not limited",
   "create.fluidlogistics.gauge.request_additional": "When restocking, request this much additional fluid",
   "create.fluidlogistics.gauge.request_additional.none": "When restocking, no additional fluid is requested",
-  "create.fluidlogistics.gauge.restock_threshold": "Restock when the missing amount reaches",
+  "create.fluidlogistics.gauge.restock_threshold": "Minimum single fluid replenishment quantity",
   "fluidlogistics.configuration.title": "Fluid Logistics Configuration",
   "fluidlogistics.configuration.section.fluidlogistics.common.toml": "Fluid Logistics Configuration",
   "fluidlogistics.configuration.section.fluidlogistics.common.toml.title": "Fluid Logistics Configuration",

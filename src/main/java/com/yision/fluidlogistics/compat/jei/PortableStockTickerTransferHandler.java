@@ -74,6 +74,10 @@ public class PortableStockTickerTransferHandler implements IUniversalRecipeTrans
         }
 
         Recipe<?> recipe = recipeHolder.value();
+
+        if (recipe.getIngredients().size() > 9)
+            return RecipeTransferErrorInternal.INSTANCE;
+
         if (screen.hasRecipeEntry(recipe)) {
             return new RecipeTransferErrorTooltip(
                     CreateLang.translate("gui.stock_keeper.already_ordering_recipe").component());

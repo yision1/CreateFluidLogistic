@@ -16,7 +16,6 @@ import org.lwjgl.glfw.GLFW;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.simibubi.create.compat.jei.CreateJEI;
 import com.simibubi.create.content.logistics.AddressEditBox;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelScreen;
@@ -28,17 +27,16 @@ import com.simibubi.create.content.trains.station.NoShadowFontWrapper;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.client.JechSearchBridge;
+import com.yision.fluidlogistics.client.JeiClientBridge;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.item.PortableStockTickerItem;
 import com.yision.fluidlogistics.network.PortableStockTickerHiddenCategoriesPacket;
 import com.yision.fluidlogistics.network.PortableStockTickerOrderRequestPacket;
 import com.yision.fluidlogistics.network.PortableStockTickerSaveAddressPacket;
+import com.yision.fluidlogistics.registry.AllDataComponents;
 import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
 import com.yision.fluidlogistics.render.FluidSlotRenderer;
-
-import mezz.jei.api.ingredients.IIngredientRenderer;
-import mezz.jei.api.ingredients.ITypedIngredient;
-import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.createmod.catnip.animation.LerpedFloat;
 import net.createmod.catnip.animation.LerpedFloat.Chaser;
 import net.createmod.catnip.data.Couple;
@@ -327,19 +325,23 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
 
     private boolean matchesSearch(ItemStack stack, String search, boolean modSearch, boolean tagSearch) {
         if (modSearch) {
-            return BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace().contains(search);
+            return JechSearchBridge.containsIgnoreCase(BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace(),
+                    search);
         }
         if (tagSearch) {
-            return stack.getTags().anyMatch(key -> key.location().toString().contains(search));
+            return stack.getTags()
+                    .anyMatch(key -> JechSearchBridge.containsIgnoreCase(key.location().toString(), search));
         }
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(stack);
-            if (!fluid.isEmpty() && fluid.getHoverName().getString().toLowerCase(Locale.ROOT).contains(search)) {
+            if (!fluid.isEmpty()
+                    && JechSearchBridge.containsIgnoreCase(fluid.getHoverName().getString(), search)) {
                 return true;
             }
         }
-        return stack.getHoverName().getString().toLowerCase(Locale.ROOT).contains(search)
-                || BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath().contains(search);
+        return JechSearchBridge.containsIgnoreCase(stack.getHoverName().getString(), search)
+                || JechSearchBridge.containsIgnoreCase(BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath(),
+                        search);
     }
 
     @Override
@@ -373,7 +375,7 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
         ms.pushPose();
         ms.translate(x - 50, y + windowHeight - 70, -100);
         ms.scale(3.5f, 3.5f, 3.5f);
-        ItemStack tickerStack = menu.getTickerStack();
+        ItemStack tickerStack = getTickerDisplayStack();
         if (!tickerStack.isEmpty()) {
             GuiGameElement.of(tickerStack).render(graphics);
         }
@@ -461,6 +463,26 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
             }
         }
 
+        int itemWindowX = x + 21;
+        int itemWindowX2 = itemWindowX + 184;
+        int itemWindowY = y + 17;
+        int itemWindowY2 = y + windowHeight - 80;
+
+        graphics.enableScissor(itemWindowX - 5, itemWindowY, itemWindowX2 + 10, itemWindowY2);
+        ms.pushPose();
+        ms.translate(0, -currentScroll * rowHeight, 0);
+
+        for (int sliceY = -2; sliceY < getMaxScroll() * rowHeight + windowHeight - 72;
+                sliceY += AllGuiTextures.STOCK_KEEPER_REQUEST_BG.getHeight()) {
+            if (sliceY - currentScroll * rowHeight < -20) {
+                continue;
+            }
+            if (sliceY - currentScroll * rowHeight > windowHeight - 72) {
+                continue;
+            }
+            AllGuiTextures.STOCK_KEEPER_REQUEST_BG.render(graphics, x + 22, y + sliceY + 18);
+        }
+
         AllGuiTextures.STOCK_KEEPER_REQUEST_SEARCH.render(graphics, x + 42, searchBox.getY() - 5);
         searchBox.render(graphics, mouseX, mouseY, partialTicks);
         if (searchBox.getValue().isBlank() && !searchBox.isFocused()) {
@@ -488,9 +510,6 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
             }
         }
 
-        graphics.enableScissor(x, y + 16, x + windowWidth, y + windowHeight - 80);
-        ms.pushPose();
-        ms.translate(0, -currentScroll * rowHeight, 0);
         for (int categoryIndex = 0; categoryIndex < displayedItems.size(); categoryIndex++) {
             List<BigItemStack> category = displayedItems.get(categoryIndex);
             if (category.isEmpty()) {
@@ -568,7 +587,7 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
         ItemStack stack = entry.stack;
         if (recipeHovered) {
             ArrayList<Component> lines = stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)
-                    ? new ArrayList<>(getFluidTooltipLines(CompressedTankItem.getFluid(stack)))
+                    ? new ArrayList<>(JeiClientBridge.getFluidTooltipLines(CompressedTankItem.getFluid(stack)))
                     : new ArrayList<>(stack.getTooltipLines(TooltipContext.of(minecraft.level), minecraft.player,
                             TooltipFlag.NORMAL));
             if (!lines.isEmpty()) {
@@ -581,7 +600,7 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(stack);
             if (!fluid.isEmpty()) {
-                renderFluidTooltip(graphics, font, fluid, mouseX, mouseY);
+                JeiClientBridge.renderFluidTooltip(graphics, font, fluid, mouseX, mouseY);
                 return;
             }
         }
@@ -1697,43 +1716,15 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
         return 1;
     }
 
-    private static List<Component> getFluidTooltipLines(FluidStack fluid) {
-        TooltipFlag.Default tooltipFlag =
-                (Minecraft.getInstance().options.advancedItemTooltips ? TooltipFlag.Default.ADVANCED
-                        : TooltipFlag.Default.NORMAL).asCreative();
-
-        if (CreateJEI.runtime != null) {
-            var ingredientManager = CreateJEI.runtime.getIngredientManager();
-            IIngredientRenderer<FluidStack> renderer =
-                    ingredientManager.getIngredientRenderer(NeoForgeTypes.FLUID_STACK);
-            List<Component> lines = new ArrayList<>(renderer.getTooltip(fluid, tooltipFlag));
-            if (!lines.isEmpty()) {
-                ITypedIngredient<FluidStack> typedIngredient =
-                        ingredientManager.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluid).orElse(null);
-                if (typedIngredient != null) {
-                    CreateJEI.runtime.getJeiHelpers().getModIdHelper().getModNameForTooltip(typedIngredient)
-                            .ifPresent(lines::add);
-                }
-                return lines;
-            }
+    private ItemStack getTickerDisplayStack() {
+        ItemStack tickerStack = menu.getTickerStack();
+        if (tickerStack.isEmpty()) {
+            return ItemStack.EMPTY;
         }
 
-        return List.of(fluid.getHoverName());
+        ItemStack displayStack = tickerStack.copy();
+        displayStack.remove(AllDataComponents.PORTABLE_STOCK_TICKER_FREQ);
+        return displayStack;
     }
 
-    private static void renderFluidTooltip(GuiGraphics graphics, Font fallbackFont, FluidStack fluid, int x, int y) {
-        if (CreateJEI.runtime != null) {
-            var ingredientManager = CreateJEI.runtime.getIngredientManager();
-            IIngredientRenderer<FluidStack> renderer =
-                    ingredientManager.getIngredientRenderer(NeoForgeTypes.FLUID_STACK);
-            List<Component> lines = getFluidTooltipLines(fluid);
-            if (!lines.isEmpty()) {
-                Font rendererFont = renderer.getFontRenderer(Minecraft.getInstance(), fluid);
-                graphics.renderComponentTooltip(rendererFont != null ? rendererFont : fallbackFont, lines, x, y);
-                return;
-            }
-        }
-
-        graphics.renderComponentTooltip(fallbackFont, List.of(fluid.getHoverName()), x, y);
-    }
 }

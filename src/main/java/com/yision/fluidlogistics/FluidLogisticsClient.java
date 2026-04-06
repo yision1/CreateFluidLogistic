@@ -1,6 +1,7 @@
 package com.yision.fluidlogistics;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.yision.fluidlogistics.client.JeiClientBridge;
 import com.yision.fluidlogistics.client.handpointer.FrogportSelectionHandler;
 import com.yision.fluidlogistics.client.handpointer.HandPointerModeManager;
 import com.yision.fluidlogistics.client.handpointer.HandPointerInteractionHandler;
@@ -35,6 +36,7 @@ public class FluidLogisticsClient {
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
+        JeiClientBridge.initializeForStartup();
         AllSpriteShifts.register();
         PonderIndex.addPlugin(new FluidLogisticsPonderPlugin());
         FluidLogistics.LOGGER.info("HELLO FROM CLIENT SETUP");

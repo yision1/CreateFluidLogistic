@@ -16,21 +16,17 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import com.simibubi.create.compat.jei.CreateJEI;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
+import com.yision.fluidlogistics.client.JeiClientBridge;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
 import com.yision.fluidlogistics.render.FluidSlotRenderer;
 import com.yision.fluidlogistics.util.IFluidCraftableBigItemStack;
 
-import mezz.jei.api.ingredients.IIngredientRenderer;
-import mezz.jei.api.ingredients.ITypedIngredient;
-import mezz.jei.api.neoforge.NeoForgeTypes;
-import net.minecraft.client.Minecraft;
 import net.createmod.catnip.data.Couple;
 import net.createmod.catnip.gui.element.GuiGameElement;
 import net.minecraft.world.entity.player.Player;
@@ -178,42 +174,11 @@ public abstract class StockKeeperRequestScreenMixin {
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(stack);
             if (!fluid.isEmpty()) {
-                fluidlogistics$renderJeiFluidTooltip(graphics, font, fluid, x, y);
+                JeiClientBridge.renderFluidTooltip(graphics, font, fluid, x, y);
                 return;
             }
         }
         graphics.renderTooltip(font, stack, x, y);
-    }
-
-    @Unique
-    private static void fluidlogistics$renderJeiFluidTooltip(GuiGraphics graphics, Font fallbackFont, FluidStack fluid,
-            int x, int y) {
-        Minecraft minecraft = Minecraft.getInstance();
-        TooltipFlag.Default tooltipFlag =
-            (minecraft.options.advancedItemTooltips ? TooltipFlag.Default.ADVANCED : TooltipFlag.Default.NORMAL)
-                .asCreative();
-
-        if (CreateJEI.runtime != null) {
-            var ingredientManager = CreateJEI.runtime.getIngredientManager();
-            IIngredientRenderer<FluidStack> renderer =
-                ingredientManager.getIngredientRenderer(NeoForgeTypes.FLUID_STACK);
-            List<Component> lines = renderer.getTooltip(fluid, tooltipFlag);
-            if (!lines.isEmpty()) {
-                ITypedIngredient<FluidStack> typedIngredient =
-                    ingredientManager.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluid).orElse(null);
-                if (typedIngredient != null) {
-                    CreateJEI.runtime.getJeiHelpers()
-                        .getModIdHelper()
-                        .getModNameForTooltip(typedIngredient)
-                        .ifPresent(lines::add);
-                }
-                Font rendererFont = renderer.getFontRenderer(minecraft, fluid);
-                graphics.renderComponentTooltip(rendererFont != null ? rendererFont : fallbackFont, lines, x, y);
-                return;
-            }
-        }
-
-        graphics.renderComponentTooltip(fallbackFont, List.of(fluid.getHoverName()), x, y);
     }
 
     @Redirect(
@@ -230,7 +195,7 @@ public abstract class StockKeeperRequestScreenMixin {
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(stack);
             if (!fluid.isEmpty()) {
-                return fluidlogistics$getJeiFluidTooltipLines(fluid, tooltipFlag);
+                return JeiClientBridge.getFluidTooltipLines(fluid);
             }
         }
         return stack.getTooltipLines(context, player, tooltipFlag);
@@ -517,29 +482,6 @@ public abstract class StockKeeperRequestScreenMixin {
             }
         }
         return false;
-    }
-
-    @Unique
-    private static List<Component> fluidlogistics$getJeiFluidTooltipLines(FluidStack fluid, TooltipFlag tooltipFlag) {
-        if (CreateJEI.runtime != null) {
-            var ingredientManager = CreateJEI.runtime.getIngredientManager();
-            IIngredientRenderer<FluidStack> renderer =
-                ingredientManager.getIngredientRenderer(NeoForgeTypes.FLUID_STACK);
-            List<Component> lines = new java.util.ArrayList<>(renderer.getTooltip(fluid, tooltipFlag));
-            if (!lines.isEmpty()) {
-                ITypedIngredient<FluidStack> typedIngredient =
-                    ingredientManager.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluid).orElse(null);
-                if (typedIngredient != null) {
-                    CreateJEI.runtime.getJeiHelpers()
-                        .getModIdHelper()
-                        .getModNameForTooltip(typedIngredient)
-                        .ifPresent(lines::add);
-                }
-                return lines;
-            }
-        }
-
-        return List.of(fluid.getHoverName());
     }
 
     @Unique
