@@ -13,10 +13,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -100,7 +98,7 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
         BlockPos targetPos = worldPosition.relative(side);
         BlockState targetState = level.getBlockState(targetPos);
-        if (targetState.is(AllBlocks.FLUID_TRANSPORTER.get()) || isInfiniteWaterLeafSource(targetState)) {
+        if (targetState.is(AllBlocks.FLUID_TRANSPORTER.get()) || FluidTransporterBlock.isInfiniteWaterSource(targetState)) {
             return false;
         }
 
@@ -189,17 +187,11 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
         BlockPos targetPos = worldPosition.relative(facing);
         BlockState targetState = level.getBlockState(targetPos);
-        if (isInfiniteWaterLeafSource(targetState)) {
+        if (FluidTransporterBlock.isInfiniteWaterSource(targetState)) {
             return WaterloggedLeavesFluidHandler.INSTANCE;
         }
 
         return grabCapability(facing);
-    }
-
-    private boolean isInfiniteWaterLeafSource(BlockState state) {
-        return state.is(BlockTags.LEAVES)
-            && state.hasProperty(BlockStateProperties.WATERLOGGED)
-            && state.getValue(BlockStateProperties.WATERLOGGED);
     }
 
     private @Nullable IFluidHandler grabCapability(Direction facing) {

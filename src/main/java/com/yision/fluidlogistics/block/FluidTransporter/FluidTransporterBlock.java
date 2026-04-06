@@ -9,12 +9,14 @@ import java.util.EnumMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -58,22 +60,20 @@ public class FluidTransporterBlock extends Block implements IWrenchable, IBE<Flu
         Level level = context.getLevel();
         BlockPos pos = context.getClickedPos();
         boolean waterlogged = level.getFluidState(pos).getType() == Fluids.WATER;
+        boolean reversePlacement = context.getPlayer() != null && context.getPlayer().isShiftKeyDown();
         Direction preferredFacing = null;
 
         for (Direction face : context.getNearestLookingDirections()) {
             BlockPos adjacentPos = pos.relative(face);
-            IFluidHandler sidedHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, adjacentPos,
-                face.getOpposite());
-            IFluidHandler handler = sidedHandler != null ? sidedHandler
-                : level.getCapability(Capabilities.FluidHandler.BLOCK, adjacentPos, null);
-            if (handler != null) {
-                preferredFacing = face.getOpposite();
+            if (isInfiniteWaterSource(level.getBlockState(adjacentPos)) || hasFluidHandler(level, adjacentPos, face)) {
+                preferredFacing = reversePlacement ? face : face.getOpposite();
                 break;
             }
         }
 
         if (preferredFacing == null) {
-            preferredFacing = context.getNearestLookingDirection().getOpposite();
+            Direction facing = context.getNearestLookingDirection();
+            preferredFacing = reversePlacement ? facing : facing.getOpposite();
         }
 
         return state.setValue(FACING, preferredFacing)
@@ -157,6 +157,28 @@ public class FluidTransporterBlock extends Block implements IWrenchable, IBE<Flu
     @Override
     public BlockEntityType<? extends FluidTransporterBlockEntity> getBlockEntityType() {
         return AllBlockEntities.FLUID_TRANSPORTER.get();
+    }
+
+    public static boolean isInfiniteWaterSource(BlockState state) {
+        return (state.is(BlockTags.LEAVES) || isCopperGrate(state))
+            && state.hasProperty(BlockStateProperties.WATERLOGGED)
+            && state.getValue(BlockStateProperties.WATERLOGGED);
+    }
+
+    private static boolean hasFluidHandler(Level level, BlockPos pos, Direction face) {
+        IFluidHandler sidedHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, pos, face.getOpposite());
+        if (sidedHandler != null) {
+            return true;
+        }
+        return level.getCapability(Capabilities.FluidHandler.BLOCK, pos, null) != null;
+    }
+
+    private static boolean isCopperGrate(BlockState state) {
+        Block block = state.getBlock();
+        return block == Blocks.COPPER_GRATE || block == Blocks.EXPOSED_COPPER_GRATE
+            || block == Blocks.WEATHERED_COPPER_GRATE || block == Blocks.OXIDIZED_COPPER_GRATE
+            || block == Blocks.WAXED_COPPER_GRATE || block == Blocks.WAXED_EXPOSED_COPPER_GRATE
+            || block == Blocks.WAXED_WEATHERED_COPPER_GRATE || block == Blocks.WAXED_OXIDIZED_COPPER_GRATE;
     }
 
     private static EnumMap<Direction, VoxelShape> buildShapes() {
