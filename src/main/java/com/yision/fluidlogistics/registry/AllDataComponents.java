@@ -3,6 +3,7 @@ package com.yision.fluidlogistics.registry;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.ArrayList;
 import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.ApiStatus.Internal;
@@ -13,6 +14,7 @@ import com.yision.fluidlogistics.datacomponent.FluidTankContent;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.neoforged.bus.api.IEventBus;
@@ -48,6 +50,12 @@ public class AllDataComponents {
     public static final DataComponentType<Map<UUID, List<Integer>>> PORTABLE_STOCK_TICKER_HIDDEN_CATEGORIES = register(
             "portable_stock_ticker_hidden_categories",
             builder -> builder.persistent(Codec.unboundedMap(UUIDUtil.STRING_CODEC, Codec.INT.listOf()))
+    );
+
+    public static final DataComponentType<List<UUID>> HAND_POINTER_AUTHORIZED_NETWORKS = register(
+            "hand_pointer_authorized_networks",
+            builder -> builder.persistent(UUIDUtil.STRING_CODEC.listOf())
+                    .networkSynchronized(ByteBufCodecs.collection(ArrayList::new, UUIDUtil.STREAM_CODEC))
     );
 
     private static <T> DataComponentType<T> register(String name, UnaryOperator<DataComponentType.Builder<T>> builder) {

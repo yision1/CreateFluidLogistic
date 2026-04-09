@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "fluidlogistics:hand_pointer"
+    }
+  ],
+  "result": {
+    "id": "fluidlogistics:hand_pointer",
+    "count": 1
+  }
+}
