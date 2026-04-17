@@ -21,7 +21,7 @@ import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
-import com.yision.fluidlogistics.client.JeiClientBridge;
+import com.yision.fluidlogistics.client.FluidTooltipHelper;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
 import com.yision.fluidlogistics.render.FluidSlotRenderer;
@@ -174,7 +174,7 @@ public abstract class StockKeeperRequestScreenMixin {
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(stack);
             if (!fluid.isEmpty()) {
-                JeiClientBridge.renderFluidTooltip(graphics, font, fluid, x, y);
+                FluidTooltipHelper.renderTooltip(graphics, font, fluid, x, y);
                 return;
             }
         }
@@ -195,7 +195,7 @@ public abstract class StockKeeperRequestScreenMixin {
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(stack);
             if (!fluid.isEmpty()) {
-                return JeiClientBridge.getFluidTooltipLines(fluid);
+                return FluidTooltipHelper.getTooltipLines(fluid);
             }
         }
         return stack.getTooltipLines(context, player, tooltipFlag);

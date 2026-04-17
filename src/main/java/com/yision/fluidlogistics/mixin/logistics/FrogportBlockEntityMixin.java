@@ -7,9 +7,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity;
-import com.simibubi.create.content.logistics.packager.PackagerItemHandler;
 import com.simibubi.create.foundation.item.ItemHelper;
-import com.yision.fluidlogistics.block.FluidPackagerItemHandler;
+import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerItemHandler;
 
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;

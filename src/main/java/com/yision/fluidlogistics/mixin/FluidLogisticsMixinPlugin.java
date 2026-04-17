@@ -11,7 +11,6 @@ public class FluidLogisticsMixinPlugin implements IMixinConfigPlugin {
 
     private static final String JEI_RUNTIME_CLASS = "mezz.jei.api.runtime.IJeiRuntime";
     private static final Set<String> JEI_ONLY_MIXINS = Set.of(
-        "com.yision.fluidlogistics.mixin.client.StockKeeperRequestScreenMixin",
         "com.yision.fluidlogistics.mixin.client.StockKeeperTransferHandlerMixin"
     );
 

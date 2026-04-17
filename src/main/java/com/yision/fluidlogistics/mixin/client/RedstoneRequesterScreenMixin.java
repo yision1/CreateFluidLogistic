@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.simibubi.create.foundation.utility.CreateLang;
@@ -127,6 +128,33 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
             }
         }
         graphics.renderItemDecorations(font, stack, x, y, text);
+    }
+
+    @Inject(method = "renderForeground", at = @At("TAIL"), remap = false)
+    private void fluidlogistics$renderAltHintForFluidContainers(GuiGraphics graphics, int mouseX, int mouseY,
+            float partialTicks, CallbackInfo ci) {
+        if (!(this.hoveredSlot instanceof SlotItemHandler hoveredHandlerSlot)) {
+            return;
+        }
+
+        int slotIndex = hoveredHandlerSlot.getSlotIndex();
+        if (slotIndex < 0 || slotIndex >= menu.ghostInventory.getSlots()) {
+            return;
+        }
+
+        if (!menu.ghostInventory.getStackInSlot(slotIndex).isEmpty()) {
+            return;
+        }
+
+        ItemStack carried = this.menu.getCarried();
+        if (carried.isEmpty() || !GenericItemEmptying.canItemBeEmptied(this.menu.contentHolder.getLevel(), carried)) {
+            return;
+        }
+
+        graphics.renderComponentTooltip(font,
+            List.of(CreateLang.translateDirect("fluidlogistics.factory_panel.hold_alt_to_set_contained_fluid")
+                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC)),
+            mouseX, mouseY);
     }
 
     @Inject(method = "getTooltipFromContainerItem", at = @At("HEAD"), cancellable = true, remap = true)

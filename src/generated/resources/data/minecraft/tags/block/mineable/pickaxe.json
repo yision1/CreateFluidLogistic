@@ -3,8 +3,8 @@
     "fluidlogistics:fluid_transporter",
     "fluidlogistics:fluid_packager",
     "fluidlogistics:smart_faucet",
-    "fluidlogistics:multi_fluid_access_port",
     "fluidlogistics:multi_fluid_tank",
-    "fluidlogistics:horizontal_multi_fluid_tank"
+    "fluidlogistics:horizontal_multi_fluid_tank",
+    "fluidlogistics:multi_fluid_access_port"
   ]
 }

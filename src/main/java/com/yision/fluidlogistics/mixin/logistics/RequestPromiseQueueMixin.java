@@ -72,6 +72,10 @@ public abstract class RequestPromiseQueueMixin {
             }
             promised += promise.promisedStack.count;
         }
+
+        if (list.isEmpty()) {
+            changed |= promisesByItem.remove(stack.getItem()) != null;
+        }
         
         if (changed) {
             onChanged.run();
@@ -116,7 +120,7 @@ public abstract class RequestPromiseQueueMixin {
         }
         
         if (list.isEmpty()) {
-            promisesByItem.remove(stack.getItem());
+            changed |= promisesByItem.remove(stack.getItem()) != null;
         }
         
         if (changed) {
@@ -173,7 +177,7 @@ public abstract class RequestPromiseQueueMixin {
         }
         
         if (list.isEmpty()) {
-            promisesByItem.remove(stack.getItem());
+            changed |= promisesByItem.remove(stack.getItem()) != null;
         }
         
         if (changed) {

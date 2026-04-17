@@ -1,11 +1,8 @@
 package com.yision.fluidlogistics.ponder;
 
-import com.simibubi.create.AllBlocks;
-import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.logistics.box.PackageItem;
-import com.simibubi.create.content.logistics.box.PackageStyles;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
-import com.yision.fluidlogistics.block.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.registry.AllItems;
 import net.createmod.catnip.math.Pointing;
@@ -20,8 +17,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
-
-import java.util.List;
 
 public class FluidPackagerScenes {
 

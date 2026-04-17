@@ -63,6 +63,6 @@ public class FluidPackagerItemHandler implements IItemHandlerModifiable {
 
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
-        return stack.getItem() instanceof FluidPackageItem;
+        return FluidPackageItem.isFluidPackage(stack);
     }
 }

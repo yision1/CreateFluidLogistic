@@ -28,7 +28,7 @@ import com.simibubi.create.foundation.gui.AllGuiTextures;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.client.JechSearchBridge;
-import com.yision.fluidlogistics.client.JeiClientBridge;
+import com.yision.fluidlogistics.client.FluidTooltipHelper;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.item.PortableStockTickerItem;
 import com.yision.fluidlogistics.network.PortableStockTickerHiddenCategoriesPacket;
@@ -587,7 +587,7 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
         ItemStack stack = entry.stack;
         if (recipeHovered) {
             ArrayList<Component> lines = stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)
-                    ? new ArrayList<>(JeiClientBridge.getFluidTooltipLines(CompressedTankItem.getFluid(stack)))
+                    ? new ArrayList<>(FluidTooltipHelper.getTooltipLines(CompressedTankItem.getFluid(stack)))
                     : new ArrayList<>(stack.getTooltipLines(TooltipContext.of(minecraft.level), minecraft.player,
                             TooltipFlag.NORMAL));
             if (!lines.isEmpty()) {
@@ -600,7 +600,7 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(stack);
             if (!fluid.isEmpty()) {
-                JeiClientBridge.renderFluidTooltip(graphics, font, fluid, mouseX, mouseY);
+                FluidTooltipHelper.renderTooltip(graphics, font, fluid, mouseX, mouseY);
                 return;
             }
         }
