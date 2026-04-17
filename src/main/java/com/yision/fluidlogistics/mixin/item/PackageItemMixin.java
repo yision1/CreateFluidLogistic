@@ -21,12 +21,17 @@ import com.yision.fluidlogistics.util.FluidAmountHelper;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PackageItem.class)
 public abstract class PackageItemMixin {
@@ -34,6 +39,21 @@ public abstract class PackageItemMixin {
     @Shadow
     public static ItemStackHandler getContents(ItemStack stack) {
         throw new AssertionError();
+    }
+
+    @Inject(
+            method = "open",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void fluidlogistics$blockManualOpenForCompressedTanks(Level world, Player player, InteractionHand hand,
+                                                                  CallbackInfoReturnable<InteractionResultHolder<ItemStack>> cir) {
+        ItemStack box = player.getItemInHand(hand);
+        if (!fluidlogistics$containsCompressedTank(box)) {
+            return;
+        }
+
+        cir.setReturnValue(InteractionResultHolder.pass(box));
     }
 
     @WrapOperation(
@@ -132,6 +152,22 @@ public abstract class PackageItemMixin {
             return false;
         }
         return !CompressedTankItem.getFluid(itemStack).isEmpty();
+    }
+
+    @Unique
+    private static boolean fluidlogistics$containsCompressedTank(ItemStack box) {
+        if (!box.has(AllDataComponents.PACKAGE_CONTENTS)) {
+            return false;
+        }
+
+        ItemStackHandler contents = getContents(box);
+        for (int i = 0; i < contents.getSlots(); i++) {
+            if (contents.getStackInSlot(i).getItem() instanceof CompressedTankItem) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Unique

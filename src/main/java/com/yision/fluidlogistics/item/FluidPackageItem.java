@@ -10,6 +10,7 @@ import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.render.FluidPackageItemRenderer;
 
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
@@ -22,6 +23,10 @@ public class FluidPackageItem extends PackageItem {
         super(properties, FLUID_STYLE);
         PackageStyles.ALL_BOXES.remove(this);
         PackageStyles.RARE_BOXES.remove(this);
+    }
+
+    public static boolean isFluidPackage(ItemStack stack) {
+        return stack.getItem() instanceof FluidPackageItem;
     }
 
     @Override
