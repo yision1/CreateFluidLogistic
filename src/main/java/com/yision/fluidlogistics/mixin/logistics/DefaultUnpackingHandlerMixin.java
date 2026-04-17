@@ -14,6 +14,7 @@ import com.simibubi.create.api.packager.unpacking.UnpackingHandler;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 import com.simibubi.create.impl.unpacking.DefaultUnpackingHandler;
 import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.util.FluidInsertionHelper;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -31,9 +32,6 @@ import net.neoforged.neoforge.items.IItemHandler;
 
 @Mixin(DefaultUnpackingHandler.class)
 public abstract class DefaultUnpackingHandlerMixin implements UnpackingHandler {
-
-    private record TankSnapshot(FluidStack fluid, int capacity) {
-    }
 
     @Inject(
         method = "unpack",
@@ -81,7 +79,7 @@ public abstract class DefaultUnpackingHandlerMixin implements UnpackingHandler {
             return;
         }
 
-        if (!fluidlogistics$canAcceptAllFluids(fluidHandler, packageFluids)) {
+        if (!FluidInsertionHelper.canAcceptAll(fluidHandler, packageFluids)) {
             cir.setReturnValue(false);
             return;
         }
@@ -137,75 +135,5 @@ public abstract class DefaultUnpackingHandlerMixin implements UnpackingHandler {
         if (!processedAny) {
             return;
         }
-    }
-
-    private static boolean fluidlogistics$canAcceptAllFluids(IFluidHandler fluidHandler, List<FluidStack> packageFluids) {
-        int totalCapacity = 0;
-        int totalFreeSpace = 0;
-        List<TankSnapshot> tankSnapshots = new ArrayList<>();
-
-        for (int tank = 0; tank < fluidHandler.getTanks(); tank++) {
-            FluidStack tankFluid = fluidHandler.getFluidInTank(tank).copy();
-            int tankCapacity = fluidHandler.getTankCapacity(tank);
-            totalCapacity += tankCapacity;
-            totalFreeSpace += Math.max(0, tankCapacity - tankFluid.getAmount());
-            tankSnapshots.add(new TankSnapshot(tankFluid, tankCapacity));
-        }
-
-        int totalPackageFluidAmount = 0;
-        for (FluidStack fluid : packageFluids) {
-            totalPackageFluidAmount += fluid.getAmount();
-        }
-
-        if (totalPackageFluidAmount > totalCapacity || totalPackageFluidAmount > totalFreeSpace) {
-            return false;
-        }
-
-        for (FluidStack fluid : packageFluids) {
-            if (!fluidlogistics$reserveFluid(tankSnapshots, fluid)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static boolean fluidlogistics$reserveFluid(List<TankSnapshot> tankSnapshots, FluidStack fluid) {
-        int remaining = fluid.getAmount();
-
-        for (int tank = 0; tank < tankSnapshots.size() && remaining > 0; tank++) {
-            TankSnapshot snapshot = tankSnapshots.get(tank);
-            if (snapshot.fluid().isEmpty()) {
-                continue;
-            }
-            if (!FluidStack.isSameFluidSameComponents(snapshot.fluid(), fluid)) {
-                continue;
-            }
-
-            int space = snapshot.capacity() - snapshot.fluid().getAmount();
-            if (space <= 0) {
-                continue;
-            }
-
-            int inserted = Math.min(space, remaining);
-            FluidStack updated = snapshot.fluid().copy();
-            updated.grow(inserted);
-            tankSnapshots.set(tank, new TankSnapshot(updated, snapshot.capacity()));
-            remaining -= inserted;
-        }
-
-        for (int tank = 0; tank < tankSnapshots.size() && remaining > 0; tank++) {
-            TankSnapshot snapshot = tankSnapshots.get(tank);
-            if (!snapshot.fluid().isEmpty()) {
-                continue;
-            }
-
-            int inserted = Math.min(snapshot.capacity(), remaining);
-            FluidStack updated = fluid.copyWithAmount(inserted);
-            tankSnapshots.set(tank, new TankSnapshot(updated, snapshot.capacity()));
-            remaining -= inserted;
-        }
-
-        return remaining == 0;
     }
 }

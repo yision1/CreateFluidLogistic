@@ -9,11 +9,12 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-public class SmartMultiFluidTank implements IFluidHandler, IFluidTank {
+public class SmartMultiFluidTank implements IFluidHandler, IFluidTank, SharedCapacityFluidHandler {
 
     private final Consumer<FluidStack[]> updateCallback;
     private final int tanks;
@@ -243,5 +244,53 @@ public class SmartMultiFluidTank implements IFluidHandler, IFluidTank {
 
     public int getSpace() {
         return Math.max(0, capacity - getFluidAmount());
+    }
+
+    @Override
+    public boolean canFillAll(List<FluidStack> fluids) {
+        if (fluids.isEmpty()) {
+            return true;
+        }
+
+        FluidStack[] simulatedFluids = new FluidStack[tanks];
+        int totalAmount = 0;
+        for (int i = 0; i < tanks; i++) {
+            simulatedFluids[i] = multi_fluid[i].copy();
+            totalAmount += simulatedFluids[i].getAmount();
+        }
+
+        for (FluidStack fluid : fluids) {
+            if (fluid.isEmpty() || !isFluidValid(fluid)) {
+                return false;
+            }
+
+            if (totalAmount + fluid.getAmount() > capacity) {
+                return false;
+            }
+
+            int targetTank = -1;
+            for (int i = 0; i < tanks; i++) {
+                if (FluidStack.isSameFluidSameComponents(simulatedFluids[i], fluid)) {
+                    targetTank = i;
+                    break;
+                }
+                if (targetTank == -1 && simulatedFluids[i].isEmpty()) {
+                    targetTank = i;
+                }
+            }
+
+            if (targetTank == -1) {
+                return false;
+            }
+
+            if (simulatedFluids[targetTank].isEmpty()) {
+                simulatedFluids[targetTank] = fluid.copy();
+            } else {
+                simulatedFluids[targetTank].grow(fluid.getAmount());
+            }
+            totalAmount += fluid.getAmount();
+        }
+
+        return true;
     }
 }

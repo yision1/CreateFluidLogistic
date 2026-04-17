@@ -48,6 +48,7 @@ import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.item.FluidPackageItem;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.AllItems;
+import com.yision.fluidlogistics.util.FluidInsertionHelper;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 
 import net.createmod.catnip.codecs.CatnipCodecUtils;
@@ -205,11 +206,23 @@ public class FluidPackagerBlockEntity extends SmartBlockEntity implements Cleara
         if (animationTicks == 0 && !level.isClientSide()) {
             if (animationInward && !pendingFluidsToInsert.isEmpty()) {
                 IFluidHandler fluidHandler = fluidTarget.getInventory();
-                if (fluidHandler != null) {
+                boolean insertedAll = fluidHandler != null
+                    && FluidInsertionHelper.canAcceptAll(fluidHandler, pendingFluidsToInsert);
+
+                if (insertedAll) {
                     for (FluidStack fluid : pendingFluidsToInsert) {
-                        fluidHandler.fill(fluid, FluidAction.EXECUTE);
+                        int filled = fluidHandler.fill(fluid.copy(), FluidAction.EXECUTE);
+                        if (filled != fluid.getAmount()) {
+                            insertedAll = false;
+                            break;
+                        }
                     }
                 }
+
+                if (!insertedAll && !previouslyUnwrapped.isEmpty()) {
+                    queuedExitingPackages.add(0, new BigItemStack(previouslyUnwrapped.copy(), 1));
+                }
+
                 pendingFluidsToInsert.clear();
                 triggerStockCheck();
             }
@@ -558,48 +571,16 @@ public class FluidPackagerBlockEntity extends SmartBlockEntity implements Cleara
             return false;
         }
 
-        int totalFluidAmount = 0;
+        List<FluidStack> packageFluids = new LinkedList<>();
         for (ItemStack item : items) {
             FluidStack fluid = CompressedTankItem.getFluid(item);
             if (!fluid.isEmpty()) {
-                totalFluidAmount += fluid.getAmount();
+                packageFluids.add(fluid.copy());
             }
         }
 
-        if (totalFluidAmount > 0) {
-            int totalCapacity = 0;
-            int tankCount = safeGetTanks(fluidHandler);
-            for (int tank = 0; tank < tankCount; tank++) {
-                FluidStack tankFluid = safeGetFluidInTank(fluidHandler, tank);
-                int tankCapacity = fluidHandler.getTankCapacity(tank);
-                totalCapacity += (tankCapacity - tankFluid.getAmount());
-            }
-
-            if (totalCapacity < totalFluidAmount) {
-                return false;
-            }
-
-            for (ItemStack item : items) {
-                FluidStack packageFluid = CompressedTankItem.getFluid(item);
-                if (packageFluid.isEmpty())
-                    continue;
-
-                boolean canInsert = false;
-                for (int tank = 0; tank < tankCount; tank++) {
-                    FluidStack tankFluid = safeGetFluidInTank(fluidHandler, tank);
-                    if (tankFluid.isEmpty()) {
-                        canInsert = true;
-                        break;
-                    }
-                    if (FluidStack.isSameFluidSameComponents(tankFluid, packageFluid)) {
-                        canInsert = true;
-                        break;
-                    }
-                }
-                if (!canInsert) {
-                    return false;
-                }
-            }
+        if (!packageFluids.isEmpty() && !FluidInsertionHelper.canAcceptAll(fluidHandler, packageFluids)) {
+            return false;
         }
 
         if (simulate) {
@@ -615,7 +596,7 @@ public class FluidPackagerBlockEntity extends SmartBlockEntity implements Cleara
         }
 
         sendComputerEvent(box, "package_received");
-        previouslyUnwrapped = box;
+        previouslyUnwrapped = box.copyWithCount(1);
         animationInward = true;
         animationTicks = CYCLE;
         notifyUpdate();

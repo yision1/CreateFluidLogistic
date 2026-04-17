@@ -9,6 +9,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
+import com.yision.fluidlogistics.util.SharedCapacityFluidHandler;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.engine_room.flywheel.lib.transform.TransformStack;
 import net.createmod.catnip.math.VecHelper;
@@ -348,7 +349,7 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
     private interface WrappedPortFluidHandler {
     }
 
-    private static class PortFluidHandler implements IFluidHandler, WrappedPortFluidHandler {
+    private static class PortFluidHandler implements IFluidHandler, WrappedPortFluidHandler, SharedCapacityFluidHandler {
         private final MultiFluidAccessPortBlockEntity blockEntity;
         private final Direction side;
         private final ThreadLocal<Boolean> recursionGuard = ThreadLocal.withInitial(() -> false);
@@ -448,6 +449,24 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
                 }
                 return handler.drain(matching.copyWithAmount(maxDrain), action);
             }, FluidStack.EMPTY);
+        }
+
+        @Override
+        public boolean canFillAll(List<FluidStack> fluids) {
+            return preventRecursion(() -> {
+                IFluidHandler handler = blockEntity.getConnectedFluidHandler();
+                if (!(handler instanceof SharedCapacityFluidHandler sharedCapacityFluidHandler)) {
+                    return false;
+                }
+
+                for (FluidStack fluid : fluids) {
+                    if (fluid.isEmpty() || !blockEntity.testFilter(side, fluid)) {
+                        return false;
+                    }
+                }
+
+                return sharedCapacityFluidHandler.canFillAll(fluids);
+            }, false);
         }
     }
 
