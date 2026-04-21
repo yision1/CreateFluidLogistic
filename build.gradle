@@ -137,6 +137,8 @@ dependencies {
     localRuntime("top.theillusivec4.curios:curios-neoforge:${curios_version}+${curios_minecraft_version}")
     localImplementation("maven.modrinth:geckolib:${geckolib_version}")
     compileOnly("maven.modrinth:jade:${jade_version}+neoforge")
+    testImplementation(platform("org.junit:junit-bom:5.12.2"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

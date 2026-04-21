@@ -7,6 +7,9 @@ public class HandPointerModeManager {
 
     public enum SelectionMode {
         NONE,
+        ARM,
+        DEPOT,
+        DISPLAY_LINK,
         FROGPORT,
         MAILBOX,
         LOGISTICS
@@ -33,7 +36,13 @@ public class HandPointerModeManager {
     public static void exitMode(Player player, Level level) {
         SelectionMode exiting = currentMode;
         currentMode = SelectionMode.NONE;
-        if (exiting == SelectionMode.FROGPORT) {
+        if (exiting == SelectionMode.ARM) {
+            ArmSelectionHandler.clearSelection(level);
+        } else if (exiting == SelectionMode.DEPOT) {
+            DepotSelectionHandler.clearSelection();
+        } else if (exiting == SelectionMode.DISPLAY_LINK) {
+            DisplayLinkSelectionHandler.clearSelection();
+        } else if (exiting == SelectionMode.FROGPORT) {
             FrogportSelectionHandler.clearSelection();
         } else if (exiting == SelectionMode.MAILBOX) {
             MailboxSelectionHandler.clearSelection();

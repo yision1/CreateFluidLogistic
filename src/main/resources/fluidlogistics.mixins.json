@@ -4,6 +4,7 @@
     "plugin": "com.yision.fluidlogistics.mixin.FluidLogisticsMixinPlugin",
     "compatibilityLevel": "JAVA_21",
     "mixins": [
+        "accessor.ArmBlockEntityAccessor",
         "accessor.StockTickerBlockEntityAccessor",
         "basin.BasinBlockEntityMixin",
         "kinetics.BeltInventoryMixin",
