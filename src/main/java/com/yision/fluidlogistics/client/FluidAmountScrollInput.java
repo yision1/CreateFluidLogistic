@@ -4,6 +4,7 @@ import java.util.function.Supplier;
 
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
 
+import com.simibubi.create.foundation.utility.CreateLang;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 
@@ -42,6 +43,10 @@ public class FluidAmountScrollInput extends ScrollInput {
         }
 
         toolTip.add(scrollToModify.plainCopy().withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY));
-        toolTip.add(shiftScrollsFaster.plainCopy().withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY));
+        toolTip.add(CreateLang.translate("fluidlogistics.scroll_precise_amount")
+                .style(ChatFormatting.DARK_GRAY)
+                .style(ChatFormatting.ITALIC)
+                .component());
+        //toolTip.add(shiftScrollsFaster.plainCopy().withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY));
     }
 }

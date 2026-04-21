@@ -85,27 +85,14 @@ public final class FluidAmountHelper {
 
     public static int adjustFactoryGaugeAmount(int currentAmount, boolean forward, boolean shift, boolean control,
             int minAmount, int maxAmount) {
-        boolean useBuckets = currentAmount >= MB_PER_BUCKET;
         int delta;
 
-        if (useBuckets) {
-            int bucketDelta;
-            if (control) {
-                bucketDelta = 100;
-            } else if (shift) {
-                bucketDelta = 10;
-            } else {
-                bucketDelta = 1;
-            }
-            delta = bucketDelta * MB_PER_BUCKET;
+        if (control) {
+            delta = 1;
+        } else if (shift) {
+            delta = 100;
         } else {
-            if (control) {
-                delta = 100;
-            } else if (shift) {
-                delta = 10;
-            } else {
-                delta = 1;
-            }
+            delta = 1000;
         }
 
         int newAmount = currentAmount + (forward ? delta : -delta);
