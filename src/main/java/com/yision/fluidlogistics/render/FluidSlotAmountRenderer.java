@@ -22,6 +22,9 @@ public class FluidSlotAmountRenderer {
         if (text.isBlank()) {
             return;
         }
+        if (text.equals("\u221e")){
+            text = "+"; //Stock ticker wants "+" character to represent infinity
+        }
 
         int visibleLength = 0;
         for (int i = 0; i < text.length(); i++) {

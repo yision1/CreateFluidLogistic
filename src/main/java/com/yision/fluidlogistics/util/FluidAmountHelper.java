@@ -15,7 +15,7 @@ public final class FluidAmountHelper {
 
     public static String format(int amount) {
         if (amount >= BigItemStack.INF) {
-            return "+";
+            return "\u221e";
         }
         if (amount >= MB_PER_KILOBUCKET) {
             return formatCompact(amount, MB_PER_KILOBUCKET, "KB");
@@ -28,7 +28,7 @@ public final class FluidAmountHelper {
 
     public static String formatPrecise(int amount) {
         if (amount >= BigItemStack.INF) {
-            return "+";
+            return "\u221e";
         }
         if (amount < MB_PER_BUCKET) {
             return amount + "mB";
@@ -45,7 +45,7 @@ public final class FluidAmountHelper {
 
     public static String formatDetailed(int amount) {
         if (amount >= BigItemStack.INF) {
-            return "+";
+            return "\u221e";
         }
         if (amount >= MB_PER_KILOBUCKET) {
             int kilobuckets = amount / MB_PER_KILOBUCKET;
