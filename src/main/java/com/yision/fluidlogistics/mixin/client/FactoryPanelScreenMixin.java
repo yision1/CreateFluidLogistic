@@ -184,6 +184,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                     .style(ChatFormatting.DARK_GRAY)
                     .style(ChatFormatting.ITALIC)
                     .component());
+                newTooltips.add(CreateLang.translate("fluidlogistics.scroll_precise_amount")
+                        .style(ChatFormatting.DARK_GRAY)
+                        .style(ChatFormatting.ITALIC)
+                        .component());
                 newTooltips.add(CreateLang.translate("gui.factory_panel.left_click_disconnect")
                     .style(ChatFormatting.DARK_GRAY)
                     .style(ChatFormatting.ITALIC)
@@ -495,8 +499,12 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                     .style(ChatFormatting.DARK_GRAY)
                     .style(ChatFormatting.ITALIC)
                     .component();
+                MutableComponent c5 = CreateLang.translate("fluidlogistics.scroll_precise_amount")
+                        .style(ChatFormatting.DARK_GRAY)
+                        .style(ChatFormatting.ITALIC)
+                        .component();
                 
-                graphics.renderComponentTooltip(font, List.of(c1, c2, c3, c4), mouseX, mouseY);
+                graphics.renderComponentTooltip(font, List.of(c1, c2, c3, c4, c5), mouseX, mouseY);
                 return;
             }
         }

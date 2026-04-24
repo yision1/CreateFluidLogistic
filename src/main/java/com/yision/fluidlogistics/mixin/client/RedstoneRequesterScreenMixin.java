@@ -40,6 +40,8 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.SlotItemHandler;
 
+import static com.yision.fluidlogistics.util.FluidAmountHelper.adjustFactoryGaugeAmount;
+
 @OnlyIn(Dist.CLIENT)
 @Mixin(RedstoneRequesterScreen.class)
 public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainerScreen<RedstoneRequesterMenu> {
@@ -167,7 +169,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
                     FluidStack fluid = CompressedTankItem.getFluid(ghostStack);
                     if (!fluid.isEmpty()) {
                         int amount = amounts.get(slotIndex);
-                        String amountText = FluidAmountHelper.format(amount);
+                        String amountText = FluidAmountHelper.formatPrecise(amount);
                         List<Component> tooltip = new ArrayList<>();
                         tooltip.add(CreateLang.translate("gui.factory_panel.send_item", 
                                 CreateLang.text(fluid.getHoverName().getString())
@@ -178,7 +180,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
                                 .style(ChatFormatting.DARK_GRAY)
                                 .style(ChatFormatting.ITALIC)
                                 .component());
-                        tooltip.add(CreateLang.translate("gui.scrollInput.shiftScrollsFaster")
+                        tooltip.add(CreateLang.translate("fluidlogistics.scroll_precise_amount")
                                 .style(ChatFormatting.DARK_GRAY)
                                 .style(ChatFormatting.ITALIC)
                                 .component());
@@ -200,9 +202,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
             if (mouseX >= inputX && mouseX < inputX + 16 && mouseY >= inputY && mouseY < inputY + 16) {
                 ItemStack itemStack = menu.ghostInventory.getStackInSlot(i);
                 if (itemStack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(itemStack)) {
-                    int currentAmount = amounts.get(i);
-                    int delta = (int) Math.signum(scrollY) * (hasShiftDown() ? 10000 : 1000);
-                    int newAmount = Math.max(1000, Math.min(Integer.MAX_VALUE, currentAmount + delta));
+                    int newAmount = adjustFactoryGaugeAmount(amounts.get(i), Math.signum(scrollY)>0, hasShiftDown(), hasControlDown(), 1, Integer.MAX_VALUE);
                     amounts.set(i, newAmount);
                     cir.setReturnValue(true);
                     return;

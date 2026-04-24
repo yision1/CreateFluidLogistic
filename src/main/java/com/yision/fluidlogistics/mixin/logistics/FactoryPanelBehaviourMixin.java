@@ -3,6 +3,7 @@ package com.yision.fluidlogistics.mixin.logistics;
 import java.util.List;
 import java.util.Map;
 
+import com.yision.fluidlogistics.util.FluidAmountHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -430,47 +431,21 @@ public abstract class FactoryPanelBehaviourMixin {
         int count = self.getAmount();
         boolean satisfied = self.satisfied;
         boolean promisedSatisfied = self.promisedSatisfied;
-        
-        boolean useBuckets = count >= 1000;
-        
-        boolean inf = levelInStorage >= 1_000_000_000;
-        
-        String displayStorage;
-        String displayCount;
-        String storageUnit;
-        String countUnit;
-        
-        if (inf) {
-            displayStorage = "\u221e";
-            displayCount = "\u221e";
-            storageUnit = "";
-            countUnit = "";
-        } else if (useBuckets) {
-            storageUnit = "B";
-            countUnit = "B";
-            displayStorage = String.valueOf(levelInStorage / 1000);
-            displayCount = String.valueOf(count / 1000);
-        } else {
-            storageUnit = "mB";
-            countUnit = "mB";
-            displayStorage = String.valueOf(levelInStorage);
-            displayCount = String.valueOf(count);
-        }
-        
-        if (count == 0) {
-            cir.setReturnValue(CreateLang.text("  " + displayStorage + storageUnit)
-                .color(0xF1EFE8)
-                .component());
+
+        if (count == 0){
+            cir.setReturnValue(CreateLang.text("  " + FluidAmountHelper.format(levelInStorage))
+                    .color(0xF1EFE8)
+                    .component());
             return;
         }
-        
-        cir.setReturnValue(CreateLang.text("   " + displayStorage + storageUnit)
-            .color(satisfied ? 0xD7FFA8 : promisedSatisfied ? 0xffcd75 : 0xFFBFA8)
-            .add(CreateLang.text("/")
-                .style(ChatFormatting.WHITE))
-            .add(CreateLang.text(displayCount + countUnit + "  ")
-                .color(0xF1EFE8))
-            .component());
+
+        cir.setReturnValue(CreateLang.text("   " + FluidAmountHelper.format(levelInStorage))
+                .color(satisfied ? 0xD7FFA8 : promisedSatisfied ? 0xffcd75 : 0xFFBFA8)
+                .add(CreateLang.text("/")
+                        .style(ChatFormatting.WHITE))
+                .add(CreateLang.text(FluidAmountHelper.format(count) + "  ")
+                        .color(0xF1EFE8))
+                .component());
     }
 
     @Inject(
