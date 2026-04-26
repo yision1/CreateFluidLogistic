@@ -38,6 +38,7 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
     private static final int SYNC_RATE = 8;
 
     protected SmartMultiFluidTank tankInventory;
+    protected IFluidHandler fluidCapability;
     protected BlockPos controller;
     
     public SmartMultiFluidTank getTankInventory() {
@@ -45,6 +46,7 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
     };
     protected BlockPos lastKnownPos;
     protected boolean updateConnectivity;
+    protected boolean updateCapability;
     protected boolean window;
     public int luminosity;
     protected int width;
@@ -60,9 +62,11 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
         tankInventory = createInventory();
         window = true;
         updateConnectivity = false;
+        updateCapability = false;
         forceFluidLevelUpdate = true;
         height = 1;
         width = 1;
+        refreshCapability();
     }
 
     protected SmartMultiFluidTank createInventory() {
@@ -73,15 +77,18 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
         event.registerBlockEntity(
             Capabilities.FluidHandler.BLOCK,
             com.yision.fluidlogistics.registry.AllBlockEntities.MULTI_FLUID_TANK.get(),
-            (be, side) -> be.getTankHandler()
+            (be, side) -> {
+                if (be.fluidCapability == null)
+                    be.refreshCapability();
+                return be.fluidCapability;
+            }
         );
     }
 
     public IFluidHandler getTankHandler() {
-        if (isController()) 
-            return tankInventory;
-        MultiFluidTankBlockEntity controllerBE = getControllerBE();
-        return controllerBE != null ? controllerBE.getTankHandler() : null;
+        if (fluidCapability == null)
+            refreshCapability();
+        return fluidCapability;
     }
 
     @Override
@@ -111,6 +118,11 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
         else if (!lastKnownPos.equals(worldPosition) && worldPosition != null) {
             onPositionChanged();
             return;
+        }
+
+        if (updateCapability) {
+            updateCapability = false;
+            refreshCapability();
         }
 
         if (updateConnectivity)
@@ -306,8 +318,21 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
         if (controller.equals(this.controller))
             return;
         this.controller = controller;
+        refreshCapability();
         setChanged();
         sendData();
+    }
+
+    protected void refreshCapability() {
+        fluidCapability = handlerForCapability();
+        invalidateCapabilities();
+    }
+
+    protected IFluidHandler handlerForCapability() {
+        if (isController())
+            return tankInventory;
+        MultiFluidTankBlockEntity controllerBE = getControllerBE();
+        return controllerBE != null ? controllerBE.handlerForCapability() : null;
     }
 
     @Override
@@ -330,6 +355,7 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
             getLevel().setBlock(worldPosition, state, Block.UPDATE_CLIENTS | Block.UPDATE_INVISIBLE | Block.UPDATE_KNOWN_SHAPE);
         }
 
+        refreshCapability();
         setChanged();
         sendData();
     }
@@ -511,6 +537,8 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
             if (tankInventory.getSpace() < 0)
                 tankInventory.drain(-tankInventory.getSpace(), IFluidHandler.FluidAction.EXECUTE);
         }
+
+        updateCapability = true;
 
         if (compound.contains("ForceFluidLevel") || fluidLevel == null)
             initFluidLevel();

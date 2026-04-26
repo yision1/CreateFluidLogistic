@@ -40,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
         private static final int SYNC_RATE = 8;
     
         protected SmartMultiFluidTank tankInventory;
+        protected IFluidHandler fluidCapability;
         protected BlockPos controller;
         
         public SmartMultiFluidTank getTankInventory() {
@@ -48,6 +49,7 @@ import org.jetbrains.annotations.Nullable;
         
         protected BlockPos lastKnownPos;
     protected boolean updateConnectivity;
+    protected boolean updateCapability;
     protected boolean window;
     protected HorizontalMultiFluidTankBlock.WindowType windowType;
     public int luminosity;
@@ -65,9 +67,11 @@ import org.jetbrains.annotations.Nullable;
             window = true;
             windowType = HorizontalMultiFluidTankBlock.WindowType.SIDE_WIDE;
             updateConnectivity = false;
+            updateCapability = false;
             forceFluidLevelUpdate = true;
             height = 1;
             width = 1;
+            refreshCapability();
         }
     
         protected SmartMultiFluidTank createInventory() {
@@ -78,15 +82,18 @@ import org.jetbrains.annotations.Nullable;
             event.registerBlockEntity(
                 Capabilities.FluidHandler.BLOCK,
                 com.yision.fluidlogistics.registry.AllBlockEntities.HORIZONTAL_MULTI_FLUID_TANK.get(),
-                (be, side) -> be.getTankHandler()
+                (be, side) -> {
+                    if (be.fluidCapability == null)
+                        be.refreshCapability();
+                    return be.fluidCapability;
+                }
             );
         }
     
         public IFluidHandler getTankHandler() {
-            if (isController())
-                return tankInventory;
-            HorizontalMultiFluidTankBlockEntity controllerBE = getControllerBE();
-            return controllerBE != null ? controllerBE.getTankHandler() : null;
+            if (fluidCapability == null)
+                refreshCapability();
+            return fluidCapability;
         }
     
         @Override
@@ -118,6 +125,11 @@ import org.jetbrains.annotations.Nullable;
                 return;
             }
     
+            if (updateCapability) {
+                updateCapability = false;
+                refreshCapability();
+            }
+
             if (updateConnectivity)
                 updateConnectivity();
     
@@ -389,8 +401,21 @@ import org.jetbrains.annotations.Nullable;
             if (controller.equals(this.controller))
                 return;
             this.controller = controller;
+            refreshCapability();
             setChanged();
             sendData();
+        }
+
+        protected void refreshCapability() {
+            fluidCapability = handlerForCapability();
+            invalidateCapabilities();
+        }
+
+        protected IFluidHandler handlerForCapability() {
+            if (isController())
+                return tankInventory;
+            HorizontalMultiFluidTankBlockEntity controllerBE = getControllerBE();
+            return controllerBE != null ? controllerBE.handlerForCapability() : null;
         }
     
         @Override
@@ -413,6 +438,7 @@ import org.jetbrains.annotations.Nullable;
                 getLevel().setBlock(worldPosition, state, Block.UPDATE_CLIENTS | Block.UPDATE_INVISIBLE | Block.UPDATE_KNOWN_SHAPE);
             }
     
+            refreshCapability();
             setChanged();
             sendData();
         }
@@ -610,6 +636,8 @@ import org.jetbrains.annotations.Nullable;
                     tankInventory.drain(-tankInventory.getSpace(), IFluidHandler.FluidAction.EXECUTE);
             }
     
+            updateCapability = true;
+
             if (compound.contains("ForceFluidLevel") || fluidLevel == null)
                 initFluidLevel();
     
