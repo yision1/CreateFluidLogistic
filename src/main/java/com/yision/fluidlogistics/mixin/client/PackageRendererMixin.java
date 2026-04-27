@@ -34,7 +34,7 @@ public class PackageRendererMixin {
             return;
         }
 
-        PartialModel model = AllPartialModels.FLUID_PACKAGE;
+        PartialModel model = AllPartialModels.getFluidPackageModel(entity.box);
         if (model == null || model.get() == null) {
             return;
         }

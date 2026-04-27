@@ -557,7 +557,7 @@ public class FluidPackagerBlockEntity extends SmartBlockEntity implements Cleara
             tanksCreated++;
         }
 
-        ItemStack fluidPackage = new ItemStack(AllItems.RARE_FLUID_PACKAGE.get());
+        ItemStack fluidPackage = AllItems.getRandomFluidPackage();
         fluidPackage.set(com.simibubi.create.AllDataComponents.PACKAGE_CONTENTS, 
             com.simibubi.create.foundation.item.ItemHelper.containerContentsFromHandler(packageContents));
         return fluidPackage;

@@ -8,7 +8,9 @@ import com.yision.fluidlogistics.FluidLogistics;
 
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 public class AllPartialModels {
 
@@ -18,9 +20,11 @@ public class AllPartialModels {
     public static final Map<Direction, PartialModel> SMART_FAUCET_SOURCE_INTERFACE = new EnumMap<>(Direction.class);
 
     public static final PartialModel FLUID_PACKAGE = item("rare_fluid_package");
+    public static final PartialModel FLUID_PACKAGE_2 = item("rare_fluid_package_1");
     public static final PartialModel FLUID_PACKAGE_RIGGING = rigging("12x10");
 
     private static final ResourceLocation FLUID_PACKAGE_ID = ResourceLocation.fromNamespaceAndPath(FluidLogistics.MODID, "rare_fluid_package");
+    private static final ResourceLocation FLUID_PACKAGE_2_ID = ResourceLocation.fromNamespaceAndPath(FluidLogistics.MODID, "rare_fluid_package_1");
 
     private static boolean registered = false;
 
@@ -49,6 +53,7 @@ public class AllPartialModels {
                 FLUID_PACKAGER_HATCH_OPEN.modelLocation(),
                 FLUID_PACKAGER_HATCH_CLOSED.modelLocation(),
                 FLUID_PACKAGE.modelLocation(),
+                FLUID_PACKAGE_2.modelLocation(),
                 SMART_FAUCET_SOURCE_INTERFACE.get(Direction.NORTH).modelLocation(),
                 SMART_FAUCET_SOURCE_INTERFACE.get(Direction.SOUTH).modelLocation(),
                 SMART_FAUCET_SOURCE_INTERFACE.get(Direction.EAST).modelLocation(),
@@ -62,5 +67,13 @@ public class AllPartialModels {
 
         com.simibubi.create.AllPartialModels.PACKAGES.put(FLUID_PACKAGE_ID, FLUID_PACKAGE);
         com.simibubi.create.AllPartialModels.PACKAGE_RIGGING.put(FLUID_PACKAGE_ID, FLUID_PACKAGE_RIGGING);
+        com.simibubi.create.AllPartialModels.PACKAGES.put(FLUID_PACKAGE_2_ID, FLUID_PACKAGE_2);
+        com.simibubi.create.AllPartialModels.PACKAGE_RIGGING.put(FLUID_PACKAGE_2_ID, FLUID_PACKAGE_RIGGING);
+    }
+
+    public static PartialModel getFluidPackageModel(ItemStack stack) {
+        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        PartialModel model = com.simibubi.create.AllPartialModels.PACKAGES.get(id);
+        return model != null ? model : FLUID_PACKAGE;
     }
 }

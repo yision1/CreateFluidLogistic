@@ -18,9 +18,14 @@ import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 public class FluidPackageItem extends PackageItem {
 
     public static final PackageStyle FLUID_STYLE = new PackageStyle("rare_fluid", 12, 10, 21f, true);
+    public static final PackageStyle FLUID_STYLE_2 = new PackageStyle("rare_fluid_package_1", 12, 10, 21f, true);
 
     public FluidPackageItem(Properties properties) {
-        super(properties, FLUID_STYLE);
+        this(properties, FLUID_STYLE);
+    }
+
+    public FluidPackageItem(Properties properties, PackageStyle style) {
+        super(properties, style);
         PackageStyles.ALL_BOXES.remove(this);
         PackageStyles.RARE_BOXES.remove(this);
     }
