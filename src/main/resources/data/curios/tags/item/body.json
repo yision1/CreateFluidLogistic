@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "fluidlogistics:portable_stock_ticker",
+      "required": false
+    }
+  ]
+}

@@ -14,6 +14,7 @@ import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.compat.curios.CuriosCompat;
 import com.yision.fluidlogistics.mixin.accessor.StockTickerBlockEntityAccessor;
 import com.yision.fluidlogistics.portableticker.PortableStockTickerMenu;
 import com.yision.fluidlogistics.registry.AllDataComponents;
@@ -37,6 +38,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
+import net.neoforged.fml.ModList;
 
 public class PortableStockTickerItem extends Item {
 
@@ -55,6 +57,13 @@ public class PortableStockTickerItem extends Item {
         ItemStack offHand = inventory.player.getOffhandItem();
         if (offHand.getItem() instanceof PortableStockTickerItem) {
             return offHand;
+        }
+
+        if (ModList.get().isLoaded("curios")) {
+            ItemStack curiosStack = CuriosCompat.findPortableStockTicker(inventory.player);
+            if (curiosStack.getItem() instanceof PortableStockTickerItem) {
+                return curiosStack;
+            }
         }
 
         for (int i = 0; i < inventory.getContainerSize(); i++) {
