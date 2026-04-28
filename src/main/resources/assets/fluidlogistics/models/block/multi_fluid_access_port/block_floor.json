@@ -2,12 +2,12 @@
   "credit": "Adapted from user-provided Blockbench model",
   "parent": "block/block",
   "textures": {
-    "behind": "fluidlogistics:block/multi-fluid_access_port_behind",
-    "down": "fluidlogistics:block/multi-fluid_access_port_down",
-    "front": "fluidlogistics:block/multi-fluid_access_port_front",
-    "side": "fluidlogistics:block/multi-fluid_access_port_side",
-    "top": "fluidlogistics:block/multi-fluid_access_port_top",
-    "particle": "fluidlogistics:block/multi-fluid_access_port_front"
+    "behind": "fluidlogistics:block/multi_fluid_access_port/multi-fluid_access_port_behind",
+    "down": "fluidlogistics:block/multi_fluid_access_port/multi-fluid_access_port_down",
+    "front": "fluidlogistics:block/multi_fluid_access_port/multi-fluid_access_port_front",
+    "side": "fluidlogistics:block/multi_fluid_access_port/multi-fluid_access_port_side",
+    "top": "fluidlogistics:block/multi_fluid_access_port/multi-fluid_access_port_top",
+    "particle": "fluidlogistics:block/multi_fluid_access_port/multi-fluid_access_port_front"
   },
   "elements": [
     {

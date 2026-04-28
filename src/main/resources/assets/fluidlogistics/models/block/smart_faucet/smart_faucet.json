@@ -3,9 +3,9 @@
 	"credit": "Made with Blockbench",
 	"parent": "block/block",
 	"textures": {
-		"7": "fluidlogistics:block/smart_faucet",
-		"9": "fluidlogistics:block/smart_faucet_pipes",
-		"particle": "fluidlogistics:block/smart_faucet"
+		"7": "fluidlogistics:block/smart_faucet/smart_faucet",
+		"9": "fluidlogistics:block/smart_faucet/smart_faucet_pipes",
+		"particle": "fluidlogistics:block/smart_faucet/smart_faucet"
 	},
 	"elements": [
 		{

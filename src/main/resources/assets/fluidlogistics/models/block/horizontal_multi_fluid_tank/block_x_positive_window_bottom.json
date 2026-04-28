@@ -2,11 +2,11 @@
 	"credit": "Made with Blockbench",
 	"parent": "block/block",
 	"textures": {
-		"0": "fluidlogistics:block/multi_fluid_tank_top",
-		"1": "fluidlogistics:block/multi_fluid_tank",
-		"4": "fluidlogistics:block/multi_fluid_tank_inner",
-		"6": "fluidlogistics:block/horizontal_multi_fluid_tank_window",
-		"particle": "fluidlogistics:block/multi_fluid_tank"
+		"0": "fluidlogistics:block/multi_fluid_tank/multi_fluid_tank_top",
+		"1": "fluidlogistics:block/multi_fluid_tank/multi_fluid_tank",
+		"4": "fluidlogistics:block/multi_fluid_tank/multi_fluid_tank_inner",
+		"6": "fluidlogistics:block/horizontal_multi_fluid_tank/horizontal_multi_fluid_tank_window",
+		"particle": "fluidlogistics:block/multi_fluid_tank/multi_fluid_tank"
 	},
 	"elements": [
 		{

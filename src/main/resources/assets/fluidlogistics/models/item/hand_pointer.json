@@ -2,13 +2,13 @@
 	"format_version": "1.21.6",
 	"credit": "Made with Blockbench",
 	"textures": {
-		"0": "fluidlogistics:block/obsidian",
-		"2": "fluidlogistics:block/dark_oak_log",
-		"6": "fluidlogistics:block/brass_block",
-		"7": "fluidlogistics:block/andesite_casing",
-		"18": "fluidlogistics:block/deployer",
-		"particle": "fluidlogistics:block/brass_block",
-		"mechanical_press_head": "fluidlogistics:block/mechanical_press_head"
+		"0": "fluidlogistics:block/hand_pointer/obsidian",
+		"2": "fluidlogistics:block/hand_pointer/dark_oak_log",
+		"6": "fluidlogistics:block/hand_pointer/brass_block",
+		"7": "fluidlogistics:block/hand_pointer/andesite_casing",
+		"18": "fluidlogistics:block/hand_pointer/deployer",
+		"particle": "fluidlogistics:block/hand_pointer/brass_block",
+		"mechanical_press_head": "fluidlogistics:block/hand_pointer/mechanical_press_head"
 	},
 	"elements": [
 		{

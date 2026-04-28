@@ -1,9 +1,9 @@
 {
 	"credit": "Made with Blockbench",
 	"textures": {
-		"1": "fluidlogistics:block/packager_details",
-		"3": "fluidlogistics:block/packager_iris_closed",
-		"particle": "fluidlogistics:block/packager_particle"
+		"1": "fluidlogistics:block/fluid_packager/packager_details",
+		"3": "fluidlogistics:block/fluid_packager/packager_iris_closed",
+		"particle": "fluidlogistics:block/fluid_packager/packager_particle"
 	},
 	"elements": [
 		{
