@@ -32,8 +32,9 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
     private final EnumMap<Direction, BlockCapabilityCache<IFluidHandler, @Nullable Direction>> capCaches =
         new EnumMap<>(Direction.class);
+    private final EnumMap<Direction, IFluidHandler> exposedFluidHandlers = new EnumMap<>(Direction.class);
+    private final IFluidHandler readOnlyFluidHandler = new TransporterFluidHandler(null);
 
-    private final IFluidHandler exposedFluidHandler = new TransporterFluidHandler();
     private SmartFluidTankBehaviour internalTank;
     private FilteringBehaviour filtering;
     private int transferCooldown;
@@ -46,7 +47,7 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
         event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, AllBlockEntities.FLUID_TRANSPORTER.get(),
             (be, side) -> !FeatureToggle.isEnabled(FeatureToggle.FLUID_TRANSPORTER) || be.internalTank == null
                     ? null
-                    : be.exposedFluidHandler);
+                    : be.getExposedFluidHandler(side));
     }
 
     @Override
@@ -220,7 +221,35 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
         super.invalidate();
     }
 
+    private @Nullable IFluidHandler getExposedFluidHandler(@Nullable Direction side) {
+        if (side == null) {
+            return readOnlyFluidHandler;
+        }
+        if (!isExternalFluidSide(side)) {
+            return null;
+        }
+        return exposedFluidHandlers.computeIfAbsent(side, TransporterFluidHandler::new);
+    }
+
+    private boolean isExternalFluidSide(Direction side) {
+        Direction facing = getBlockState().getValue(FluidTransporterBlock.FACING);
+        return side == facing || side == facing.getOpposite();
+    }
+
+    private boolean canFillFrom(@Nullable Direction side) {
+        return side == getBlockState().getValue(FluidTransporterBlock.FACING).getOpposite();
+    }
+
+    private boolean canDrainFrom(@Nullable Direction side) {
+        return side == getBlockState().getValue(FluidTransporterBlock.FACING);
+    }
+
     private class TransporterFluidHandler implements IFluidHandler {
+        private final @Nullable Direction side;
+
+        private TransporterFluidHandler(@Nullable Direction side) {
+            this.side = side;
+        }
 
         @Override
         public int getTanks() {
@@ -242,13 +271,13 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
         @Override
         public boolean isFluidValid(int tank, FluidStack stack) {
-            return canAcceptFluid(stack);
+            return canFillFrom(side) && canAcceptFluid(stack);
         }
 
         @Override
         public int fill(FluidStack resource, FluidAction action) {
             IFluidHandler handler = getInternalHandler();
-            if (handler == null || !canAcceptFluid(resource)) {
+            if (handler == null || !canFillFrom(side) || !canAcceptFluid(resource)) {
                 return 0;
             }
             return handler.fill(resource, action);
@@ -257,13 +286,13 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
         @Override
         public FluidStack drain(FluidStack resource, FluidAction action) {
             IFluidHandler handler = getInternalHandler();
-            return handler == null ? FluidStack.EMPTY : handler.drain(resource, action);
+            return handler == null || !canDrainFrom(side) ? FluidStack.EMPTY : handler.drain(resource, action);
         }
 
         @Override
         public FluidStack drain(int maxDrain, FluidAction action) {
             IFluidHandler handler = getInternalHandler();
-            return handler == null ? FluidStack.EMPTY : handler.drain(maxDrain, action);
+            return handler == null || !canDrainFrom(side) ? FluidStack.EMPTY : handler.drain(maxDrain, action);
         }
 
         private @Nullable IFluidHandler getInternalHandler() {
