@@ -2,9 +2,10 @@ package com.yision.fluidlogistics.client;
 
 import java.util.List;
 
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import com.yision.fluidlogistics.item.CompressedTankItem;
+
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 public final class FluidTooltipHelper {
@@ -21,17 +22,15 @@ public final class FluidTooltipHelper {
         return jeiLines.size() > 1 ? jeiLines : List.of(fluid.getHoverName().copy());
     }
 
-    public static void renderTooltip(GuiGraphics graphics, Font fallbackFont, FluidStack fluid, int x, int y) {
-        if (fluid.isEmpty()) {
-            return;
-        }
+    public static List<Component> getVirtualCompressedTankTooltipLines(ItemStack stack) {
+        FluidStack fluid = getVirtualCompressedTankFluid(stack);
+        return fluid.isEmpty() ? List.of() : getTooltipLines(fluid);
+    }
 
-        List<Component> jeiLines = JeiClientBridge.getFluidTooltipLines(fluid);
-        if (jeiLines.size() > 1) {
-            JeiClientBridge.renderFluidTooltip(graphics, fallbackFont, fluid, x, y);
-            return;
+    public static FluidStack getVirtualCompressedTankFluid(ItemStack stack) {
+        if (!(stack.getItem() instanceof CompressedTankItem) || !CompressedTankItem.isVirtual(stack)) {
+            return FluidStack.EMPTY;
         }
-
-        graphics.renderComponentTooltip(fallbackFont, getTooltipLines(fluid), x, y);
+        return CompressedTankItem.getFluid(stack);
     }
 }

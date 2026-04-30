@@ -28,7 +28,6 @@ import com.simibubi.create.foundation.gui.AllGuiTextures;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.client.JechSearchBridge;
-import com.yision.fluidlogistics.client.FluidTooltipHelper;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.item.PortableStockTickerItem;
 import com.yision.fluidlogistics.network.PortableStockTickerHiddenCategoriesPacket;
@@ -36,7 +35,7 @@ import com.yision.fluidlogistics.network.PortableStockTickerOrderRequestPacket;
 import com.yision.fluidlogistics.network.PortableStockTickerSaveAddressPacket;
 import com.yision.fluidlogistics.registry.AllDataComponents;
 import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
-import com.yision.fluidlogistics.render.FluidSlotRenderer;
+import com.yision.fluidlogistics.util.FluidAmountHelper;
 import net.createmod.catnip.animation.LerpedFloat;
 import net.createmod.catnip.animation.LerpedFloat.Chaser;
 import net.createmod.catnip.data.Couple;
@@ -332,13 +331,6 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
             return stack.getTags()
                     .anyMatch(key -> JechSearchBridge.containsIgnoreCase(key.location().toString(), search));
         }
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(stack);
-            if (!fluid.isEmpty()
-                    && JechSearchBridge.containsIgnoreCase(fluid.getHoverName().getString(), search)) {
-                return true;
-            }
-        }
         return JechSearchBridge.containsIgnoreCase(stack.getHoverName().getString(), search)
                 || JechSearchBridge.containsIgnoreCase(BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath(),
                         search);
@@ -586,23 +578,13 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
 
         ItemStack stack = entry.stack;
         if (recipeHovered) {
-            ArrayList<Component> lines = stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)
-                    ? new ArrayList<>(FluidTooltipHelper.getTooltipLines(CompressedTankItem.getFluid(stack)))
-                    : new ArrayList<>(stack.getTooltipLines(TooltipContext.of(minecraft.level), minecraft.player,
-                            TooltipFlag.NORMAL));
+            ArrayList<Component> lines = new ArrayList<>(
+                    stack.getTooltipLines(TooltipContext.of(minecraft.level), minecraft.player, TooltipFlag.NORMAL));
             if (!lines.isEmpty()) {
                 lines.set(0, CreateLang.translateDirect("gui.stock_keeper.craft", lines.getFirst().copy()));
             }
             graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
             return;
-        }
-
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(stack);
-            if (!fluid.isEmpty()) {
-                FluidTooltipHelper.renderTooltip(graphics, font, fluid, mouseX, mouseY);
-                return;
-            }
         }
 
         graphics.renderTooltip(font, stack, mouseX, mouseY);
@@ -635,12 +617,7 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
         ms.translate(-9, -9, 0);
 
         ItemStack stack = entry.stack;
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(stack);
-            if (!fluid.isEmpty() && (customCount != 0 || isRenderingOrders)) {
-                FluidSlotRenderer.renderFluidSlot(graphics, 0, 0, fluid);
-            }
-        } else if (customCount != 0 || isRenderingOrders) {
+        if (customCount != 0 || isRenderingOrders) {
             GuiGameElement.of(stack).render(graphics);
         }
         ms.popPose();
@@ -1698,13 +1675,7 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
 
     private int getTransferAmount(ItemStack stack, boolean shift, boolean control) {
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            if (shift) {
-                return 50000;
-            }
-            if (control) {
-                return 10000;
-            }
-            return 1000;
+            return FluidAmountHelper.getFluidRequestTransferAmount(shift, control);
         }
 
         if (shift) {

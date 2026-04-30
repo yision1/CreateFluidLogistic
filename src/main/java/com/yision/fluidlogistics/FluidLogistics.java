@@ -17,7 +17,9 @@ import com.yision.fluidlogistics.registry.FluidLogisticsArmInteractionPointTypes
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.AllBlocks;
 import com.simibubi.create.content.logistics.box.PackageItem;
+import com.yision.fluidlogistics.item.CompressedTankFluidHandler;
 import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.item.CompressedTankTooltipModifier;
 import com.yision.fluidlogistics.registry.AllDataComponents;
 import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.registry.AllMenuTypes;
@@ -35,6 +37,7 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
@@ -56,7 +59,9 @@ public class FluidLogistics {
 
     public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(MODID)
             .setTooltipModifierFactory(item ->
-                    new ItemDescription.Modifier(item, FontHelper.Palette.STANDARD_CREATE)
+                    item instanceof CompressedTankItem
+                            ? new CompressedTankTooltipModifier(item, FontHelper.Palette.STANDARD_CREATE)
+                            : new ItemDescription.Modifier(item, FontHelper.Palette.STANDARD_CREATE)
             )
             .defaultCreativeTab("fluidlogistics_tab", b -> b.icon(() -> createWaterFluidPackage(50000)))
             .build();
@@ -104,6 +109,9 @@ public class FluidLogistics {
         MultiFluidTankBlockEntity.registerCapabilities(event);
         HorizontalMultiFluidTankBlockEntity.registerCapabilities(event);
         MultiFluidAccessPortBlockEntity.registerCapabilities(event);
+        event.registerItem(Capabilities.FluidHandler.ITEM,
+                (stack, context) -> new CompressedTankFluidHandler(stack),
+                AllItems.COMPRESSED_STORAGE_TANK.get());
     }
 
     private void hideDisabledItems(final BuildCreativeModeTabContentsEvent event) {

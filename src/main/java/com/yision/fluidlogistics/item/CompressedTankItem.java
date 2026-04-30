@@ -1,10 +1,13 @@
 package com.yision.fluidlogistics.item;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 import com.simibubi.create.content.fluids.tank.FluidTankBlock;
+import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.datacomponent.FluidTankContent;
+import com.yision.fluidlogistics.render.CompressedTankItemRenderer;
 import com.yision.fluidlogistics.registry.AllDataComponents;
 
 import net.minecraft.ChatFormatting;
@@ -22,9 +25,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
@@ -62,18 +67,37 @@ public class CompressedTankItem extends Item {
     }
 
     @Override
+    public Component getName(ItemStack stack) {
+        FluidStack fluid = getFluid(stack);
+        if (isVirtual(stack) && !fluid.isEmpty()) {
+            return fluid.getHoverName();
+        }
+        return super.getName(stack);
+    }
+
+    @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         super.appendHoverText(stack, context, tooltipComponents, tooltipFlag);
         FluidStack fluid = getFluid(stack);
+        if (isVirtual(stack)) {
+            return;
+        }
+
+        int capacity = getCapacity();
         if (!fluid.isEmpty()) {
-            tooltipComponents.add(Component.literal("")
-                    .append(fluid.getHoverName())
-                    .append(": " + fluid.getAmount() + " mB")
+            tooltipComponents.add(Component.literal(fluid.getAmount() + " / " + capacity + " mB")
                     .withStyle(ChatFormatting.GRAY));
+            return;
         } else {
-            tooltipComponents.add(Component.literal("Empty")
+            tooltipComponents.add(Component.literal("0 / " + capacity + " mB")
                     .withStyle(ChatFormatting.GRAY));
         }
+    }
+
+    @Override
+    @OnlyIn(Dist.CLIENT)
+    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
+        consumer.accept(SimpleCustomRenderer.create(this, new CompressedTankItemRenderer()));
     }
 
     @Override

@@ -18,6 +18,7 @@ import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
+import com.yision.fluidlogistics.util.VirtualFluidDisplayHelper;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -39,6 +40,21 @@ public abstract class PackageItemMixin {
     @Shadow
     public static ItemStackHandler getContents(ItemStack stack) {
         throw new AssertionError();
+    }
+
+    @Inject(
+            method = "getContents",
+            at = @At("RETURN")
+    )
+    private static void fluidlogistics$displayCompressedTanksAsFluidsInPackages(ItemStack box,
+                                                                                CallbackInfoReturnable<ItemStackHandler> cir) {
+        ItemStackHandler contents = cir.getReturnValue();
+        for (int i = 0; i < contents.getSlots(); i++) {
+            ItemStack displayStack = VirtualFluidDisplayHelper.getPackageDisplayStack(contents.getStackInSlot(i));
+            if (displayStack != contents.getStackInSlot(i)) {
+                contents.setStackInSlot(i, displayStack);
+            }
+        }
     }
 
     @Inject(
@@ -76,7 +92,7 @@ public abstract class PackageItemMixin {
             mergedFluidsRef.set(mergedFluids);
         }
 
-        FluidStack fluid = CompressedTankItem.getFluid(itemStack).copy();
+        FluidStack fluid = VirtualFluidDisplayHelper.getPackageDisplayFluid(itemStack);
         fluid.setAmount(fluid.getAmount() * itemStack.getCount());
         fluidlogistics$mergeFluid(mergedFluids, fluid);
         return ItemStack.EMPTY;
@@ -148,10 +164,7 @@ public abstract class PackageItemMixin {
 
     @Unique
     private static boolean fluidlogistics$shouldRenderAsFluidTooltip(ItemStack itemStack) {
-        if (!(itemStack.getItem() instanceof CompressedTankItem)) {
-            return false;
-        }
-        return !CompressedTankItem.getFluid(itemStack).isEmpty();
+        return VirtualFluidDisplayHelper.shouldDisplayAsFluidInPackage(itemStack);
     }
 
     @Unique

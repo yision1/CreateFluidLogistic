@@ -3,8 +3,6 @@ package com.yision.fluidlogistics.mixin.client;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -13,8 +11,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
@@ -27,8 +23,6 @@ import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.network.FactoryPanelSetFluidAdditionalStockPacket;
 import com.yision.fluidlogistics.network.FactoryPanelSetFluidPromiseLimitPacket;
 import com.yision.fluidlogistics.network.FactoryPanelSetFluidRestockThresholdPacket;
-import com.yision.fluidlogistics.render.FluidRenderEntry;
-import com.yision.fluidlogistics.render.FluidSlotRenderer;
 import com.yision.fluidlogistics.util.IFluidAdditionalStock;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 import com.yision.fluidlogistics.util.FluidGaugeHelper;
@@ -36,7 +30,6 @@ import com.yision.fluidlogistics.util.IFluidPromiseLimit;
 import com.yision.fluidlogistics.util.IFluidRestockThreshold;
 
 import net.createmod.catnip.gui.AbstractSimiScreen;
-import net.createmod.catnip.gui.element.GuiGameElement;
 import net.createmod.catnip.platform.CatnipServices;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -94,37 +87,6 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                 fluidlogistics$cachedFluid = fluid;
             }
         }
-    }
-
-    @Unique
-    private List<FluidRenderEntry> fluidlogistics$pendingFluidRenders = new ArrayList<>();
-
-    @Inject(
-        method = "renderWindow",
-        at = @At("HEAD"),
-        remap = false
-    )
-    private void fluidlogistics$onRenderWindowHead(CallbackInfo ci) {
-        fluidlogistics$pendingFluidRenders.clear();
-    }
-
-    @Redirect(
-        method = "renderInputItem",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiGraphics;renderItem(" +
-                     "Lnet/minecraft/world/item/ItemStack;II)V",
-            remap = true
-        ),
-        remap = false
-    )
-    private void fluidlogistics$redirectRenderItem(GuiGraphics graphics, ItemStack stack, int x, int y,
-            @Local(argsOnly = true) BigItemStack itemStack) {
-        if (fluidlogistics$isVirtualTank && fluidlogistics$cachedFluid != null) {
-            fluidlogistics$pendingFluidRenders.add(new FluidRenderEntry(x, y, fluidlogistics$cachedFluid.copy()));
-            return;
-        }
-        graphics.renderItem(stack, x, y);
     }
 
     @Redirect(
@@ -403,28 +365,6 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         method = "renderWindow",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiGraphics;renderItem(" +
-                     "Lnet/minecraft/world/item/ItemStack;II)V",
-            ordinal = 0,
-            remap = true
-        ),
-        remap = false
-    )
-    private void fluidlogistics$redirectOutputRenderItem(GuiGraphics graphics, ItemStack stack, int x, int y) {
-        if (outputConfig.stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(outputConfig.stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(outputConfig.stack);
-            if (!fluid.isEmpty()) {
-                fluidlogistics$pendingFluidRenders.add(new FluidRenderEntry(x, y, fluid.copy()));
-                return;
-            }
-        }
-        graphics.renderItem(stack, x, y);
-    }
-
-    @Redirect(
-        method = "renderWindow",
-        at = @At(
-            value = "INVOKE",
             target = "Lnet/minecraft/client/gui/GuiGraphics;renderItemDecorations(" +
                      "Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;IILjava/lang/String;)V",
             ordinal = 0,
@@ -551,66 +491,6 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         graphics.renderComponentTooltip(font, tooltips, mouseX, mouseY);
     }
 
-    @Unique
-    private FluidStack fluidlogistics$cachedFluidForGauge;
-
-    @WrapOperation(
-        method = "renderWindow",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/createmod/catnip/gui/element/GuiGameElement;of(Lnet/minecraft/world/item/ItemStack;)Lnet/createmod/catnip/gui/element/GuiGameElement$GuiRenderBuilder;",
-            ordinal = 1,
-            remap = false
-        ),
-        remap = false
-    )
-    private GuiGameElement.GuiRenderBuilder fluidlogistics$redirectFilterItemRender(
-            ItemStack stack,
-            Operation<GuiGameElement.GuiRenderBuilder> original) {
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(stack);
-            if (!fluid.isEmpty()) {
-                fluidlogistics$cachedFluidForGauge = fluid.copy();
-                return GuiGameElement.of(net.minecraft.world.level.block.Blocks.AIR.asItem().getDefaultInstance());
-            }
-        }
-        fluidlogistics$cachedFluidForGauge = null;
-        return original.call(stack);
-    }
-
-    @Inject(
-        method = "renderWindow",
-        at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;popPose()V", ordinal = 0, shift = At.Shift.BEFORE),
-        remap = false
-    )
-    private void fluidlogistics$renderFluidOnGauge(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks,
-            CallbackInfo ci) {
-        if (fluidlogistics$cachedFluidForGauge != null && !fluidlogistics$cachedFluidForGauge.isEmpty()) {
-            int x = guiLeft;
-            int y = guiTop;
-            int fluidX = x + 219;
-            int fluidY = y + 74;
-            
-            PoseStack ms = graphics.pose();
-            ms.pushPose();
-            ms.translate(0, 0, 200);
-            FluidSlotRenderer.renderFluidSlot(graphics, fluidX, fluidY, fluidlogistics$cachedFluidForGauge);
-            ms.popPose();
-        }
-    }
-    
-    @Inject(
-        method = "renderWindow",
-        at = @At("TAIL"),
-        remap = false
-    )
-    private void fluidlogistics$renderPendingFluids(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks,
-            CallbackInfo ci) {
-        for (FluidRenderEntry entry : fluidlogistics$pendingFluidRenders) {
-            FluidSlotRenderer.renderFluidSlot(graphics, entry.x, entry.y, entry.fluid);
-        }
-    }
-
     @Inject(
         method = "renderWindow",
         at = @At("RETURN"),
@@ -627,7 +507,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         if (fluidlogistics$restockThresholdInput != null) {
             FluidLogisticsGuiTextures.ADDITIONAL_STOCK_BG.render(graphics, fluidlogistics$restockThresholdInput.getX() + 11,
                 fluidlogistics$restockThresholdInput.getY() - 1);
-            String label = " " + fluidlogistics$formatRestockThreshold(fluidlogistics$restockThresholdInput.getState());
+            String label = " " + FluidAmountHelper.formatOptionalCompact(fluidlogistics$restockThresholdInput.getState(), true);
             graphics.drawString(font, CreateLang.text(label).component(), fluidlogistics$restockThresholdInput.getX() + 15,
                 fluidlogistics$restockThresholdInput.getY() + 4, 0xffeeeeee, true);
         }
@@ -640,8 +520,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                 FluidLogisticsGuiTextures.ADDITIONAL_STOCK_BG.render(graphics, fluidlogistics$promiseLimitInput.getX() + 11,
                     fluidlogistics$promiseLimitInput.getY() - 1);
             }
-            String label = fluidlogistics$promiseLimitInput.getState() < 0 ? " ---"
-                : " " + fluidlogistics$formatPromiseLimit(fluidlogistics$promiseLimitInput.getState());
+            String label = " " + FluidAmountHelper.formatOptionalCompact(fluidlogistics$promiseLimitInput.getState(), false);
             int promiseLabelX = fluidlogistics$promiseLimitInput.getX() + (restocker ? 3 : 15);
             graphics.drawString(font, CreateLang.text(label).component(), promiseLabelX,
                 fluidlogistics$promiseLimitInput.getY() + 4, 0xffeeeeee, true);
@@ -650,7 +529,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         if (fluidlogistics$additionalStockInput != null) {
             FluidLogisticsGuiTextures.ADDITIONAL_STOCK_LEFT_BG.render(graphics, fluidlogistics$additionalStockInput.getX() - 1,
                 fluidlogistics$additionalStockInput.getY() - 4);
-            String label = " " + fluidlogistics$formatAdditionalStock(fluidlogistics$additionalStockInput.getState());
+            String label = " " + FluidAmountHelper.formatOptionalCompact(fluidlogistics$additionalStockInput.getState(), true);
             graphics.drawString(font, CreateLang.text(label).component(), fluidlogistics$additionalStockInput.getX() + 8,
                 fluidlogistics$additionalStockInput.getY() + 4, 0xffeeeeee, true);
         }
@@ -693,19 +572,8 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     }
 
     @Unique
-    private static String fluidlogistics$formatAdditionalStock(int amount) {
-        if (amount <= 0) {
-            return "---";
-        }
-        return FluidAmountHelper.format(amount);
-    }
-
-    @Unique
     private static String fluidlogistics$formatAdditionalStockTooltip(int amount) {
-        if (amount <= 0) {
-            return "---";
-        }
-        return fluidlogistics$formatThresholdDisplay(amount);
+        return FluidAmountHelper.formatOptionalPreciseMultiplier(amount, true);
     }
 
     @Unique
@@ -725,42 +593,13 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     }
 
     @Unique
-    private static String fluidlogistics$formatRestockThreshold(int threshold) {
-        if (threshold <= 0) {
-            return "---";
-        }
-        return FluidAmountHelper.format(threshold);
-    }
-
-    @Unique
-    private static String fluidlogistics$formatPromiseLimit(int threshold) {
-        return FluidAmountHelper.format(threshold);
-    }
-
-    @Unique
     private static String fluidlogistics$formatRestockThresholdTooltip(int threshold) {
-        if (threshold <= 0) {
-            return "---";
-        }
-        return fluidlogistics$formatThresholdDisplay(threshold);
+        return FluidAmountHelper.formatOptionalPreciseMultiplier(threshold, true);
     }
 
     @Unique
     private static String fluidlogistics$formatPromiseLimitTooltip(int threshold) {
-        if (threshold < 0) {
-            return "---";
-        }
-        return fluidlogistics$formatPromiseLimitDisplay(threshold);
-    }
-
-    @Unique
-    private static String fluidlogistics$formatPromiseLimitDisplay(int threshold) {
-        return "x" + FluidAmountHelper.formatPrecise(threshold);
-    }
-
-    @Unique
-    private static String fluidlogistics$formatThresholdDisplay(int threshold) {
-        return "x" + FluidAmountHelper.formatPrecise(threshold);
+        return FluidAmountHelper.formatOptionalPreciseMultiplier(threshold, false);
     }
 
     @Unique

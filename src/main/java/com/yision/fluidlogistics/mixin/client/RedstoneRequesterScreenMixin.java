@@ -21,8 +21,8 @@ import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequester
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.gui.menu.GhostItemSubmitPacket;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
+import com.yision.fluidlogistics.client.RedstoneRequesterAmountsAccess;
 import com.yision.fluidlogistics.item.CompressedTankItem;
-import com.yision.fluidlogistics.render.FluidSlotRenderer;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
 import net.createmod.catnip.data.Pair;
@@ -44,7 +44,8 @@ import static com.yision.fluidlogistics.util.FluidAmountHelper.adjustFactoryGaug
 
 @OnlyIn(Dist.CLIENT)
 @Mixin(RedstoneRequesterScreen.class)
-public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainerScreen<RedstoneRequesterMenu> {
+public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainerScreen<RedstoneRequesterMenu>
+        implements RedstoneRequesterAmountsAccess {
 
     @Shadow(remap = false)
     @Final
@@ -52,6 +53,11 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
 
     public RedstoneRequesterScreenMixin(RedstoneRequesterMenu container, Inventory inv, Component title) {
         super(container, inv, title);
+    }
+
+    @Override
+    public List<Integer> fluidlogistics$getAmounts() {
+        return amounts;
     }
 
     @Override
@@ -73,7 +79,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
                         ItemStack virtualTank = new ItemStack(com.yision.fluidlogistics.registry.AllItems.COMPRESSED_STORAGE_TANK.get());
                         CompressedTankItem.setFluidVirtual(virtualTank, fluidStack.copyWithAmount(1));
                         menu.ghostInventory.setStackInSlot(slotIndex, virtualTank);
-                        amounts.set(slotIndex, 1000);
+                        amounts.set(slotIndex, FluidAmountHelper.DEFAULT_FLUID_REQUEST_AMOUNT);
                         
                         CatnipServices.NETWORK.sendToServer(new GhostItemSubmitPacket(virtualTank, slotIndex));
                         return;
@@ -88,22 +94,6 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
             return;
         }
         super.slotClicked(slot, slotId, mouseButton, type);
-    }
-
-    @Override
-    protected void renderSlot(GuiGraphics graphics, Slot slot) {
-        if (slot instanceof SlotItemHandler) {
-            int slotIndex = slot.getSlotIndex();
-            ItemStack itemStack = menu.ghostInventory.getStackInSlot(slotIndex);
-            if (itemStack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(itemStack)) {
-                FluidStack fluid = CompressedTankItem.getFluid(itemStack);
-                if (!fluid.isEmpty()) {
-                    FluidSlotRenderer.renderFluidSlot(graphics, slot.x, slot.y, fluid);
-                    return;
-                }
-            }
-        }
-        super.renderSlot(graphics, slot);
     }
 
     @Redirect(

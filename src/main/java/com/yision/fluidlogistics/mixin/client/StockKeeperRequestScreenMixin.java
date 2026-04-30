@@ -2,7 +2,6 @@ package com.yision.fluidlogistics.mixin.client;
 
 import java.util.List;
 
-import com.yision.fluidlogistics.mixin.accessor.StockKeeperRequestScreenAccessor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -12,8 +11,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.simibubi.create.content.logistics.BigItemStack;
@@ -21,23 +18,15 @@ import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
-import com.yision.fluidlogistics.client.FluidTooltipHelper;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
-import com.yision.fluidlogistics.render.FluidSlotRenderer;
+import com.yision.fluidlogistics.util.FluidAmountHelper;
 import com.yision.fluidlogistics.util.IFluidCraftableBigItemStack;
 
 import net.createmod.catnip.data.Couple;
-import net.createmod.catnip.gui.element.GuiGameElement;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.util.Mth;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.createmod.catnip.data.Pair;
@@ -67,24 +56,8 @@ public abstract class StockKeeperRequestScreenMixin {
     @Shadow(remap = false)
     protected abstract Couple<Integer> getHoveredSlot(int mouseX, int mouseY);
 
-    @WrapOperation(
-        method = "refreshSearchResults",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/item/ItemStack;getHoverName()Lnet/minecraft/network/chat/Component;",
-            remap = true
-        ),
-        remap = false
-    )
-    private Component fluidlogistics$useFluidNameForVirtualTankSearch(ItemStack stack,
-            Operation<Component> original) {
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(stack);
-            if (!fluid.isEmpty()) {
-                return fluid.getHoverName();
-            }
-        }
-        return original.call(stack);
+    @Shadow(remap = false)
+    private void drawItemCount(GuiGraphics graphics, int count, int customCount) {
     }
 
     @Unique
@@ -92,9 +65,6 @@ public abstract class StockKeeperRequestScreenMixin {
 
     @Unique
     private int fluidlogistics$fluidAmount = 0;
-
-    @Unique
-    private FluidStack fluidlogistics$cachedFluid = null;
 
     @Inject(
         method = "renderItemEntry",
@@ -106,7 +76,6 @@ public abstract class StockKeeperRequestScreenMixin {
             boolean isStackHovered, boolean isRenderingOrders, CallbackInfo ci) {
         fluidlogistics$isCompressedTank = false;
         fluidlogistics$fluidAmount = 0;
-        fluidlogistics$cachedFluid = null;
 
         ItemStack stack = entry.stack;
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
@@ -114,30 +83,8 @@ public abstract class StockKeeperRequestScreenMixin {
             if (!fluid.isEmpty()) {
                 fluidlogistics$isCompressedTank = true;
                 fluidlogistics$fluidAmount = entry.count;
-                fluidlogistics$cachedFluid = fluid;
             }
         }
-    }
-
-
-
-    @Redirect(
-        method = "renderItemEntry",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/createmod/catnip/gui/element/GuiGameElement;of(Lnet/minecraft/world/item/ItemStack;)Lnet/createmod/catnip/gui/element/GuiGameElement$GuiRenderBuilder;",
-            remap = false
-        ),
-        remap = false
-    )
-    private GuiGameElement.GuiRenderBuilder fluidlogistics$redirectGuiGameElementOf(
-            ItemStack itemStack,
-            @Local(argsOnly = true) GuiGraphics graphics) {
-        if (fluidlogistics$isCompressedTank && fluidlogistics$cachedFluid != null) {
-            FluidSlotRenderer.renderFluidSlot(graphics, 0, 0, fluidlogistics$cachedFluid);
-            return GuiGameElement.of(Blocks.AIR.asItem().getDefaultInstance());
-        }
-        return GuiGameElement.of(itemStack);
     }
 
     @Redirect(
@@ -158,47 +105,7 @@ public abstract class StockKeeperRequestScreenMixin {
             }
             return;
         }
-        ((StockKeeperRequestScreenAccessor) instance).callDrawItemCount(graphics, count, customCount);
-    }
-
-    @Redirect(
-        method = "renderForeground",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltip(" +
-                     "Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V",
-            remap = true
-        )
-    )
-    private void fluidlogistics$redirectTooltip(GuiGraphics graphics, Font font, ItemStack stack, int x, int y) {
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(stack);
-            if (!fluid.isEmpty()) {
-                FluidTooltipHelper.renderTooltip(graphics, font, fluid, x, y);
-                return;
-            }
-        }
-        graphics.renderTooltip(font, stack, x, y);
-    }
-
-    @Redirect(
-        method = "renderForeground",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/item/ItemStack;getTooltipLines(Lnet/minecraft/world/item/Item$TooltipContext;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/TooltipFlag;)Ljava/util/List;",
-            remap = true
-        ),
-        remap = false
-    )
-    private List<Component> fluidlogistics$redirectRecipeTooltipLines(ItemStack stack, TooltipContext context, Player player,
-            TooltipFlag tooltipFlag) {
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(stack);
-            if (!fluid.isEmpty()) {
-                return FluidTooltipHelper.getTooltipLines(fluid);
-            }
-        }
-        return stack.getTooltipLines(context, player, tooltipFlag);
+        drawItemCount(graphics, count, customCount);
     }
 
     @ModifyExpressionValue(
@@ -211,8 +118,8 @@ public abstract class StockKeeperRequestScreenMixin {
         remap = false
     )
     private int fluidlogistics$modifyTransferShiftForFluid(int original, @Local BigItemStack entry) {
-        if (entry.stack.getItem() instanceof CompressedTankItem) {
-            return 50000;
+        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+            return FluidAmountHelper.getFluidRequestTransferAmount(true, false);
         }
         return original;
     }
@@ -226,8 +133,8 @@ public abstract class StockKeeperRequestScreenMixin {
         remap = false
     )
     private int fluidlogistics$modifyTransferCtrlForFluid(int original, @Local BigItemStack entry) {
-        if (entry.stack.getItem() instanceof CompressedTankItem) {
-            return 10000;
+        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+            return FluidAmountHelper.getFluidRequestTransferAmount(false, true);
         }
         return original;
     }
@@ -241,8 +148,8 @@ public abstract class StockKeeperRequestScreenMixin {
         remap = false
     )
     private int fluidlogistics$modifyTransferNormalForFluid(int original, @Local BigItemStack entry) {
-        if (entry.stack.getItem() instanceof CompressedTankItem) {
-            return 1000;
+        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+            return FluidAmountHelper.getFluidRequestTransferAmount(false, false);
         }
         return original;
     }
@@ -256,8 +163,8 @@ public abstract class StockKeeperRequestScreenMixin {
         remap = false
     )
     private int fluidlogistics$modifyScrollTransferCtrlForFluid(int original, @Local BigItemStack entry) {
-        if (entry.stack.getItem() instanceof CompressedTankItem) {
-            return 10000;
+        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+            return FluidAmountHelper.getFluidRequestTransferAmount(false, true);
         }
         return original;
     }
@@ -271,8 +178,8 @@ public abstract class StockKeeperRequestScreenMixin {
         remap = false
     )
     private int fluidlogistics$modifyScrollTransferNormalForFluid(int original, @Local BigItemStack entry) {
-        if (entry.stack.getItem() instanceof CompressedTankItem) {
-            return 1000;
+        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+            return FluidAmountHelper.getFluidRequestTransferAmount(false, false);
         }
         return original;
     }
@@ -493,8 +400,13 @@ public abstract class StockKeeperRequestScreenMixin {
     @Unique
     private boolean fluidlogistics$isCustomFluidCraftable(CraftableBigItemStack cbis) {
         return fluidlogistics$hasCustomRecipeData(cbis)
-            && cbis.stack.getItem() instanceof CompressedTankItem
-            && CompressedTankItem.isVirtual(cbis.stack);
+            && fluidlogistics$isVirtualCompressedTank(cbis.stack);
+    }
+
+    @Unique
+    private static boolean fluidlogistics$isVirtualCompressedTank(ItemStack stack) {
+        return stack.getItem() instanceof CompressedTankItem
+            && CompressedTankItem.isVirtual(stack);
     }
 
     @Unique

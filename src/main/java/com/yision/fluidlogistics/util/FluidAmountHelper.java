@@ -10,6 +10,11 @@ public final class FluidAmountHelper {
     public static final int MB_PER_BUCKET = 1000;
     public static final int MB_PER_TENTH_BUCKET = 100;
     public static final int MB_PER_KILOBUCKET = MB_PER_BUCKET * 1000;
+    public static final int DEFAULT_FLUID_REQUEST_AMOUNT = 1;
+    public static final int NORMAL_FLUID_REQUEST_STEP = MB_PER_BUCKET;
+    public static final int CONTROL_FLUID_REQUEST_STEP = 10 * MB_PER_BUCKET;
+    public static final int SHIFT_FLUID_REQUEST_STEP = 50 * MB_PER_BUCKET;
+    public static final String INACTIVE_AMOUNT_LABEL = "---";
 
     private FluidAmountHelper() {}
 
@@ -108,6 +113,62 @@ public final class FluidAmountHelper {
         }
 
         return Math.clamp(newAmount, minAmount, maxAmount);
+    }
+
+    public static int getFluidRequestTransferAmount(boolean shift, boolean control) {
+        if (shift) {
+            return SHIFT_FLUID_REQUEST_STEP;
+        }
+        if (control) {
+            return CONTROL_FLUID_REQUEST_STEP;
+        }
+        return NORMAL_FLUID_REQUEST_STEP;
+    }
+
+    public static String formatOptionalCompact(int amount, boolean zeroIsInactive) {
+        if (amount < 0 || zeroIsInactive && amount == 0) {
+            return INACTIVE_AMOUNT_LABEL;
+        }
+        return format(amount);
+    }
+
+    public static String formatOptionalPreciseMultiplier(int amount, boolean zeroIsInactive) {
+        if (amount < 0 || zeroIsInactive && amount == 0) {
+            return INACTIVE_AMOUNT_LABEL;
+        }
+        return "x" + formatPrecise(amount);
+    }
+
+    public static String formatFactoryGaugeValueSetting(int row, int value) {
+        if (value == 0) {
+            return null;
+        }
+
+        if (row == 1) {
+            return Math.clamp(value, 1, 100) + "B";
+        }
+
+        return Math.max(0, value) * 10 + "mB";
+    }
+
+    public static int toFactoryGaugeAmount(int row, int value) {
+        if (value <= 0) {
+            return 0;
+        }
+
+        if (row == 1) {
+            return Math.clamp(value, 1, 100) * MB_PER_BUCKET;
+        }
+
+        return Math.max(0, value) * 10;
+    }
+
+    public static int toFactoryGaugeValueSetting(int amount) {
+        if (amount >= MB_PER_BUCKET) {
+            return Math.clamp(amount / MB_PER_BUCKET, 1, 100);
+        }
+
+        return Math.max(0, amount) / 10;
     }
 
     private static String formatCompact(int amount, int unitSize, String suffix) {

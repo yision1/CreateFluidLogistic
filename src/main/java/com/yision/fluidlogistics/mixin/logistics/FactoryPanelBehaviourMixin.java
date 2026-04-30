@@ -343,20 +343,10 @@ public abstract class FactoryPanelBehaviourMixin {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
         if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
-            if (value.value() == 0) {
-                if (value.row() == 1) {
-                    cir.setReturnValue(Component.literal("1B"));
-                } else {
-                    cir.setReturnValue(CreateLang.translateDirect("gui.factory_panel.inactive"));
-                }
-            } else {
-                int displayValue = value.row() == 1
-                    ? Math.min(100, Math.max(1, value.value()))
-                    : Math.max(0, value.value()) * 10;
-                boolean useBuckets = value.row() == 1;
-                String unit = useBuckets ? "B" : "mB";
-                cir.setReturnValue(Component.literal(displayValue + unit));
-            }
+            String formatted = FluidAmountHelper.formatFactoryGaugeValueSetting(value.row(), value.value());
+            cir.setReturnValue(formatted == null
+                ? CreateLang.translateDirect("gui.factory_panel.inactive")
+                : Component.literal(formatted));
         }
     }
 
@@ -395,15 +385,7 @@ public abstract class FactoryPanelBehaviourMixin {
     )
     private int fluidlogistics$modifySettingsValue(int original) {
         if (fluidlogistics$needsConversion.get()) {
-            if (fluidlogistics$useBucketsMode.get()) {
-                int clampedBuckets = Math.clamp(original, 0, 100);
-                if (clampedBuckets == 0) {
-                    return 1000;
-                }
-                return clampedBuckets * 1000;
-            } else {
-                return original * 10;
-            }
+            return FluidAmountHelper.toFactoryGaugeAmount(fluidlogistics$useBucketsMode.get() ? 1 : 0, original);
         }
         return original;
     }
@@ -420,12 +402,12 @@ public abstract class FactoryPanelBehaviourMixin {
         if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
             int count = self.getAmount();
             boolean upTo = self.upTo;
-            boolean useBuckets = count >= 1000;
+            boolean useBuckets = count >= FluidAmountHelper.MB_PER_BUCKET;
             int displayValue;
             if (useBuckets) {
-                displayValue = count <= 1000 ? 0 : Math.clamp(count / 1000, 0, 100);
+                displayValue = FluidAmountHelper.toFactoryGaugeValueSetting(count);
             } else {
-                displayValue = count / 10;
+                displayValue = FluidAmountHelper.toFactoryGaugeValueSetting(count);
             }
             cir.setReturnValue(new ValueSettingsBehaviour.ValueSettings(useBuckets ? 1 : (upTo ? 0 : 1), displayValue));
         }
