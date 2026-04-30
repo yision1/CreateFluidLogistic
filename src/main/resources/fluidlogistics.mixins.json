@@ -1,5 +1,6 @@
 {
     "required": true,
+    "priority": 1100,
     "package": "com.yision.fluidlogistics.mixin",
     "plugin": "com.yision.fluidlogistics.mixin.FluidLogisticsMixinPlugin",
     "compatibilityLevel": "JAVA_21",
@@ -21,8 +22,7 @@
         "logistics.PackagerBlockEntityMixin",
         "logistics.PackagerBlockMixin",
         "logistics.PackagerLinkBlockEntityMixin",
-        "logistics.RequestPromiseQueueMixin",
-        "item.ClipboardBlockItemMixin"
+        "logistics.RequestPromiseQueueMixin"
     ],
     "client": [
         "accessor.FrogportChainConveyorOBBAccessor",
