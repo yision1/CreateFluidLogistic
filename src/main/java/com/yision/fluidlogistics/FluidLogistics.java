@@ -11,6 +11,7 @@ import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlockEnt
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
 import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortBlockEntity;
 import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlockEntity;
 import com.yision.fluidlogistics.advancement.AllTriggers;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.yision.fluidlogistics.registry.FluidLogisticsArmInteractionPointTypes;
@@ -109,6 +110,7 @@ public class FluidLogistics {
         MultiFluidTankBlockEntity.registerCapabilities(event);
         HorizontalMultiFluidTankBlockEntity.registerCapabilities(event);
         MultiFluidAccessPortBlockEntity.registerCapabilities(event);
+        SmartHopperBlockEntity.registerCapabilities(event);
         event.registerItem(Capabilities.FluidHandler.ITEM,
                 (stack, context) -> new CompressedTankFluidHandler(stack),
                 AllItems.COMPRESSED_STORAGE_TANK.get());

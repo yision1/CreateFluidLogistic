@@ -14,6 +14,8 @@ import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlockEntity;
 import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankRenderer;
 import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetBlockEntity;
 import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetRenderer;
+import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlockEntity;
+import com.yision.fluidlogistics.block.SmartHopper.SmartHopperRenderer;
 
 import static com.yision.fluidlogistics.FluidLogistics.REGISTRATE;
 
@@ -54,6 +56,12 @@ public class AllBlockEntities {
             .blockEntity("multi_fluid_access_port", MultiFluidAccessPortBlockEntity::new)
             .validBlocks(AllBlocks.MULTI_FLUID_ACCESS_PORT)
             .renderer(() -> MultiFluidAccessPortRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<SmartHopperBlockEntity> SMART_HOPPER = REGISTRATE
+            .blockEntity("smart_hopper", SmartHopperBlockEntity::new)
+            .validBlocks(AllBlocks.SMART_HOPPER)
+            .renderer(() -> SmartHopperRenderer::new)
             .register();
 
     public static void register() {

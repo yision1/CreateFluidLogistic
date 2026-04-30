@@ -22,6 +22,8 @@ import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankGenerator;
 import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankModel;
 import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetBlock;
 import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetGenerator;
+import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlock;
+import com.yision.fluidlogistics.block.SmartHopper.SmartHopperGenerator;
 import com.yision.fluidlogistics.block.WaterproofCardboardBlock;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankGenerator;
 import com.yision.fluidlogistics.item.HorizontalMultiFluidTankItem;
@@ -122,6 +124,19 @@ public class AllBlocks {
             .blockstate(new MultiFluidAccessPortGenerator()::generate)
             .item()
             .model(AssetLookup::customItemModel)
+            .build()
+            .register();
+
+    public static final BlockEntry<SmartHopperBlock> SMART_HOPPER =
+        REGISTRATE.block("smart_hopper", SmartHopperBlock::new)
+            .initialProperties(SharedProperties::softMetal)
+            .properties(p -> p.noOcclusion().isRedstoneConductor(($1, $2, $3) -> false))
+            .properties(p -> p.mapColor(MapColor.TERRACOTTA_CYAN).sound(SoundType.NETHERITE_BLOCK))
+            .transform(pickaxeOnly())
+            .addLayer(() -> RenderType::cutoutMipped)
+            .blockstate(new SmartHopperGenerator()::generate)
+            .item()
+            .model(AssetLookup.customBlockItemModel("smart_hopper", "fluid_hopper_side"))
             .build()
             .register();
 

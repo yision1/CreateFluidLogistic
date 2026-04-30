@@ -1,10 +1,12 @@
-﻿{
+{
   "itemGroup.fluidlogistics.fluidlogistics_tab": "机械动力：流体包裹",
   "block.fluidlogistics.fluid_transporter": "流体传输器",
   "block.fluidlogistics.fluid_transporter.filter": "流体过滤器",
   "block.fluidlogistics.fluid_transporter.tooltip.summary": "根据配置的_过滤_将流体从一个容器_转移_到另一个容器",
   "block.fluidlogistics.fluid_packager": "流体打包机",
   "block.fluidlogistics.smart_faucet": "智能龙头",
+  "block.fluidlogistics.smart_hopper": "智能漏斗",
+  "block.fluidlogistics.smart_hopper.filter": "智能漏斗过滤器",
   "block.fluidlogistics.multi_fluid_access_port": "多流体存取端口",
   "block.fluidlogistics.multi_fluid_access_port.filter_left": "左流体过滤器",
   "block.fluidlogistics.multi_fluid_access_port.filter_right": "右流体过滤器",

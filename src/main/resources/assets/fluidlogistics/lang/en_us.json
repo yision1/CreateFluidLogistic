@@ -5,6 +5,8 @@
   "block.fluidlogistics.fluid_transporter.tooltip.summary": "_Transfer_ fluid from one container to another according to the configured _filter_",
   "block.fluidlogistics.fluid_packager": "Fluid Packager",
   "block.fluidlogistics.smart_faucet": "Smart Faucet",
+  "block.fluidlogistics.smart_hopper": "Smart Hopper",
+  "block.fluidlogistics.smart_hopper.filter": "Smart Hopper Filter",
   "block.fluidlogistics.multi_fluid_access_port": "Multi-Fluid Access Port",
   "block.fluidlogistics.multi_fluid_access_port.filter_left": "Left Fluid Filter",
   "block.fluidlogistics.multi_fluid_access_port.filter_right": "Right Fluid Filter",
