@@ -1,63 +1,63 @@
 {
   "variants": {
     "facing=north,open=false,powered=false": {
-      "model": "fluidlogistics:block/smart_faucet"
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet"
     },
     "facing=north,open=false,powered=true": {
-      "model": "fluidlogistics:block/smart_faucet"
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet"
     },
     "facing=north,open=true,powered=false": {
-      "model": "fluidlogistics:block/smart_faucet_open"
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet_open"
     },
     "facing=north,open=true,powered=true": {
-      "model": "fluidlogistics:block/smart_faucet_open"
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet_open"
     },
     "facing=south,open=false,powered=false": {
-      "model": "fluidlogistics:block/smart_faucet",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet",
       "y": 180
     },
     "facing=south,open=false,powered=true": {
-      "model": "fluidlogistics:block/smart_faucet",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet",
       "y": 180
     },
     "facing=south,open=true,powered=false": {
-      "model": "fluidlogistics:block/smart_faucet_open",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet_open",
       "y": 180
     },
     "facing=south,open=true,powered=true": {
-      "model": "fluidlogistics:block/smart_faucet_open",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet_open",
       "y": 180
     },
     "facing=west,open=false,powered=false": {
-      "model": "fluidlogistics:block/smart_faucet",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet",
       "y": 270
     },
     "facing=west,open=false,powered=true": {
-      "model": "fluidlogistics:block/smart_faucet",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet",
       "y": 270
     },
     "facing=west,open=true,powered=false": {
-      "model": "fluidlogistics:block/smart_faucet_open",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet_open",
       "y": 270
     },
     "facing=west,open=true,powered=true": {
-      "model": "fluidlogistics:block/smart_faucet_open",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet_open",
       "y": 270
     },
     "facing=east,open=false,powered=false": {
-      "model": "fluidlogistics:block/smart_faucet",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet",
       "y": 90
     },
     "facing=east,open=false,powered=true": {
-      "model": "fluidlogistics:block/smart_faucet",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet",
       "y": 90
     },
     "facing=east,open=true,powered=false": {
-      "model": "fluidlogistics:block/smart_faucet_open",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet_open",
       "y": 90
     },
     "facing=east,open=true,powered=true": {
-      "model": "fluidlogistics:block/smart_faucet_open",
+      "model": "fluidlogistics:block/smart_faucet/smart_faucet_open",
       "y": 90
     }
   }

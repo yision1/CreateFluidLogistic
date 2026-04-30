@@ -5,7 +5,6 @@ import java.util.List;
 
 import com.yision.fluidlogistics.FluidLogistics;
 
-import net.minecraft.advancements.CriterionTrigger;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;

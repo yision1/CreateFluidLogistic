@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.Create;
+import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.fluids.tank.CreativeFluidTankBlockEntity.CreativeSmartFluidTank;
 import com.simibubi.create.compat.computercraft.AbstractComputerBehaviour;
 import com.simibubi.create.compat.computercraft.events.PackageEvent;
@@ -43,6 +44,7 @@ import com.simibubi.create.foundation.item.ItemHelper;
 import com.yision.fluidlogistics.api.IFluidPackager;
 import com.yision.fluidlogistics.advancement.AllTriggers;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.goggle.PackagerGoggleInfo;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.item.FluidPackageItem;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
@@ -82,7 +84,7 @@ import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
-public class FluidPackagerBlockEntity extends SmartBlockEntity implements Clearable, IFluidPackager, IPackagerOverrideData {
+public class FluidPackagerBlockEntity extends SmartBlockEntity implements Clearable, IFluidPackager, IPackagerOverrideData, IHaveGoggleInformation {
 
     public static final int CYCLE = 20;
 
@@ -148,6 +150,39 @@ public class FluidPackagerBlockEntity extends SmartBlockEntity implements Cleara
             .withFilter(this::supportsBlockEntity));
         behaviours.add(invVersionTracker = new VersionedInventoryTrackerBehaviour(this));
         behaviours.add(advancements = new AdvancementBehaviour(this, AllAdvancements.PACKAGER));
+    }
+
+    @Override
+    public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
+        String address = signBasedAddress;
+        if (level != null && level.isClientSide) {
+            String scannedAddress = findSignAddress();
+            if (!scannedAddress.isBlank()) {
+                address = scannedAddress;
+            } else if (address.isBlank()) {
+                address = fluidlogistics$getClipboardAddress();
+            }
+        } else if (address.isBlank()) {
+            address = fluidlogistics$getClipboardAddress();
+        }
+
+        BlockState state = getBlockState();
+        boolean isLinkedToNetwork = state.hasProperty(FluidPackagerBlock.LINKED) && state.getValue(FluidPackagerBlock.LINKED);
+        PackagerGoggleInfo.addFluidPackagerToTooltip(tooltip, address, fluidlogistics$isManualOverrideLocked(), isLinkedToNetwork);
+        return true;
+    }
+
+    private String findSignAddress() {
+        if (level == null) {
+            return "";
+        }
+        for (Direction side : Iterate.directions) {
+            String address = getSign(side);
+            if (address != null && !address.isBlank()) {
+                return address;
+            }
+        }
+        return "";
     }
 
     private boolean supportsBlockEntity(BlockEntity target) {

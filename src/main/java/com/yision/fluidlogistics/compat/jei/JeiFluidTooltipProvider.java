@@ -13,7 +13,6 @@ import mezz.jei.api.neoforge.NeoForgeTypes;
 import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.TooltipFlag;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -47,17 +46,6 @@ public final class JeiFluidTooltipProvider {
             .ifPresent(lines::add);
 
         return lines;
-    }
-
-    @Nullable
-    public static Font getFluidTooltipFont(FluidStack fluid) {
-        IJeiRuntime runtime = getRuntime();
-        if (runtime == null) {
-            return null;
-        }
-
-        IIngredientRenderer<FluidStack> renderer = runtime.getIngredientManager().getIngredientRenderer(NeoForgeTypes.FLUID_STACK);
-        return renderer.getFontRenderer(Minecraft.getInstance(), fluid);
     }
 
     @Nullable

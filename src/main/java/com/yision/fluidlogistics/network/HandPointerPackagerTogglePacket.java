@@ -2,7 +2,6 @@ package com.yision.fluidlogistics.network;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlock;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;

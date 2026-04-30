@@ -1,5 +1,5 @@
 {
-  "parent": "fluidlogistics:block/smart_faucet",
+  "parent": "fluidlogistics:block/smart_faucet/smart_faucet",
   "display": {
     "gui": {
       "rotation": [30, -135, 0],

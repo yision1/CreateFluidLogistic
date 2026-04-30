@@ -24,7 +24,7 @@ public class SmartFaucetGenerator extends SpecialBlockStateGen {
     @Override
     public <T extends Block> ModelFile getModel(DataGenContext<Block, T> ctx, RegistrateBlockstateProvider prov,
         BlockState state) {
-        String path = state.getValue(SmartFaucetBlock.OPEN) ? "block/smart_faucet_open" : "block/smart_faucet";
+        String path = state.getValue(SmartFaucetBlock.OPEN) ? "block/smart_faucet/smart_faucet_open" : "block/smart_faucet/smart_faucet";
         return prov.models().getExistingFile(prov.modLoc(path));
     }
 }
