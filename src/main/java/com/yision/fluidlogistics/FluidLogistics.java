@@ -25,6 +25,7 @@ import com.yision.fluidlogistics.registry.AllDataComponents;
 import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.registry.AllMenuTypes;
 import com.yision.fluidlogistics.registry.AllConditionCodecs;
+import com.yision.fluidlogistics.registry.AllFluidAttributeTypes;
 import com.yision.fluidlogistics.config.FeatureToggle;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -72,6 +73,7 @@ public class FluidLogistics {
 
         AllConditionCodecs.register(modEventBus);
         AllDataComponents.register(modEventBus);
+        AllFluidAttributeTypes.REGISTER.register(modEventBus);
         AllBlocks.register();
         AllBlockEntities.register();
         AllItems.register();

@@ -10,6 +10,7 @@
         "basin.BasinBlockEntityMixin",
         "kinetics.BeltInventoryMixin",
         "kinetics.BeltProcessingBehaviourMixin",
+        "logistics.AttributeFilterItemStackMixin",
         "logistics.FactoryPanelBehaviourLegacyLinkCleanupMixin",
         "logistics.FactoryPanelBehaviourMixin",
         "logistics.FactoryPanelRestockThresholdMixin",

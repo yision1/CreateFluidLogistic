@@ -6,7 +6,6 @@
   "block.fluidlogistics.fluid_packager": "Fluid Packager",
   "block.fluidlogistics.smart_faucet": "Smart Faucet",
   "block.fluidlogistics.smart_hopper": "Smart Hopper",
-  "block.fluidlogistics.smart_hopper.filter": "Smart Hopper Filter",
   "block.fluidlogistics.multi_fluid_access_port": "Multi-Fluid Access Port",
   "block.fluidlogistics.multi_fluid_access_port.filter_left": "Left Fluid Filter",
   "block.fluidlogistics.multi_fluid_access_port.filter_right": "Right Fluid Filter",
@@ -137,5 +136,10 @@
   "advancement.fluidlogistics.let_me_point_it_out.desc": "Use the Hand Pointer to enter configuration mode for the first time",
 
   "advancement.fluidlogistics.non_instant_package": "Not-So-Instant Package",
-  "advancement.fluidlogistics.non_instant_package.desc": "Package your first Fluid Package"
+  "advancement.fluidlogistics.non_instant_package.desc": "Package your first Fluid Package",
+
+  "create.item_attributes.is_fluid": "is %1$s",
+  "create.item_attributes.is_fluid.inverted": "is not %1$s",
+  "create.item_attributes.is_fluid_no_nbt": "is %1$s (no NBT)",
+  "create.item_attributes.is_fluid_no_nbt.inverted": "is not %1$s (no NBT)"
 }

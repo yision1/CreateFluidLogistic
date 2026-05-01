@@ -6,7 +6,6 @@
   "block.fluidlogistics.fluid_packager": "流体打包机",
   "block.fluidlogistics.smart_faucet": "智能龙头",
   "block.fluidlogistics.smart_hopper": "智能漏斗",
-  "block.fluidlogistics.smart_hopper.filter": "智能漏斗过滤器",
   "block.fluidlogistics.multi_fluid_access_port": "多流体存取端口",
   "block.fluidlogistics.multi_fluid_access_port.filter_left": "左流体过滤器",
   "block.fluidlogistics.multi_fluid_access_port.filter_right": "右流体过滤器",
@@ -139,5 +138,10 @@
   "advancement.fluidlogistics.let_me_point_it_out.desc": "使用指读棒第一次进入修改模式",
 
   "advancement.fluidlogistics.non_instant_package": "非速溶包裹",
-  "advancement.fluidlogistics.non_instant_package.desc": "第一次打包出流体包裹"
+  "advancement.fluidlogistics.non_instant_package.desc": "第一次打包出流体包裹",
+
+  "create.item_attributes.is_fluid": "是 %1$s",
+  "create.item_attributes.is_fluid.inverted": "不是 %1$s",
+  "create.item_attributes.is_fluid_no_nbt": "是 %1$s（无 NBT）",
+  "create.item_attributes.is_fluid_no_nbt.inverted": "不是 %1$s（无 NBT）"
 }
