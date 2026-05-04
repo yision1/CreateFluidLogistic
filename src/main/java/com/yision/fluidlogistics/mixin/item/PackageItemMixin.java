@@ -48,6 +48,10 @@ public abstract class PackageItemMixin {
     )
     private static void fluidlogistics$displayCompressedTanksAsFluidsInPackages(ItemStack box,
                                                                                 CallbackInfoReturnable<ItemStackHandler> cir) {
+        if (fluidlogistics$isRepackagingContents()) {
+            return;
+        }
+
         ItemStackHandler contents = cir.getReturnValue();
         for (int i = 0; i < contents.getSlots(); i++) {
             ItemStack displayStack = VirtualFluidDisplayHelper.getPackageDisplayStack(contents.getStackInSlot(i));
@@ -165,6 +169,18 @@ public abstract class PackageItemMixin {
     @Unique
     private static boolean fluidlogistics$shouldRenderAsFluidTooltip(ItemStack itemStack) {
         return VirtualFluidDisplayHelper.shouldDisplayAsFluidInPackage(itemStack);
+    }
+
+    @Unique
+    private static boolean fluidlogistics$isRepackagingContents() {
+        for (StackTraceElement element : Thread.currentThread().getStackTrace()) {
+            if ("com.simibubi.create.content.logistics.packager.repackager.PackageRepackageHelper"
+                    .equals(element.getClassName())
+                    && "repack".equals(element.getMethodName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Unique
