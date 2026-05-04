@@ -28,7 +28,6 @@ import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBehavio
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.api.IFluidPackager;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.util.FluidGaugeHelper;
 import com.yision.fluidlogistics.util.IFluidPromiseLimit;
@@ -275,14 +274,7 @@ public abstract class FactoryPanelBehaviourMixin {
             return;
         }
         
-        int maxPackageContent;
-        if (FluidGaugeHelper.isVirtualFluidFilter(item)) {
-            maxPackageContent = Config.getFluidPerPackage();
-        } else {
-            maxPackageContent = item.getMaxStackSize() * 9;
-        }
-
-        int amountToOrder = Math.clamp(shortage, 0, maxPackageContent);
+        int amountToOrder = Math.min(shortage, availableOnNetwork);
         if (self instanceof IFluidPromiseLimit promiseLimitData && promiseLimitData.fluidlogistics$hasPromiseLimit()) {
             amountToOrder = Math.min(amountToOrder, promiseLimitData.fluidlogistics$getPromiseLimit() - promised);
         }
@@ -291,7 +283,7 @@ public abstract class FactoryPanelBehaviourMixin {
             return;
         }
         
-        BigItemStack orderedItem = new BigItemStack(item, Math.min(amountToOrder, availableOnNetwork));
+        BigItemStack orderedItem = new BigItemStack(item, amountToOrder);
         PackageOrderWithCrafts order = PackageOrderWithCrafts.simple(List.of(orderedItem));
         
         sendEffect(self.getPanelPosition(), true);
