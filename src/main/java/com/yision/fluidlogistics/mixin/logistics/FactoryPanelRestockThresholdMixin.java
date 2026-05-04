@@ -5,9 +5,9 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
@@ -149,38 +149,27 @@ public abstract class FactoryPanelRestockThresholdMixin extends FilteringBehavio
         return fluidlogistics$remainingAdditionalStock;
     }
 
-    @ModifyVariable(
+    @Inject(
         method = "tickStorageMonitor",
-        at = @At("STORE"),
-        name = "inStorage"
+        at = @At("HEAD"),
+        cancellable = true
     )
-    private int fluidlogistics$consumeAdditionalStockFromStorageDrop(int inStorage) {
+    private void fluidlogistics$tickFluidRestockStorageMonitor(CallbackInfo ci) {
         if (!fluidlogistics$shouldApply()) {
-            return inStorage;
+            return;
         }
+        ci.cancel();
 
+        FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
+        int unloadedLinkCount = self.getUnloadedLinks();
+        int inStorage = self.getLevelInStorage();
         if (fluidlogistics$remainingAdditionalStock > 0 && lastReportedLevelInStorage > inStorage) {
             fluidlogistics$remainingAdditionalStock = Math.max(0,
                 fluidlogistics$remainingAdditionalStock - (lastReportedLevelInStorage - inStorage));
         }
 
-        return inStorage;
-    }
-
-    @Inject(
-        method = "tickStorageMonitor",
-        at = @At("RETURN")
-    )
-    private void fluidlogistics$recalculateThresholdState(CallbackInfo ci) {
-        if (!fluidlogistics$shouldApply()) {
-            return;
-        }
-
-        FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
-        int inStorage = self.getLevelInStorage();
         int threshold = FluidGaugeHelper.getEffectiveRestockThreshold(this);
         int promised = self.getPromised();
-        int unloadedLinkCount = self.getUnloadedLinks();
         int demand = self.getAmount() + fluidlogistics$remainingAdditionalStock;
 
         boolean previousSatisfied = satisfied;
@@ -199,6 +188,11 @@ public abstract class FactoryPanelRestockThresholdMixin extends FilteringBehavio
                 && promisedSatisfied == shouldPromiseSatisfy
                 && waitingForNetwork == shouldWait) {
             return;
+        }
+
+        if (!satisfied && shouldSatisfy && demand > 0) {
+            AllSoundEvents.CONFIRM.playOnServer(self.getWorld(), self.getPos(), 0.075f, 1f);
+            AllSoundEvents.CONFIRM_2.playOnServer(self.getWorld(), self.getPos(), 0.125f, 0.575f);
         }
 
         boolean notifyOutputs = satisfied != shouldSatisfy;
