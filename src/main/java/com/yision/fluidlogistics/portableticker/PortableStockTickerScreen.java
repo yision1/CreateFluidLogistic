@@ -916,6 +916,11 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
             return true;
         }
 
+        if (isVirtualFluidStack(entry.stack)) {
+            changeDirectFluidOrder(entry, orderClicked, !(rmb || orderClicked), entry.count, 1, true);
+            return true;
+        }
+
         changeDirectOrder(entry, orderClicked, (rmb || orderClicked ? -1 : 1)
                 * getTransferAmount(entry.stack, hasShiftDown(), hasControlDown()), entry.count, true);
         return true;
@@ -957,6 +962,12 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
                     Mth.ceil(Math.abs(scrollY)) * (isCustomFluidCraftable(craftableEntry)
                             ? getRecipeStepAmount((IFluidCraftableBigItemStack) craftableEntry)
                             : hasControlDown() ? 10 : 1));
+            return true;
+        }
+
+        if (isVirtualFluidStack(entry.stack)) {
+            changeDirectFluidOrder(entry, orderClicked, !remove, stockSnapshot.getCountOf(entry.stack),
+                    Mth.ceil(Math.abs(scrollY)), false);
             return true;
         }
 
@@ -1231,6 +1242,41 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
         }
 
         existingOrder.count = previous + Math.min(delta, maxAvailable - previous);
+        updateCraftableAmounts();
+    }
+
+    private void changeDirectFluidOrder(BigItemStack entry, boolean orderClicked, boolean forward, int maxAvailable,
+            int steps, boolean playFeedback) {
+        if (steps <= 0) {
+            return;
+        }
+
+        BigItemStack existingOrder = orderClicked ? entry : getOrderForItem(entry.stack);
+        if (existingOrder == null) {
+            if (!forward || itemsToOrder.size() >= cols) {
+                return;
+            }
+            existingOrder = new BigItemStack(entry.stack.copyWithCount(1), 0);
+            itemsToOrder.add(existingOrder);
+            if (playFeedback) {
+                playUiSound(SoundEvents.WOOL_STEP, 0.75f, 1.2f);
+                playUiSound(SoundEvents.BAMBOO_WOOD_STEP, 0.75f, 0.8f);
+            }
+        }
+
+        int newAmount = FluidAmountHelper.adjustFluidRequestAmount(existingOrder.count, forward, hasShiftDown(),
+                hasControlDown(), 0, Math.max(0, maxAvailable), steps);
+        if (newAmount <= 0) {
+            itemsToOrder.remove(existingOrder);
+            if (playFeedback) {
+                playUiSound(SoundEvents.WOOL_STEP, 0.75f, 1.8f);
+                playUiSound(SoundEvents.BAMBOO_WOOD_STEP, 0.75f, 1.8f);
+            }
+            updateCraftableAmounts();
+            return;
+        }
+        existingOrder.count = newAmount;
+
         updateCraftableAmounts();
     }
 
@@ -1512,8 +1558,12 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
 
     private boolean isCustomFluidCraftable(CraftableBigItemStack craftableEntry) {
         return hasCustomRecipeData(craftableEntry)
-                && craftableEntry.stack.getItem() instanceof CompressedTankItem
-                && CompressedTankItem.isVirtual(craftableEntry.stack);
+                && isVirtualFluidStack(craftableEntry.stack);
+    }
+
+    private boolean isVirtualFluidStack(ItemStack stack) {
+        return stack.getItem() instanceof CompressedTankItem
+                && CompressedTankItem.isVirtual(stack);
     }
 
     private int getRecipeStepAmount(IFluidCraftableBigItemStack fluidData) {
@@ -1674,10 +1724,6 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
     }
 
     private int getTransferAmount(ItemStack stack, boolean shift, boolean control) {
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            return FluidAmountHelper.getFluidRequestTransferAmount(shift, control);
-        }
-
         if (shift) {
             return stack.getMaxStackSize();
         }

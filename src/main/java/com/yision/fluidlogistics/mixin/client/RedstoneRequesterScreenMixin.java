@@ -40,7 +40,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.SlotItemHandler;
 
-import static com.yision.fluidlogistics.util.FluidAmountHelper.adjustFactoryGaugeAmount;
+import static com.yision.fluidlogistics.util.FluidAmountHelper.adjustFluidRequestAmount;
 
 @OnlyIn(Dist.CLIENT)
 @Mixin(RedstoneRequesterScreen.class)
@@ -192,7 +192,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
             if (mouseX >= inputX && mouseX < inputX + 16 && mouseY >= inputY && mouseY < inputY + 16) {
                 ItemStack itemStack = menu.ghostInventory.getStackInSlot(i);
                 if (itemStack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(itemStack)) {
-                    int newAmount = adjustFactoryGaugeAmount(amounts.get(i), Math.signum(scrollY)>0, hasShiftDown(), hasControlDown(), 1, Integer.MAX_VALUE);
+                    int newAmount = adjustFluidRequestAmount(amounts.get(i), Math.signum(scrollY)>0, hasShiftDown(), hasControlDown(), 1, Integer.MAX_VALUE);
                     amounts.set(i, newAmount);
                     cir.setReturnValue(true);
                     return;

@@ -12,7 +12,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
@@ -24,6 +23,7 @@ import com.yision.fluidlogistics.util.FluidAmountHelper;
 import com.yision.fluidlogistics.util.IFluidCraftableBigItemStack;
 
 import net.createmod.catnip.data.Couple;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.item.ItemStack;
@@ -39,6 +39,9 @@ public abstract class StockKeeperRequestScreenMixin {
 
     @Shadow(remap = false)
     public List<CraftableBigItemStack> recipesToOrder;
+
+    @Shadow(remap = false)
+    public List<List<BigItemStack>> displayedItems;
 
     @Shadow(remap = false)
     StockTickerBlockEntity blockEntity;
@@ -57,14 +60,16 @@ public abstract class StockKeeperRequestScreenMixin {
     protected abstract Couple<Integer> getHoveredSlot(int mouseX, int mouseY);
 
     @Shadow(remap = false)
+    private int getMaxScroll() {
+        return 0;
+    }
+
+    @Shadow(remap = false)
     private void drawItemCount(GuiGraphics graphics, int count, int customCount) {
     }
 
     @Unique
     private boolean fluidlogistics$isCompressedTank = false;
-
-    @Unique
-    private int fluidlogistics$fluidAmount = 0;
 
     @Inject(
         method = "renderItemEntry",
@@ -75,14 +80,12 @@ public abstract class StockKeeperRequestScreenMixin {
     private void fluidlogistics$onRenderItemEntryHead(GuiGraphics graphics, float scale, BigItemStack entry, 
             boolean isStackHovered, boolean isRenderingOrders, CallbackInfo ci) {
         fluidlogistics$isCompressedTank = false;
-        fluidlogistics$fluidAmount = 0;
 
         ItemStack stack = entry.stack;
         if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(stack);
             if (!fluid.isEmpty()) {
                 fluidlogistics$isCompressedTank = true;
-                fluidlogistics$fluidAmount = entry.count;
             }
         }
     }
@@ -100,88 +103,86 @@ public abstract class StockKeeperRequestScreenMixin {
     private void fluidlogistics$redirectDrawItemCount(StockKeeperRequestScreen instance, 
             GuiGraphics graphics, int count, int customCount) {
         if (fluidlogistics$isCompressedTank) {
-            if (fluidlogistics$fluidAmount > 1) {
-                FluidSlotAmountRenderer.renderInStockKeeper(graphics, fluidlogistics$fluidAmount);
-            }
             return;
         }
         drawItemCount(graphics, count, customCount);
     }
 
-    @ModifyExpressionValue(
-        method = "mouseClicked",
+    @Redirect(
+        method = "renderItemEntry",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/item/ItemStack;getMaxStackSize()I",
+            target = "Lnet/minecraft/client/gui/GuiGraphics;renderItemDecorations(" +
+                     "Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;IILjava/lang/String;)V",
             remap = true
         ),
         remap = false
     )
-    private int fluidlogistics$modifyTransferShiftForFluid(int original, @Local BigItemStack entry) {
-        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
-            return FluidAmountHelper.getFluidRequestTransferAmount(true, false);
+    private void fluidlogistics$redirectRenderItemDecorations(GuiGraphics graphics, Font font, ItemStack stack, int x,
+            int y, String text, @Local(ordinal = 0) int customCount) {
+        if (fluidlogistics$isVirtualCompressedTank(stack) && customCount > 0) {
+            FluidSlotAmountRenderer.renderInStockKeeper(graphics, customCount);
+            return;
         }
-        return original;
+        graphics.renderItemDecorations(font, stack, x, y, text);
     }
 
-    @ModifyExpressionValue(
-        method = "mouseClicked",
-        at = @At(
-            value = "CONSTANT",
-            args = "intValue=10"
-        ),
-        remap = false
-    )
-    private int fluidlogistics$modifyTransferCtrlForFluid(int original, @Local BigItemStack entry) {
-        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
-            return FluidAmountHelper.getFluidRequestTransferAmount(false, true);
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, remap = false)
+    private void fluidlogistics$handleDirectFluidClick(double mouseX, double mouseY, int button,
+            CallbackInfoReturnable<Boolean> cir) {
+        boolean lmb = button == 0;
+        boolean rmb = button == 1;
+        if (!lmb && !rmb) {
+            return;
         }
-        return original;
+
+        Couple<Integer> hoveredSlot = getHoveredSlot((int) mouseX, (int) mouseY);
+        if (fluidlogistics$isNoHoveredSlot(hoveredSlot) || hoveredSlot.getFirst() == -2) {
+            return;
+        }
+
+        boolean orderClicked = hoveredSlot.getFirst() == -1;
+        BigItemStack entry = orderClicked ? itemsToOrder.get(hoveredSlot.getSecond())
+            : displayedItems.get(hoveredSlot.getFirst()).get(hoveredSlot.getSecond());
+        if (!fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+            return;
+        }
+
+        fluidlogistics$changeDirectFluidOrder(entry, orderClicked, !(rmb || orderClicked), entry.count);
+        cir.setReturnValue(true);
     }
 
-    @ModifyExpressionValue(
-        method = "mouseClicked",
-        at = @At(
-            value = "CONSTANT",
-            args = "intValue=1"
-        ),
-        remap = false
-    )
-    private int fluidlogistics$modifyTransferNormalForFluid(int original, @Local BigItemStack entry) {
-        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
-            return FluidAmountHelper.getFluidRequestTransferAmount(false, false);
+    @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, remap = false)
+    private void fluidlogistics$handleDirectFluidScroll(double mouseX, double mouseY, double scrollX, double scrollY,
+            CallbackInfoReturnable<Boolean> cir) {
+        Couple<Integer> hoveredSlot = getHoveredSlot((int) mouseX, (int) mouseY);
+        if (fluidlogistics$isNoHoveredSlot(hoveredSlot)) {
+            return;
         }
-        return original;
-    }
+        if (hoveredSlot.getFirst() >= 0 && !Screen.hasShiftDown() && getMaxScroll() != 0) {
+            return;
+        }
+        if (hoveredSlot.getFirst() == -2) {
+            return;
+        }
 
-    @ModifyExpressionValue(
-        method = "mouseScrolled",
-        at = @At(
-            value = "CONSTANT",
-            args = "intValue=10"
-        ),
-        remap = false
-    )
-    private int fluidlogistics$modifyScrollTransferCtrlForFluid(int original, @Local BigItemStack entry) {
-        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
-            return FluidAmountHelper.getFluidRequestTransferAmount(false, true);
+        boolean orderClicked = hoveredSlot.getFirst() == -1;
+        BigItemStack entry = orderClicked ? itemsToOrder.get(hoveredSlot.getSecond())
+            : displayedItems.get(hoveredSlot.getFirst()).get(hoveredSlot.getSecond());
+        if (!fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+            return;
         }
-        return original;
-    }
 
-    @ModifyExpressionValue(
-        method = "mouseScrolled",
-        at = @At(
-            value = "CONSTANT",
-            args = "intValue=1"
-        ),
-        remap = false
-    )
-    private int fluidlogistics$modifyScrollTransferNormalForFluid(int original, @Local BigItemStack entry) {
-        if (fluidlogistics$isVirtualCompressedTank(entry.stack)) {
-            return FluidAmountHelper.getFluidRequestTransferAmount(false, false);
+        int steps = Mth.ceil(Math.abs(scrollY));
+        if (steps <= 0) {
+            cir.setReturnValue(true);
+            return;
         }
-        return original;
+
+        boolean forward = scrollY > 0;
+        int maxAvailable = blockEntity.getLastClientsideStockSnapshotAsSummary().getCountOf(entry.stack);
+        fluidlogistics$changeDirectFluidOrder(entry, orderClicked, forward, maxAvailable, steps);
+        cir.setReturnValue(true);
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, remap = false)
@@ -407,6 +408,40 @@ public abstract class StockKeeperRequestScreenMixin {
     private static boolean fluidlogistics$isVirtualCompressedTank(ItemStack stack) {
         return stack.getItem() instanceof CompressedTankItem
             && CompressedTankItem.isVirtual(stack);
+    }
+
+    @Unique
+    private static boolean fluidlogistics$isNoHoveredSlot(Couple<Integer> hoveredSlot) {
+        return hoveredSlot.getFirst() == -1 && hoveredSlot.getSecond() == -1;
+    }
+
+    @Unique
+    private void fluidlogistics$changeDirectFluidOrder(BigItemStack entry, boolean orderClicked, boolean forward,
+            int maxAvailable) {
+        fluidlogistics$changeDirectFluidOrder(entry, orderClicked, forward, maxAvailable, 1);
+    }
+
+    @Unique
+    private void fluidlogistics$changeDirectFluidOrder(BigItemStack entry, boolean orderClicked, boolean forward,
+            int maxAvailable, int steps) {
+        BigItemStack existingOrder = orderClicked ? entry : getOrderForItem(entry.stack);
+        if (existingOrder == null) {
+            if (!forward || itemsToOrder.size() >= 9) {
+                return;
+            }
+            existingOrder = new BigItemStack(entry.stack.copyWithCount(1), 0);
+            itemsToOrder.add(existingOrder);
+        }
+
+        int current = existingOrder.count;
+        int newAmount = FluidAmountHelper.adjustFluidRequestAmount(current, forward, Screen.hasShiftDown(),
+            Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
+        if (newAmount <= 0) {
+            itemsToOrder.remove(existingOrder);
+            return;
+        }
+
+        existingOrder.count = newAmount;
     }
 
     @Unique

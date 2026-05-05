@@ -11,9 +11,6 @@ public final class FluidAmountHelper {
     public static final int MB_PER_TENTH_BUCKET = 100;
     public static final int MB_PER_KILOBUCKET = MB_PER_BUCKET * 1000;
     public static final int DEFAULT_FLUID_REQUEST_AMOUNT = 1;
-    public static final int NORMAL_FLUID_REQUEST_STEP = MB_PER_BUCKET;
-    public static final int CONTROL_FLUID_REQUEST_STEP = 10 * MB_PER_BUCKET;
-    public static final int SHIFT_FLUID_REQUEST_STEP = 50 * MB_PER_BUCKET;
     public static final String INACTIVE_AMOUNT_LABEL = "---";
 
     private FluidAmountHelper() {}
@@ -46,6 +43,10 @@ public final class FluidAmountHelper {
         return BigDecimal.valueOf(amount, 3)
             .stripTrailingZeros()
             .toPlainString() + "B";
+    }
+
+    public static String formatStockKeeper(int amount) {
+        return formatPrecise(amount);
     }
 
     public static String formatDetailed(int amount) {
@@ -88,18 +89,25 @@ public final class FluidAmountHelper {
         }
     }
 
-    public static int adjustFactoryGaugeAmount(int currentAmount, boolean forward, boolean shift, boolean control,
+    public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
             int minAmount, int maxAmount) {
-        int delta;
+        return adjustFluidRequestAmount(currentAmount, forward, shift, control, minAmount, maxAmount, 1);
+    }
 
-        if (control) {
-            delta = 1;
-        } else if (shift) {
-            delta = 100;
-        } else {
-            delta = 1000;
+    public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
+            int minAmount, int maxAmount, int steps) {
+        int newAmount = currentAmount;
+        int safeSteps = Math.max(0, steps);
+        for (int i = 0; i < safeSteps; i++) {
+            newAmount = adjustFluidRequestAmountOnce(newAmount, forward, shift, control, minAmount, maxAmount);
         }
 
+        return newAmount;
+    }
+
+    private static int adjustFluidRequestAmountOnce(int currentAmount, boolean forward, boolean shift, boolean control,
+            int minAmount, int maxAmount) {
+        int delta = getFluidRequestStep(shift, control);
         int newAmount = currentAmount + (forward ? delta : -delta);
 
         if (forward) {
@@ -108,21 +116,19 @@ public final class FluidAmountHelper {
             } else if (currentAmount < MB_PER_BUCKET && newAmount >= MB_PER_BUCKET) {
                 newAmount = MB_PER_BUCKET;
             }
-        } else if (currentAmount >= MB_PER_BUCKET && newAmount < MB_PER_BUCKET && newAmount >= MB_PER_TENTH_BUCKET) {
-            newAmount = MB_PER_TENTH_BUCKET;
         }
 
         return Math.clamp(newAmount, minAmount, maxAmount);
     }
 
-    public static int getFluidRequestTransferAmount(boolean shift, boolean control) {
-        if (shift) {
-            return SHIFT_FLUID_REQUEST_STEP;
-        }
+    private static int getFluidRequestStep(boolean shift, boolean control) {
         if (control) {
-            return CONTROL_FLUID_REQUEST_STEP;
+            return 1;
         }
-        return NORMAL_FLUID_REQUEST_STEP;
+        if (shift) {
+            return MB_PER_TENTH_BUCKET;
+        }
+        return MB_PER_BUCKET;
     }
 
     public static String formatOptionalCompact(int amount, boolean zeroIsInactive) {

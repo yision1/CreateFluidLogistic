@@ -18,7 +18,7 @@ public class FluidSlotAmountRenderer {
     }
 
     public static void renderInStockKeeper(GuiGraphics graphics, int amount) {
-        String text = FluidAmountHelper.format(amount);
+        String text = FluidAmountHelper.formatStockKeeper(amount);
         if (text.isBlank()) {
             return;
         }
@@ -26,14 +26,8 @@ public class FluidSlotAmountRenderer {
             text = "+"; //Stock ticker wants "+" character to represent infinity
         }
 
-        int visibleLength = 0;
-        for (int i = 0; i < text.length(); i++) {
-            if (text.charAt(i) != ',') {
-                visibleLength++;
-            }
-        }
-
-        int renderX = STOCK_KEEPER_COUNT_X + (int) Math.floor(-visibleLength * 2.5);
+        int textWidth = calculateTextWidth(text);
+        int renderX = STOCK_KEEPER_COUNT_X - textWidth + NUMBERS.getWidth();
         blitCreateFont(graphics, text, renderX, STOCK_KEEPER_COUNT_Y);
     }
 

@@ -280,7 +280,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                     return 1;
                 }
 
-                int next = FluidAmountHelper.adjustFactoryGaugeAmount(context.currentValue, context.forward,
+                int next = FluidAmountHelper.adjustFluidRequestAmount(context.currentValue, context.forward,
                     context.shift, context.control, 0, FluidGaugeHelper.MAX_FLUID_AMOUNT);
                 return Math.max(1, Math.abs(next - context.currentValue));
             });
@@ -355,7 +355,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             @Local BigItemStack itemStack) {
         if (FluidGaugeHelper.isVirtualFluidFilter(itemStack.stack)) {
             FactoryPanelScreen self = (FactoryPanelScreen) (Object) this;
-            return FluidAmountHelper.adjustFactoryGaugeAmount(itemStack.count, value > itemStack.count, self.hasShiftDown(),
+            return FluidAmountHelper.adjustFluidRequestAmount(itemStack.count, value > itemStack.count, self.hasShiftDown(),
                 self.hasControlDown(), 1, FluidGaugeHelper.MAX_FLUID_AMOUNT);
         }
         return Mth.clamp(value, min, max);
