@@ -15,7 +15,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -81,7 +80,6 @@ public class SmartHopperBlockEntity extends SmartBlockEntity {
 		behaviours.add(filtering = new FilteringBehaviour(this,
 			new SmartHopperFilterSlotPositioning())
 			.withCallback($ -> notifyUpdate()));
-		filtering.setLabel(Component.translatable("block.fluidlogistics.smart_hopper.filter").copy());
 	}
 
 	@Override
