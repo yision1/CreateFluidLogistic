@@ -8,6 +8,7 @@
         "accessor.ArmBlockEntityAccessor",
         "accessor.StockTickerBlockEntityAccessor",
         "basin.BasinBlockEntityMixin",
+        "fluids.FluidPropagatorMixin",
         "kinetics.BeltInventoryMixin",
         "kinetics.BeltProcessingBehaviourMixin",
         "logistics.AttributeFilterItemStackMixin",

@@ -19,6 +19,8 @@ public class AllPartialModels {
     public static final PartialModel FLUID_PACKAGER_HATCH_CLOSED = block("fluid_packager/hatch_closed");
     public static final Map<Direction, PartialModel> SMART_FAUCET_SOURCE_INTERFACE = new EnumMap<>(Direction.class);
 
+    public static final PartialModel FLUID_PUMP_SHAFT = block("fluid_pump/shaft");
+
     public static final PartialModel FLUID_PACKAGE = item("rare_fluid_package");
     public static final PartialModel FLUID_PACKAGE_2 = item("rare_fluid_package_1");
     public static final PartialModel FLUID_PACKAGE_RIGGING = rigging("12x10");

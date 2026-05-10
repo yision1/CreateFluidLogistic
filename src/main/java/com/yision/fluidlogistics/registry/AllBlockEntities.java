@@ -1,9 +1,12 @@
 package com.yision.fluidlogistics.registry;
 
+import com.simibubi.create.content.kinetics.base.ShaftVisual;
 import com.tterrag.registrate.util.entry.BlockEntityEntry;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerRenderer;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerVisual;
+import com.yision.fluidlogistics.block.FluidPump.FluidPumpBlockEntity;
+import com.yision.fluidlogistics.block.FluidPump.FluidPumpRenderer;
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlockEntity;
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterRenderer;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
@@ -62,6 +65,13 @@ public class AllBlockEntities {
             .blockEntity("smart_hopper", SmartHopperBlockEntity::new)
             .validBlocks(AllBlocks.SMART_HOPPER)
             .renderer(() -> SmartHopperRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<FluidPumpBlockEntity> FLUID_PUMP = REGISTRATE
+            .blockEntity("fluid_pump", FluidPumpBlockEntity::new)
+            .visual(() -> ShaftVisual::new)
+            .validBlocks(AllBlocks.FLUID_PUMP)
+            .renderer(() -> FluidPumpRenderer::new)
             .register();
 
     public static void register() {

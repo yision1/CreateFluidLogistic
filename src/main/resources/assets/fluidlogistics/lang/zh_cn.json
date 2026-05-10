@@ -1,8 +1,7 @@
 {
   "itemGroup.fluidlogistics.fluidlogistics_tab": "机械动力：流体包裹",
+
   "block.fluidlogistics.fluid_transporter": "流体传输器",
-  "block.fluidlogistics.fluid_transporter.filter": "流体过滤器",
-  "block.fluidlogistics.fluid_transporter.tooltip.summary": "根据配置的_过滤_将流体从一个容器_转移_到另一个容器",
   "block.fluidlogistics.fluid_packager": "流体打包机",
   "block.fluidlogistics.smart_faucet": "智能龙头",
   "block.fluidlogistics.smart_hopper": "智能漏斗",
@@ -13,6 +12,10 @@
   "block.fluidlogistics.waterproof_cardboard_block": "防水纸板块",
   "block.fluidlogistics.multi_fluid_tank": "多流体储罐",
   "block.fluidlogistics.horizontal_multi_fluid_tank": "横向多流体储罐",
+  "block.fluidlogistics.fluid_pump": "流体泵",
+  "fluidlogistics.fluid_pump.transfer_direction": "传输方向",
+  "fluidlogistics.fluid_pump.direction.positive": "抽出",
+  "fluidlogistics.fluid_pump.direction.negative": "抽入",
   "block.fluidlogistics.multi_fluid_tank.tooltip.summary": "_来自海上机械师的神秘物品_",
   "block.fluidlogistics.multi_fluid_tank.tooltip.condition1": "放置在地面上时",
   "block.fluidlogistics.multi_fluid_tank.tooltip.behaviour1": "能够同时存储多达_8种不同类型_流体",
@@ -130,9 +133,39 @@
   "fluidlogistics.ponder.fluid_packager_address.text_7": "工厂",
   "fluidlogistics.ponder.fluid_packager_address.text_8": "→ 工厂",
   "fluidlogistics.ponder.fluid_packager_address.text_9": "工厂",
-  "fluidlogistics.ponder.fluid_packager_address.text_10": "机械锯可以直接将流体包裹拆包成压缩储罐",
+  "fluidlogistics.ponder.fluid_packager_address.text_10": "流体包裹经过动力锯后会被直接销毁",
   "fluidlogistics.ponder.fluid_packager_address.text_11": "除过滤器外，货物蛙港和邮箱亦可以指定流体包裹路线",
   "fluidlogistics.ponder.fluid_packager_address.text_12": "查看它们的思索界面来了解它们的行为",
+
+  "fluidlogistics.ponder.smart_faucet.header": "使用智能龙头填充物品",
+  "fluidlogistics.ponder.smart_faucet.text_1": "智能龙头可以对物品进行注液",
+  "fluidlogistics.ponder.smart_faucet.text_2": "可以设置过滤器来限制允许通过的流体类型",
+  "fluidlogistics.ponder.smart_faucet.text_3": "智能龙头也可以向部分流体容器注入流体",
+  "fluidlogistics.ponder.smart_faucet.text_4": "此外，智能龙头还可以对传送带上的物品注液",
+  "fluidlogistics.ponder.smart_faucet.text_5": "在没有设置过滤时智能龙头会根据物品智能注液",
+
+  "fluidlogistics.ponder.smart_hopper.header": "使用智能漏斗转移物品与流体",
+  "fluidlogistics.ponder.smart_hopper.text_1": "智能漏斗会从上方抽取流体，并向漏斗口方向输出",
+  "fluidlogistics.ponder.smart_hopper.text_2": "并且，智能漏斗可以被红石信号禁用",
+  "fluidlogistics.ponder.smart_hopper.text_3": "此外，智能漏斗也可以链式连接",
+  "fluidlogistics.ponder.smart_hopper.text_4": "智能漏斗不仅可以传输流体，也可以传输物品",
+  "fluidlogistics.ponder.smart_hopper.text_5": "当然，智能漏斗可以通过设置过滤来限制允许通过的物品和流体",
+
+  "fluidlogistics.ponder.fluid_transporter.header": "使用流体传输器转移流体",
+  "fluidlogistics.ponder.fluid_transporter.text_1": "流体传输器可以将流体从一个容器转移到另一个容器",
+  "fluidlogistics.ponder.fluid_transporter.text_2": "并且，流体传输器可以通过设置过滤来限制允许通过流体",
+  "fluidlogistics.ponder.fluid_transporter.text_3": "此外，流体传输器会被红石信号禁用",
+  "fluidlogistics.ponder.fluid_transporter.text_4": "当然，流体传输器还可以像这样连接",
+  "fluidlogistics.ponder.fluid_transporter.text_5": "注意，流体传输器无法像这样侧向连接",
+
+  "fluidlogistics.ponder.multi_fluid_access_port.header": "使用多流体存取端口存取流体",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_1": "在对多流体容器进行存取有时会比较麻烦",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_2": "多流体存取端口可以将流体容器延伸以方便存取",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_3": "多流体存取端口最多同时向三个方向存取流体",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_4": "并且，可以分别为三个方向配置过滤",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_5": "此外，多流体存取端口还可以被红石信号禁用",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_6": "注意，多流体存取端口无法链式连接",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_7": "不过，一个流体容器可以同时连接多个多流体存取端口",
 
   "advancement.fluidlogistics.let_me_point_it_out": "让我来指点一二",
   "advancement.fluidlogistics.let_me_point_it_out.desc": "使用指读棒第一次进入修改模式",
@@ -142,6 +175,6 @@
 
   "create.item_attributes.is_fluid": "是 %1$s",
   "create.item_attributes.is_fluid.inverted": "不是 %1$s",
-  "create.item_attributes.is_fluid_no_nbt": "是 %1$s（无 NBT）",
-  "create.item_attributes.is_fluid_no_nbt.inverted": "不是 %1$s（无 NBT）"
+  "create.item_attributes.is_fluid_no_nbt": "是 %1$s（无 COMPONENT）",
+  "create.item_attributes.is_fluid_no_nbt.inverted": "不是 %1$s（无 COMPONENT）"
 }

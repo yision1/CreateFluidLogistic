@@ -1,10 +1,13 @@
 package com.yision.fluidlogistics.registry;
 
+import com.simibubi.create.content.fluids.PipeAttachmentModel;
 import com.simibubi.create.foundation.data.AssetLookup;
 import com.simibubi.create.foundation.data.BlockStateGen;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.simibubi.create.foundation.data.SharedProperties;
+import com.tterrag.registrate.providers.ProviderType;
 import com.tterrag.registrate.util.entry.BlockEntry;
+import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
@@ -24,10 +27,13 @@ import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetBlock;
 import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetGenerator;
 import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlock;
 import com.yision.fluidlogistics.block.SmartHopper.SmartHopperGenerator;
+import com.yision.fluidlogistics.block.FluidPump.FluidPumpBlock;
+import com.yision.fluidlogistics.block.FluidPump.FluidPumpGenerator;
 import com.yision.fluidlogistics.block.WaterproofCardboardBlock;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankGenerator;
 import com.yision.fluidlogistics.item.HorizontalMultiFluidTankItem;
 import com.yision.fluidlogistics.item.MultiFluidTankItem;
+import net.minecraft.world.item.ItemDisplayContext;
 
 import static com.simibubi.create.api.contraption.storage.fluid.MountedFluidStorageType.mountedFluidStorage;
 import static com.simibubi.create.foundation.data.TagGen.axeOnly;
@@ -42,10 +48,11 @@ public class AllBlocks {
             .properties(p -> p.noOcclusion().isRedstoneConductor(($1, $2, $3) -> false))
             .properties(p -> p.mapColor(MapColor.TERRACOTTA_YELLOW).sound(SoundType.NETHERITE_BLOCK))
             .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
             .blockstate(new FluidTransporterGenerator()::generate)
             .item()
-            .model(AssetLookup::customItemModel)
+            .model(AssetLookup.customBlockItemModel("fluid_transporter", "block_vertical"))
             .build()
             .register();
 
@@ -56,6 +63,7 @@ public class AllBlocks {
             .properties(p -> p.mapColor(MapColor.TERRACOTTA_BLUE)
                     .sound(SoundType.NETHERITE_BLOCK))
             .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
             .blockstate(new FluidPackagerGenerator()::generate)
             .item()
@@ -69,10 +77,16 @@ public class AllBlocks {
             .properties(p -> p.noOcclusion().isRedstoneConductor(($1, $2, $3) -> false))
             .properties(p -> p.mapColor(MapColor.COLOR_ORANGE).sound(SoundType.COPPER))
             .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
             .blockstate(new SmartFaucetGenerator()::generate)
             .item()
-            .model(AssetLookup::customItemModel)
+            .model((c, p) -> p.withExistingParent(c.getName(), p.modLoc("block/smart_faucet/smart_faucet"))
+                .transforms()
+                .transform(ItemDisplayContext.GUI)
+                .rotation(30, -135, 0)
+                .translation(2.5f, -1.25f, 0)
+                .scale(0.625f))
             .build()
             .register();
 
@@ -81,6 +95,7 @@ public class AllBlocks {
             .properties(p -> p.mapColor(MapColor.COLOR_BROWN)
                     .sound(SoundType.CHISELED_BOOKSHELF))
             .transform(axeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .blockstate(BlockStateGen.horizontalAxisBlockProvider(false))
             .item()
             .build()
@@ -91,6 +106,7 @@ public class AllBlocks {
             .properties(p -> p.noOcclusion()
                     .isRedstoneConductor((p1, p2, p3) -> true))
             .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .blockstate(new MultiFluidTankGenerator()::generate)
             .onRegister(CreateRegistrate.blockModel(() -> MultiFluidTankModel::standard))
             .addLayer(() -> RenderType::cutoutMipped)
@@ -105,6 +121,7 @@ public class AllBlocks {
             .properties(p -> p.noOcclusion()
                     .isRedstoneConductor((p1, p2, p3) -> true))
             .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .blockstate(new HorizontalMultiFluidTankGenerator()::generate)
             .onRegister(CreateRegistrate.blockModel(() -> HorizontalMultiFluidTankModel::standard))
             .addLayer(() -> RenderType::cutoutMipped)
@@ -120,10 +137,11 @@ public class AllBlocks {
             .properties(p -> p.noOcclusion().isRedstoneConductor(($1, $2, $3) -> false))
             .properties(p -> p.mapColor(MapColor.TERRACOTTA_BLUE).sound(SoundType.NETHERITE_BLOCK))
             .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
             .blockstate(new MultiFluidAccessPortGenerator()::generate)
             .item()
-            .model(AssetLookup::customItemModel)
+            .model(AssetLookup.customBlockItemModel("multi_fluid_access_port", "block_wall_off"))
             .build()
             .register();
 
@@ -133,10 +151,26 @@ public class AllBlocks {
             .properties(p -> p.noOcclusion().isRedstoneConductor(($1, $2, $3) -> false))
             .properties(p -> p.mapColor(MapColor.TERRACOTTA_CYAN).sound(SoundType.NETHERITE_BLOCK))
             .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
             .blockstate(new SmartHopperGenerator()::generate)
             .item()
             .model(AssetLookup.customBlockItemModel("smart_hopper", "fluid_hopper_side"))
+            .build()
+            .register();
+
+    public static final BlockEntry<FluidPumpBlock> FLUID_PUMP =
+        REGISTRATE.block("fluid_pump", FluidPumpBlock::new)
+            .initialProperties(SharedProperties::copperMetal)
+            .properties(p -> p.noOcclusion().isRedstoneConductor(($1, $2, $3) -> false))
+            .properties(p -> p.mapColor(MapColor.STONE).sound(SoundType.COPPER))
+            .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .addLayer(() -> RenderType::cutoutMipped)
+            .blockstate(new FluidPumpGenerator()::generate)
+            .onRegister(CreateRegistrate.blockModel(() -> PipeAttachmentModel::withAO))
+            .item()
+            .model(AssetLookup::customItemModel)
             .build()
             .register();
 

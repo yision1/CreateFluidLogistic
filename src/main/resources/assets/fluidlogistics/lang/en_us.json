@@ -1,8 +1,7 @@
 {
   "itemGroup.fluidlogistics.fluidlogistics_tab": "Create: Fluid Logistics",
+  
   "block.fluidlogistics.fluid_transporter": "Fluid Transporter",
-  "block.fluidlogistics.fluid_transporter.filter": "Fluid Filter",
-  "block.fluidlogistics.fluid_transporter.tooltip.summary": "_Transfer_ fluid from one container to another according to the configured _filter_",
   "block.fluidlogistics.fluid_packager": "Fluid Packager",
   "block.fluidlogistics.smart_faucet": "Smart Faucet",
   "block.fluidlogistics.smart_hopper": "Smart Hopper",
@@ -13,6 +12,10 @@
   "block.fluidlogistics.waterproof_cardboard_block": "Waterproof Cardboard Block",
   "block.fluidlogistics.multi_fluid_tank": "Multi-Fluid Tank",
   "block.fluidlogistics.horizontal_multi_fluid_tank": "Horizontal Multi-Fluid Tank",
+  "block.fluidlogistics.fluid_pump": "Fluid Pump",
+  "fluidlogistics.fluid_pump.transfer_direction": "Transfer Direction",
+  "fluidlogistics.fluid_pump.direction.positive": "Pump Out",
+  "fluidlogistics.fluid_pump.direction.negative": "Draw In",
   "block.fluidlogistics.multi_fluid_tank.tooltip.summary": "_A mysterious artifact from a seafaring engineer_",
   "block.fluidlogistics.multi_fluid_tank.tooltip.condition1": "When placed on ground",
   "block.fluidlogistics.multi_fluid_tank.tooltip.behaviour1": "Can store up to _8 different types_ of fluids simultaneously",
@@ -128,9 +131,30 @@
   "fluidlogistics.ponder.fluid_packager_address.text_7": "Factory",
   "fluidlogistics.ponder.fluid_packager_address.text_8": "-> Factory",
   "fluidlogistics.ponder.fluid_packager_address.text_9": "Factory",
-  "fluidlogistics.ponder.fluid_packager_address.text_10": "Mechanical Saws can unpack fluid packages directly into Compressed Storage Tanks",
+  "fluidlogistics.ponder.fluid_packager_address.text_10": "Fluid packages are destroyed by Mechanical Saws without dropping any items",
   "fluidlogistics.ponder.fluid_packager_address.text_11": "Besides filters, Package Frogports and Postboxes can also route fluid packages",
   "fluidlogistics.ponder.fluid_packager_address.text_12": "Check their Ponder scenes to learn how they behave",
+
+  "fluidlogistics.ponder.smart_faucet.header": "Filling Items with Smart Faucets",
+  "fluidlogistics.ponder.smart_faucet.text_1": "Smart Faucets can fill items with fluids",
+  "fluidlogistics.ponder.smart_faucet.text_2": "Filters can restrict which fluid types are allowed through",
+  "fluidlogistics.ponder.smart_faucet.text_3": "Smart Faucets can also fill some fluid containers",
+  "fluidlogistics.ponder.smart_faucet.text_4": "Smart Faucets can also fill items on belts",
+  "fluidlogistics.ponder.smart_faucet.text_5": "Without a filter, Smart Faucets choose the fluid intelligently based on the item",
+
+  "fluidlogistics.ponder.smart_hopper.header": "Transferring Items and Fluids with Smart Hoppers",
+  "fluidlogistics.ponder.smart_hopper.text_1": "Smart Hoppers pull fluids from above and output them toward the spout",
+  "fluidlogistics.ponder.smart_hopper.text_2": "Smart Hoppers can also be disabled by redstone signals",
+  "fluidlogistics.ponder.smart_hopper.text_3": "Smart Hoppers can also be chained together",
+  "fluidlogistics.ponder.smart_hopper.text_4": "Smart Hoppers can transfer items as well as fluids",
+  "fluidlogistics.ponder.smart_hopper.text_5": "Smart Hoppers can also use filters to restrict which items and fluids are allowed through",
+
+  "fluidlogistics.ponder.fluid_transporter.header": "Transferring Fluids with Fluid Transporters",
+  "fluidlogistics.ponder.fluid_transporter.text_1": "Fluid Transporters can move fluid from one container to another",
+  "fluidlogistics.ponder.fluid_transporter.text_2": "Fluid Transporters can use filters to restrict which fluids are allowed through",
+  "fluidlogistics.ponder.fluid_transporter.text_3": "Fluid Transporters can also be disabled by redstone signals",
+  "fluidlogistics.ponder.fluid_transporter.text_4": "Fluid Transporters can also connect like this",
+  "fluidlogistics.ponder.fluid_transporter.text_5": "Note that Fluid Transporters cannot connect sideways like this",
 
   "advancement.fluidlogistics.let_me_point_it_out": "Let Me Point It Out",
   "advancement.fluidlogistics.let_me_point_it_out.desc": "Use the Hand Pointer to enter configuration mode for the first time",
@@ -138,8 +162,17 @@
   "advancement.fluidlogistics.non_instant_package": "Not-So-Instant Package",
   "advancement.fluidlogistics.non_instant_package.desc": "Package your first Fluid Package",
 
+  "fluidlogistics.ponder.multi_fluid_access_port.header": "Accessing Fluids with Multi Fluid Access Ports",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_1": "Accessing multi-fluid containers can sometimes be troublesome",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_2": "Multi Fluid Access Ports can extend fluid containers for easier access",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_3": "Multi Fluid Access Ports can access fluids in up to three directions at once",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_4": "Filters can also be configured separately for each of the three directions",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_5": "Multi Fluid Access Ports can also be disabled by redstone signals",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_6": "Note that Multi Fluid Access Ports cannot be chained",
+  "fluidlogistics.ponder.multi_fluid_access_port.text_7": "However, one fluid container can connect to multiple Multi Fluid Access Ports at the same time",
+
   "create.item_attributes.is_fluid": "is %1$s",
   "create.item_attributes.is_fluid.inverted": "is not %1$s",
-  "create.item_attributes.is_fluid_no_nbt": "is %1$s (no NBT)",
-  "create.item_attributes.is_fluid_no_nbt.inverted": "is not %1$s (no NBT)"
+  "create.item_attributes.is_fluid_no_nbt": "is %1$s (no COMPONENT)",
+  "create.item_attributes.is_fluid_no_nbt.inverted": "is not %1$s (no COMPONENT)"
 }

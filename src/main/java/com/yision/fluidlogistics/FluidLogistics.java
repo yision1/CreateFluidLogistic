@@ -2,6 +2,7 @@ package com.yision.fluidlogistics;
 
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPointType;
+import com.simibubi.create.api.stress.BlockStressValues;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.simibubi.create.foundation.item.ItemDescription;
 import net.createmod.catnip.lang.FontHelper;
@@ -27,6 +28,7 @@ import com.yision.fluidlogistics.registry.AllMenuTypes;
 import com.yision.fluidlogistics.registry.AllConditionCodecs;
 import com.yision.fluidlogistics.registry.AllFluidAttributeTypes;
 import com.yision.fluidlogistics.config.FeatureToggle;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.CreativeModeTab;
@@ -49,7 +51,9 @@ import net.neoforged.neoforge.registries.RegisterEvent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 
 @Mod(FluidLogistics.MODID)
@@ -58,6 +62,14 @@ public class FluidLogistics {
     public static final Logger LOGGER = LogUtils.getLogger();
     private static final ResourceKey<net.minecraft.world.item.CreativeModeTab> FLUID_LOGISTICS_TAB =
             ResourceKey.create(Registries.CREATIVE_MODE_TAB, asResource("fluidlogistics_tab"));
+    private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS =
+            DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
+
+    public static final Supplier<CreativeModeTab> FLUID_LOGISTICS_CREATIVE_TAB =
+            CREATIVE_TABS.register("fluidlogistics_tab", () -> CreativeModeTab.builder()
+                    .title(Component.translatable("itemGroup.fluidlogistics.fluidlogistics_tab"))
+                    .icon(() -> createWaterFluidPackage(50000))
+                    .build());
 
     public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(MODID)
             .setTooltipModifierFactory(item ->
@@ -65,10 +77,10 @@ public class FluidLogistics {
                             ? new CompressedTankTooltipModifier(item, FontHelper.Palette.STANDARD_CREATE)
                             : new ItemDescription.Modifier(item, FontHelper.Palette.STANDARD_CREATE)
             )
-            .defaultCreativeTab("fluidlogistics_tab", b -> b.icon(() -> createWaterFluidPackage(50000)))
-            .build();
+            .defaultCreativeTab(FLUID_LOGISTICS_TAB);
 
     public FluidLogistics(IEventBus modEventBus, ModContainer modContainer) {
+        CREATIVE_TABS.register(modEventBus);
         REGISTRATE.registerEventListeners(modEventBus);
 
         AllConditionCodecs.register(modEventBus);
@@ -96,6 +108,7 @@ public class FluidLogistics {
             FluidLogisticsPackets.register();
             ArmInteractionPointType.init();
             com.yision.fluidlogistics.registry.AllMountedStorageTypes.register();
+            BlockStressValues.IMPACTS.register(AllBlocks.FLUID_PUMP.get(), () -> 8.0);
             LOGGER.info("FluidLogistics mounted storage registered!");
         });
     }
