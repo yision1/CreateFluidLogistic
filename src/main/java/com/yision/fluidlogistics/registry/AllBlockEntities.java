@@ -11,6 +11,8 @@ import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlockEnt
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterRenderer;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankRenderer;
+import com.yision.fluidlogistics.block.InfiniteFluidTank.InfiniteFluidTankBlockEntity;
+import com.yision.fluidlogistics.block.InfiniteFluidTank.InfiniteFluidTankRenderer;
 import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortBlockEntity;
 import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortRenderer;
 import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlockEntity;
@@ -72,6 +74,12 @@ public class AllBlockEntities {
             .visual(() -> ShaftVisual::new)
             .validBlocks(AllBlocks.FLUID_PUMP)
             .renderer(() -> FluidPumpRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<InfiniteFluidTankBlockEntity> INFINITE_FLUID_TANK = REGISTRATE
+            .blockEntity("infinite_fluid_tank", InfiniteFluidTankBlockEntity::new)
+            .validBlocks(AllBlocks.INFINITE_FLUID_TANK)
+            .renderer(() -> InfiniteFluidTankRenderer::new)
             .register();
 
     public static void register() {

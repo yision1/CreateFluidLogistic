@@ -12,6 +12,8 @@
   "block.fluidlogistics.waterproof_cardboard_block": "防水纸板块",
   "block.fluidlogistics.multi_fluid_tank": "多流体储罐",
   "block.fluidlogistics.horizontal_multi_fluid_tank": "横向多流体储罐",
+  "block.fluidlogistics.infinite_fluid_tank": "无限流体储罐",
+  "block.fluidlogistics.infinite_fluid_tank.tooltip.summary": "存入 _10000B_ 流体以无限供应",
   "block.fluidlogistics.fluid_pump": "流体泵",
   "fluidlogistics.fluid_pump.transfer_direction": "传输方向",
   "fluidlogistics.fluid_pump.direction.positive": "抽出",

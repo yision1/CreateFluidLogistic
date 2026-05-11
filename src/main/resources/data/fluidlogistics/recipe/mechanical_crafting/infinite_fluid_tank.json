@@ -1,0 +1,33 @@
+{
+  "type": "create:mechanical_crafting",
+  "accept_mirrored": true,
+  "category": "misc",
+  "key": {
+    "N": {
+      "item": "create:railway_casing"
+    },
+    "O": {
+      "tag": "c:obsidians"
+    },
+    "R": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "S": {
+      "item": "create:sturdy_sheet"
+    },
+    "T": {
+      "item": "create:fluid_tank"
+    }
+  },
+  "pattern": [
+    "OSSSO",
+    "SNRNS",
+    "SRTRS",
+    "SNRNS",
+    "OSSSO"
+  ],
+  "result": {
+    "count": 1,
+    "id": "fluidlogistics:infinite_fluid_tank"
+  }
+}

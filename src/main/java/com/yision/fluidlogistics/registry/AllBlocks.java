@@ -9,9 +9,19 @@ import com.tterrag.registrate.providers.ProviderType;
 import com.tterrag.registrate.util.entry.BlockEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.storage.loot.LootPool;
+import net.minecraft.world.level.storage.loot.LootTable;
+import net.minecraft.world.level.storage.loot.entries.LootItem;
+import net.minecraft.world.level.storage.loot.functions.CopyComponentsFunction;
+import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
+import net.neoforged.neoforge.client.model.generators.ModelFile;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlock;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerGenerator;
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlock;
@@ -29,11 +39,12 @@ import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlock;
 import com.yision.fluidlogistics.block.SmartHopper.SmartHopperGenerator;
 import com.yision.fluidlogistics.block.FluidPump.FluidPumpBlock;
 import com.yision.fluidlogistics.block.FluidPump.FluidPumpGenerator;
+import com.yision.fluidlogistics.block.InfiniteFluidTank.InfiniteFluidTankBlock;
 import com.yision.fluidlogistics.block.WaterproofCardboardBlock;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankGenerator;
 import com.yision.fluidlogistics.item.HorizontalMultiFluidTankItem;
+import com.yision.fluidlogistics.item.InfiniteFluidTankItem;
 import com.yision.fluidlogistics.item.MultiFluidTankItem;
-import net.minecraft.world.item.ItemDisplayContext;
 
 import static com.simibubi.create.api.contraption.storage.fluid.MountedFluidStorageType.mountedFluidStorage;
 import static com.simibubi.create.foundation.data.TagGen.axeOnly;
@@ -174,6 +185,34 @@ public class AllBlocks {
             .build()
             .register();
 
+    public static final BlockEntry<InfiniteFluidTankBlock> INFINITE_FLUID_TANK =
+        REGISTRATE.block("infinite_fluid_tank", InfiniteFluidTankBlock::new)
+            .initialProperties(SharedProperties::copperMetal)
+            .properties(p -> p.noOcclusion()
+                .mapColor(MapColor.COLOR_PURPLE)
+                .isRedstoneConductor(($1, $2, $3) -> true))
+            .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .addLayer(() -> RenderType::cutoutMipped)
+            .blockstate((ctx, prov) -> prov.simpleBlock(ctx.get(),
+                prov.models().getBuilder(ctx.getName())
+                    .parent(new ModelFile.UncheckedModelFile(createLoc("block/creative_single_window")))))
+            .loot((loot, block) -> loot.add(block, LootTable.lootTable()
+                .withPool(loot.applyExplosionCondition(block, LootPool.lootPool()
+                    .setRolls(ConstantValue.exactly(1.0F))
+                    .add(LootItem.lootTableItem(block)
+                        .apply(CopyComponentsFunction.copyComponents(CopyComponentsFunction.Source.BLOCK_ENTITY)
+                            .include(DataComponents.BLOCK_ENTITY_DATA)))))))
+            .item(InfiniteFluidTankItem::new)
+            .properties(p -> p.rarity(Rarity.EPIC))
+            .model((ctx, prov) -> prov.withExistingParent(ctx.getName(), prov.modLoc("block/infinite_fluid_tank")))
+            .build()
+            .register();
+
     public static void register() {
+    }
+
+    private static ResourceLocation createLoc(String path) {
+        return ResourceLocation.fromNamespaceAndPath("create", path);
     }
 }

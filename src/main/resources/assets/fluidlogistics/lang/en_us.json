@@ -12,6 +12,8 @@
   "block.fluidlogistics.waterproof_cardboard_block": "Waterproof Cardboard Block",
   "block.fluidlogistics.multi_fluid_tank": "Multi-Fluid Tank",
   "block.fluidlogistics.horizontal_multi_fluid_tank": "Horizontal Multi-Fluid Tank",
+  "block.fluidlogistics.infinite_fluid_tank": "Infinite Fluid Tank",
+  "block.fluidlogistics.infinite_fluid_tank.tooltip.summary": "Stores _10000B_ of one fluid for infinite supply",
   "block.fluidlogistics.fluid_pump": "Fluid Pump",
   "fluidlogistics.fluid_pump.transfer_direction": "Transfer Direction",
   "fluidlogistics.fluid_pump.direction.positive": "Pump Out",
