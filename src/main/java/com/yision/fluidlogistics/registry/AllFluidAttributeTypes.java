@@ -3,6 +3,7 @@ package com.yision.fluidlogistics.registry;
 import com.simibubi.create.api.registry.CreateBuiltInRegistries;
 import com.simibubi.create.content.logistics.item.filter.attribute.ItemAttributeType;
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.filter.attribute.AnyFluidAttribute;
 import com.yision.fluidlogistics.filter.attribute.FluidStackAttribute;
 import com.yision.fluidlogistics.filter.attribute.FluidTypeAttribute;
 import net.neoforged.neoforge.registries.DeferredHolder;
@@ -16,6 +17,8 @@ public final class AllFluidAttributeTypes {
             REGISTER.register("is_fluid", FluidStackAttribute.Type::new);
     public static final DeferredHolder<ItemAttributeType, FluidTypeAttribute.Type> IS_FLUID_TYPE =
             REGISTER.register("is_fluid_type", FluidTypeAttribute.Type::new);
+    public static final DeferredHolder<ItemAttributeType, AnyFluidAttribute.Type> IS_ANY_FLUID =
+            REGISTER.register("is_any_fluid", AnyFluidAttribute.Type::new);
 
     private AllFluidAttributeTypes() {
     }

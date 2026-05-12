@@ -178,5 +178,7 @@
   "create.item_attributes.is_fluid": "是 %1$s",
   "create.item_attributes.is_fluid.inverted": "不是 %1$s",
   "create.item_attributes.is_fluid_no_nbt": "是 %1$s（无 COMPONENT）",
-  "create.item_attributes.is_fluid_no_nbt.inverted": "不是 %1$s（无 COMPONENT）"
+  "create.item_attributes.is_fluid_no_nbt.inverted": "不是 %1$s（无 COMPONENT）",
+  "create.item_attributes.is_any_fluid": "是 流体",
+  "create.item_attributes.is_any_fluid.inverted": "不是 流体"
 }

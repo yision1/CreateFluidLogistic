@@ -176,5 +176,7 @@
   "create.item_attributes.is_fluid": "is %1$s",
   "create.item_attributes.is_fluid.inverted": "is not %1$s",
   "create.item_attributes.is_fluid_no_nbt": "is %1$s (no COMPONENT)",
-  "create.item_attributes.is_fluid_no_nbt.inverted": "is not %1$s (no COMPONENT)"
+  "create.item_attributes.is_fluid_no_nbt.inverted": "is not %1$s (no COMPONENT)",
+  "create.item_attributes.is_any_fluid": "is Fluid",
+  "create.item_attributes.is_any_fluid.inverted": "is not Fluid"
 }
