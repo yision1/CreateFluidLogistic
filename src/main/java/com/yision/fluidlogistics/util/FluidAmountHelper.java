@@ -91,13 +91,8 @@ public final class FluidAmountHelper {
 
     public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
             int minAmount, int maxAmount) {
-        return adjustFluidRequestAmount(currentAmount, forward, shift, control, minAmount, maxAmount, 1);
-    }
-
-    public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
-            int minAmount, int maxAmount, int steps) {
         int delta = getFluidRequestStep(shift, control) * (forward? 1:-1);
-        return adjustFluidRequestAmount(currentAmount, delta, minAmount, maxAmount,steps);
+        return adjustFluidRequestAmount(currentAmount, delta, minAmount, maxAmount,1);
     }
 
     public static int adjustStockTickerFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
