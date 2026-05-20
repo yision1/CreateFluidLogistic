@@ -46,7 +46,7 @@ public final class FluidAmountHelper {
     }
 
     public static String formatStockKeeper(int amount) {
-        return formatPrecise(amount);
+        return format(amount);
     }
 
     public static String formatDetailed(int amount) {
@@ -90,32 +90,32 @@ public final class FluidAmountHelper {
     }
 
     public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
-            int minAmount, int maxAmount) {
-        return adjustFluidRequestAmount(currentAmount, forward, shift, control, minAmount, maxAmount, 1);
+            int minAmount, int maxAmount, int steps) {
+        int delta = getFluidRequestStep(shift, control) * (forward? 1:-1);
+        return adjustFluidRequestAmount(currentAmount, delta, minAmount, maxAmount,steps);
     }
 
     public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
-            int minAmount, int maxAmount, int steps) {
-        int newAmount = currentAmount;
-        int safeSteps = Math.max(0, steps);
-        for (int i = 0; i < safeSteps; i++) {
-            newAmount = adjustFluidRequestAmountOnce(newAmount, forward, shift, control, minAmount, maxAmount);
-        }
-
-        return newAmount;
+            int minAmount, int maxAmount) {
+        return adjustFluidRequestAmount(currentAmount, forward, shift, control, minAmount, maxAmount,1);
     }
 
-    private static int adjustFluidRequestAmountOnce(int currentAmount, boolean forward, boolean shift, boolean control,
-            int minAmount, int maxAmount) {
-        int delta = getFluidRequestStep(shift, control);
-        int newAmount = currentAmount + (forward ? delta : -delta);
+    public static int adjustStockTickerFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
+            int minAmount, int maxAmount, int steps){
+        int delta = getStockTickerFluidRequestStep(shift, control) * (forward? 1:-1);
+        return adjustFluidRequestAmount(currentAmount, delta, minAmount, maxAmount,steps);
+    }
 
-        if (forward) {
-            if (currentAmount < MB_PER_TENTH_BUCKET && newAmount >= MB_PER_TENTH_BUCKET && newAmount < MB_PER_BUCKET) {
-                newAmount = MB_PER_TENTH_BUCKET;
-            } else if (currentAmount < MB_PER_BUCKET && newAmount >= MB_PER_BUCKET) {
-                newAmount = MB_PER_BUCKET;
-            }
+    private static int adjustFluidRequestAmount(int currentAmount, int delta, int minAmount, int maxAmount, int steps) {
+        int safeSteps = Math.max(0, steps);
+        int newAmount;
+
+        if (currentAmount == 1 && delta>1){
+            //fluid inputs start with 1mb. This check stops the first scroll (ex 1B) from going to 1.001B and instead going to 1B exactly
+            //need to also check delta>1 or else ctrl+scroll doesn't work when currentAmount == 1
+            newAmount = delta * safeSteps;
+        } else {
+            newAmount = currentAmount + delta * safeSteps;
         }
 
         return Math.clamp(newAmount, minAmount, maxAmount);
@@ -127,6 +127,12 @@ public final class FluidAmountHelper {
         }
         if (shift) {
             return MB_PER_TENTH_BUCKET;
+        }
+        return MB_PER_BUCKET;
+    }
+    private static int getStockTickerFluidRequestStep(boolean shift, boolean control) {
+        if (control) {
+            return 10*MB_PER_BUCKET;
         }
         return MB_PER_BUCKET;
     }
@@ -181,7 +187,14 @@ public final class FluidAmountHelper {
         if (amount >= unitSize && amount % unitSize == 0) {
             return (amount / unitSize) + suffix;
         }
-        double value = Math.floor(amount / (unitSize / 10.0)) / 10.0;
-        return String.format(Locale.ROOT, "%.1f%s", value, suffix);
+        if (amount / unitSize <= 10) {
+            //only one digit before decimal
+            //display 1 decimal
+            double value = Math.floor(amount / (unitSize / 10.0)) / 10.0;
+            return String.format(Locale.ROOT, "%.1f%s", value, suffix);
+
+        }
+        // don't display decimal
+        return String.format(Locale.ROOT, "%.0f%s", Math.floor(amount / (float) unitSize), suffix);
     }
 }

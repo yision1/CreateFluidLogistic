@@ -10,6 +10,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import com.yision.fluidlogistics.util.FluidGaugeHelper;
+import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -577,17 +579,27 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
         BigItemStack entry = getEntryAt(hoveredSlot);
 
         ItemStack stack = entry.stack;
-        if (recipeHovered) {
-            ArrayList<Component> lines = new ArrayList<>(
-                    stack.getTooltipLines(TooltipContext.of(minecraft.level), minecraft.player, TooltipFlag.NORMAL));
-            if (!lines.isEmpty()) {
-                lines.set(0, CreateLang.translateDirect("gui.stock_keeper.craft", lines.getFirst().copy()));
-            }
-            graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
+
+        if (!FluidGaugeHelper.isVirtualFluidFilter(stack) && !recipeHovered){
+            graphics.renderTooltip(font, stack, mouseX, mouseY);
             return;
         }
 
-        graphics.renderTooltip(font, stack, mouseX, mouseY);
+        ArrayList<Component> lines = new ArrayList<>(
+                stack.getTooltipLines(TooltipContext.of(minecraft.level), minecraft.player, TooltipFlag.NORMAL));
+
+        if (FluidGaugeHelper.isVirtualFluidFilter(stack) && !lines.isEmpty()){
+            String amountText = FluidAmountHelper.formatPrecise(entry.count);
+            lines.add(1, CreateLang.text(amountText)
+                    .style(ChatFormatting.DARK_GRAY)
+                    .component());
+        }
+
+        if (recipeHovered && !lines.isEmpty()) {
+            lines.set(0, CreateLang.translateDirect("gui.stock_keeper.craft", lines.getFirst().copy()));
+        }
+
+        graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
     }
 
     private void renderItemEntry(GuiGraphics graphics, BigItemStack entry, boolean isStackHovered,
@@ -1264,8 +1276,15 @@ public class PortableStockTickerScreen extends AbstractSimiContainerScreen<Porta
             }
         }
 
-        int newAmount = FluidAmountHelper.adjustFluidRequestAmount(existingOrder.count, forward, hasShiftDown(),
-                hasControlDown(), 0, Math.max(0, maxAvailable), steps);
+        int newAmount;
+
+        if (orderClicked){
+            newAmount = FluidAmountHelper.adjustFluidRequestAmount(existingOrder.count, forward, Screen.hasShiftDown(),
+                    Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
+        } else {
+            newAmount = FluidAmountHelper.adjustStockTickerFluidRequestAmount(existingOrder.count, forward, hasShiftDown(),
+                    hasControlDown(), 0, Math.max(0, maxAvailable), steps);
+        }
         if (newAmount <= 0) {
             itemsToOrder.remove(existingOrder);
             if (playFeedback) {

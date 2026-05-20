@@ -1,7 +1,32 @@
 package com.yision.fluidlogistics.mixin.client;
 
-import java.util.List;
-
+import com.llamalad7.mixinextras.sugar.Local;
+import com.simibubi.create.content.logistics.BigItemStack;
+import com.simibubi.create.content.logistics.packager.InventorySummary;
+import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
+import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestMenu;
+import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
+import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
+import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
+import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
+import com.yision.fluidlogistics.util.FluidAmountHelper;
+import com.yision.fluidlogistics.util.FluidGaugeHelper;
+import com.yision.fluidlogistics.util.IFluidCraftableBigItemStack;
+import net.createmod.catnip.data.Couple;
+import net.createmod.catnip.data.Pair;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.neoforged.neoforge.fluids.FluidStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -11,28 +36,11 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import com.llamalad7.mixinextras.sugar.Local;
-import com.simibubi.create.content.logistics.BigItemStack;
-import com.simibubi.create.content.logistics.packager.InventorySummary;
-import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
-import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
-import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
-import com.yision.fluidlogistics.item.CompressedTankItem;
-import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
-import com.yision.fluidlogistics.util.FluidAmountHelper;
-import com.yision.fluidlogistics.util.IFluidCraftableBigItemStack;
-
-import net.createmod.catnip.data.Couple;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.util.Mth;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.createmod.catnip.data.Pair;
+import java.util.ArrayList;
+import java.util.List;
 
 @Mixin(StockKeeperRequestScreen.class)
-public abstract class StockKeeperRequestScreenMixin {
+public abstract class StockKeeperRequestScreenMixin extends AbstractSimiContainerScreen<StockKeeperRequestMenu> {
 
     @Shadow(remap = false)
     public List<BigItemStack> itemsToOrder;
@@ -48,6 +56,10 @@ public abstract class StockKeeperRequestScreenMixin {
 
     @Shadow(remap = false)
     private boolean canRequestCraftingPackage;
+
+    public StockKeeperRequestScreenMixin(StockKeeperRequestMenu container, Inventory inv, Component title) {
+        super(container, inv, title);
+    }
 
     @Shadow(remap = false)
     protected abstract BigItemStack getOrderForItem(ItemStack stack);
@@ -262,6 +274,34 @@ public abstract class StockKeeperRequestScreenMixin {
         }
     }
 
+    @Redirect(method = "renderForeground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;renderComponentTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;II)V", ordinal = 0))
+    private void fluidlogistics$recipeTooltip(GuiGraphics graphics, Font font, List<Component> tooltipLines, int mouseX, int mouseY, @Local(name = "lines")
+        ArrayList<Component> lines, @Local(name = "entry") BigItemStack entry){
+        // handles adding the fluid amount to the tooltip for recipes only
+        if (FluidGaugeHelper.isVirtualFluidFilter(entry.stack)) {
+            String amountText = FluidAmountHelper.formatPrecise(entry.count);
+            lines.add(1, CreateLang.text(amountText)
+                    .style(ChatFormatting.DARK_GRAY)
+                    .component());
+        }
+        graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
+    }
+
+    @Redirect(method="renderForeground", at = @At(value="INVOKE",target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V",ordinal = 0))
+    private void fluidlogistics$itemTooltip(GuiGraphics graphics, Font font, ItemStack stack, int mouseX, int mouseY, @Local(name = "entry") BigItemStack entry){
+        // handles adding the fluid amount to the tooltip for items (everything else)
+        if (FluidGaugeHelper.isVirtualFluidFilter(entry.stack)) {
+            ArrayList<Component> lines = new ArrayList<>(entry.stack.getTooltipLines(Item.TooltipContext.of(minecraft.level), minecraft.player, TooltipFlag.NORMAL));
+            String amountText = FluidAmountHelper.formatPrecise(entry.count);
+            lines.add(1, CreateLang.text(amountText)
+                    .style(ChatFormatting.DARK_GRAY)
+                    .component());
+            graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
+            return;
+        }
+        graphics.renderTooltip(font, entry.stack, mouseX, mouseY);
+    }
+
     @Unique
     private void fluidlogistics$updateCraftableAmountsWithCustomEntries() {
         InventorySummary usedItems = new InventorySummary();
@@ -432,10 +472,16 @@ public abstract class StockKeeperRequestScreenMixin {
             existingOrder = new BigItemStack(entry.stack.copyWithCount(1), 0);
             itemsToOrder.add(existingOrder);
         }
-
+        int newAmount;
         int current = existingOrder.count;
-        int newAmount = FluidAmountHelper.adjustFluidRequestAmount(current, forward, Screen.hasShiftDown(),
-            Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
+
+        if (orderClicked){
+            newAmount = FluidAmountHelper.adjustFluidRequestAmount(current, forward, Screen.hasShiftDown(),
+                    Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
+        } else {
+            newAmount = FluidAmountHelper.adjustStockTickerFluidRequestAmount(current, forward, Screen.hasShiftDown(),
+                    Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
+        }
         if (newAmount <= 0) {
             itemsToOrder.remove(existingOrder);
             return;
