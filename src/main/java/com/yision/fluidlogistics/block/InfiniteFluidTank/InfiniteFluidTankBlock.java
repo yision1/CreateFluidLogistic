@@ -55,7 +55,7 @@ public class InfiniteFluidTankBlock extends Block implements IWrenchable, IBE<In
 
 		if (FluidHelper.tryEmptyItemIntoBE(level, player, hand, stack, be))
 			exchange = FluidExchange.ITEM_TO_TANK;
-		else if (FluidHelper.tryFillItemFromBE(level, player, hand, stack, be))
+		else if (be.isInfiniteMode() && FluidHelper.tryFillItemFromBE(level, player, hand, stack, be))
 			exchange = FluidExchange.TANK_TO_ITEM;
 
 		if (exchange == null) {
