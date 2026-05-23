@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "L": {
+      "tag": "minecraft:leaves"
+    },
+    "B": {
+      "item": "minecraft:water_bucket"
+    },
+    "C": {
+      "item": "create:copper_casing"
+    },
+    "G": {
+      "tag": "c:glass_blocks"
+    }
+  },
+  "pattern": [
+    "CGC",
+    "BLB",
+    "CGC"
+  ],
+  "result": {
+    "count": 1,
+    "id": "fluidlogistics:water_containing_copper_casing"
+  }
+}

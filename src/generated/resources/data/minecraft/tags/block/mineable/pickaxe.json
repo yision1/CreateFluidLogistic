@@ -8,6 +8,7 @@
     "fluidlogistics:multi_fluid_access_port",
     "fluidlogistics:smart_hopper",
     "fluidlogistics:fluid_pump",
-    "fluidlogistics:infinite_fluid_tank"
+    "fluidlogistics:infinite_fluid_tank",
+    "fluidlogistics:water_containing_copper_casing"
   ]
 }
