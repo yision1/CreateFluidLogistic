@@ -13,6 +13,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Objects;
 
 public class FluidTypeAttribute implements FluidAttribute {
     private final Fluid fluid;
@@ -39,6 +40,20 @@ public class FluidTypeAttribute implements FluidAttribute {
     @Override
     public Object[] getTranslationParameters() {
         return new Object[]{fluid.getFluidType().getDescription().getString()};
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (!(obj instanceof FluidTypeAttribute other))
+            return false;
+        return fluid.isSame(other.fluid);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fluid);
     }
 
     public static class Type implements ItemAttributeType {

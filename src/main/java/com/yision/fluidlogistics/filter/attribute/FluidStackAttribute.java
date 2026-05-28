@@ -11,12 +11,13 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Objects;
 
 public class FluidStackAttribute implements FluidAttribute {
     private final FluidStack fluid;
 
     public FluidStackAttribute(FluidStack fluid) {
-        this.fluid = fluid;
+        this.fluid = fluid.copy();
     }
 
     @Override
@@ -36,16 +37,35 @@ public class FluidStackAttribute implements FluidAttribute {
 
     @Override
     public Object[] getTranslationParameters() {
+        if (fluid.isEmpty())
+            return new Object[]{""};
         return new Object[]{fluid.getFluid().getFluidType().getDescription(fluid).getString()};
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (!(obj instanceof FluidStackAttribute other))
+            return false;
+        return FluidStack.isSameFluidSameComponents(fluid, other.fluid)
+                && fluid.getAmount() == other.fluid.getAmount();
+    }
+
+    @Override
+    public int hashCode() {
+        if (fluid.isEmpty())
+            return 0;
+        return Objects.hash(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount());
+    }
+
     public static class Type implements ItemAttributeType {
-        public static final MapCodec<FluidStackAttribute> CODEC = FluidStack.CODEC
+        public static final MapCodec<FluidStackAttribute> CODEC = FluidStack.OPTIONAL_CODEC
                 .fieldOf("fluid")
                 .xmap(FluidStackAttribute::new, a -> a.fluid);
 
         public static final net.minecraft.network.codec.StreamCodec<RegistryFriendlyByteBuf, FluidStackAttribute> STREAM_CODEC =
-                FluidStack.STREAM_CODEC.map(FluidStackAttribute::new, a -> a.fluid);
+                FluidStack.OPTIONAL_STREAM_CODEC.map(FluidStackAttribute::new, a -> a.fluid);
 
         @Override
         public @NotNull ItemAttribute createAttribute() {
