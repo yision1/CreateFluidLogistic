@@ -237,7 +237,7 @@ public abstract class FactoryPanelBehaviourMixin {
         FactoryPanelBlockEntity panelBE = self.panelBE();
         
         PackagerBlockEntity packager = panelBE.getRestockedPackager();
-        if (packager != null) {
+        if (packager != null && !(packager instanceof IFluidPackager)) {
             return;
         }
         

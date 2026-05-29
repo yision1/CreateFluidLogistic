@@ -3,14 +3,15 @@ package com.yision.fluidlogistics.block.FluidPackager;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.AllSoundEvents;
-import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
+import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.item.FluidPackageItem;
+import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -37,8 +38,8 @@ import net.neoforged.neoforge.common.util.FakePlayer;
 
 public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IBE<FluidPackagerBlockEntity>, IWrenchable {
 
-    public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
-    public static final BooleanProperty LINKED = BooleanProperty.create("linked");
+    public static final BooleanProperty POWERED = PackagerBlock.POWERED;
+    public static final BooleanProperty LINKED = PackagerBlock.LINKED;
 
     public FluidPackagerBlock(Properties properties) {
         super(properties);

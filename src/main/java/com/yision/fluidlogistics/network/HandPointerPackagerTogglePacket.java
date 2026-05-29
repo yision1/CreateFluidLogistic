@@ -2,7 +2,6 @@ package com.yision.fluidlogistics.network;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.createmod.catnip.platform.CatnipServices;
@@ -94,16 +93,6 @@ public record HandPointerPackagerTogglePacket(BlockPos pos) implements Serverbou
             } else {
                 packager.setChanged();
                 packager.notifyUpdate();
-            }
-            return;
-        }
-        if (blockEntity instanceof FluidPackagerBlockEntity fluidPackager) {
-            fluidPackager.redstonePowered = powered;
-            if (powered) {
-                fluidPackager.activate();
-            } else {
-                fluidPackager.setChanged();
-                fluidPackager.notifyUpdate();
             }
         }
     }

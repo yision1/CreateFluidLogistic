@@ -8,6 +8,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.api.IFluidPackager;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.util.SharedCapacityFluidHandler;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -90,7 +91,7 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
         notifyUpdate();
         for (Direction side : Direction.values()) {
             BlockEntity be = level.getBlockEntity(worldPosition.relative(side));
-            if (be instanceof com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity packager) {
+            if (be instanceof IFluidPackager packager) {
                 packager.triggerStockCheck();
             }
         }

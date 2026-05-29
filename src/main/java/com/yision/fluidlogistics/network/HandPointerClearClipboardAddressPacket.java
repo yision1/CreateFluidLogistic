@@ -3,8 +3,6 @@ package com.yision.fluidlogistics.network;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlock;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.createmod.catnip.data.Iterate;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
@@ -74,8 +72,7 @@ public record HandPointerClearClipboardAddressPacket(BlockPos pos) implements Se
             return;
         }
 
-        boolean linkedToNetwork = (state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED))
-            || (state.hasProperty(FluidPackagerBlock.LINKED) && state.getValue(FluidPackagerBlock.LINKED));
+        boolean linkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
         if (linkedToNetwork) {
             player.displayClientMessage(
                 Component.translatable("logistically_linked.protected")
@@ -113,11 +110,6 @@ public record HandPointerClearClipboardAddressPacket(BlockPos pos) implements Se
             packager.updateSignAddress();
             packager.setChanged();
             packager.notifyUpdate();
-        } else if (blockEntity instanceof FluidPackagerBlockEntity fluidPackager) {
-            fluidPackager.signBasedAddress = "";
-            fluidPackager.updateSignAddress();
-            fluidPackager.setChanged();
-            fluidPackager.notifyUpdate();
         }
 
         player.displayClientMessage(

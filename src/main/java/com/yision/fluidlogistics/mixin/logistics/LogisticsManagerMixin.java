@@ -469,6 +469,10 @@ public abstract class LogisticsManagerMixin {
             return null;
         }
 
-        return plbe.getPackager();
+        PackagerBlockEntity packager = plbe.getPackager();
+        if (packager instanceof IFluidPackager) {
+            return null;
+        }
+        return packager;
     }
 }

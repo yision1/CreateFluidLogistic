@@ -16,14 +16,12 @@
         "logistics.FactoryPanelBehaviourMixin",
         "logistics.FactoryPanelRestockThresholdMixin",
         "logistics.FactoryPanelBlockEntityMixin",
-        "logistics.FrogportBlockEntityMixin",
         "logistics.InventorySummaryMixin",
         "logistics.LogisticallyLinkedBehaviourLegacyLinkCleanupMixin",
         "logistics.LogisticsManagerMixin",
         "logistics.PackageEntityMixin",
         "logistics.PackagerBlockEntityMixin",
         "logistics.PackagerBlockMixin",
-        "logistics.PackagerLinkBlockEntityMixin",
         "logistics.RequestPromiseQueueMixin"
     ],
     "client": [

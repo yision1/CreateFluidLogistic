@@ -4,8 +4,6 @@ import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlock;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.util.ClipboardAddressUtil;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.createmod.catnip.data.Iterate;
@@ -105,8 +103,7 @@ public record ClipboardSetAddressPacket(BlockPos pos) implements ServerboundPack
             return;
         }
 
-        boolean linkedToNetwork = (state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED))
-            || (state.hasProperty(FluidPackagerBlock.LINKED) && state.getValue(FluidPackagerBlock.LINKED));
+        boolean linkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
         if (linkedToNetwork) {
             player.displayClientMessage(
                 Component.translatable("logistically_linked.protected")
@@ -123,10 +120,6 @@ public record ClipboardSetAddressPacket(BlockPos pos) implements ServerboundPack
             packager.signBasedAddress = address;
             packager.setChanged();
             packager.notifyUpdate();
-        } else if (blockEntity instanceof FluidPackagerBlockEntity fluidPackager) {
-            fluidPackager.signBasedAddress = address;
-            fluidPackager.setChanged();
-            fluidPackager.notifyUpdate();
         }
 
         player.displayClientMessage(
