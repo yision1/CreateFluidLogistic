@@ -1,4 +1,4 @@
-package com.yision.fluidlogistics.block.SmartFaucet;
+package com.yision.fluidlogistics.block.Faucet;
 
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.AllRecipeTypes;
@@ -16,9 +16,9 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
-public final class SmartFaucetFilling {
+public final class FaucetFilling {
 
-    private SmartFaucetFilling() {
+    private FaucetFilling() {
     }
 
     public static boolean canItemBeFilled(Level level, ItemStack stack) {

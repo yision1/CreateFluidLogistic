@@ -12,13 +12,13 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
 
-public record SmartFaucetDripParticlePacket(BlockPos faucetPos, FluidStack fluid) implements ClientboundPacketPayload {
+public record FaucetDripParticlePacket(BlockPos faucetPos, FluidStack fluid) implements ClientboundPacketPayload {
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, SmartFaucetDripParticlePacket> STREAM_CODEC =
+    public static final StreamCodec<RegistryFriendlyByteBuf, FaucetDripParticlePacket> STREAM_CODEC =
         StreamCodec.composite(
-            BlockPos.STREAM_CODEC, SmartFaucetDripParticlePacket::faucetPos,
-            FluidStack.STREAM_CODEC, SmartFaucetDripParticlePacket::fluid,
-            SmartFaucetDripParticlePacket::new
+            BlockPos.STREAM_CODEC, FaucetDripParticlePacket::faucetPos,
+            FluidStack.STREAM_CODEC, FaucetDripParticlePacket::fluid,
+            FaucetDripParticlePacket::new
         );
 
     @Override
@@ -35,6 +35,6 @@ public record SmartFaucetDripParticlePacket(BlockPos faucetPos, FluidStack fluid
 
     @Override
     public PacketTypeProvider getTypeProvider() {
-        return FluidLogisticsPackets.SMART_FAUCET_DRIP_PARTICLE;
+        return FluidLogisticsPackets.FAUCET_DRIP_PARTICLE;
     }
 }

@@ -4,6 +4,7 @@
   "block.fluidlogistics.fluid_transporter": "Fluid Transporter",
   "block.fluidlogistics.fluid_packager": "Fluid Packager",
   "block.fluidlogistics.smart_faucet": "Smart Faucet",
+  "block.fluidlogistics.faucet": "Faucet",
   "block.fluidlogistics.smart_hopper": "Smart Hopper",
   "block.fluidlogistics.multi_fluid_access_port": "Multi-Fluid Access Port",
   "block.fluidlogistics.multi_fluid_access_port.filter_left": "Left Fluid Filter",

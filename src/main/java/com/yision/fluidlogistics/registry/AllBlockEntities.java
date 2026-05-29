@@ -9,6 +9,8 @@ import com.yision.fluidlogistics.block.FluidPump.FluidPumpBlockEntity;
 import com.yision.fluidlogistics.block.FluidPump.FluidPumpRenderer;
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlockEntity;
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterRenderer;
+import com.yision.fluidlogistics.block.Faucet.FaucetBlockEntity;
+import com.yision.fluidlogistics.block.Faucet.FaucetRenderer;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankRenderer;
 import com.yision.fluidlogistics.block.InfiniteFluidTank.InfiniteFluidTankBlockEntity;
@@ -40,6 +42,12 @@ public class AllBlockEntities {
             .visual(() -> FluidPackagerVisual::new, true)
             .validBlocks(AllBlocks.FLUID_PACKAGER)
             .renderer(() -> FluidPackagerRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<FaucetBlockEntity> FAUCET = REGISTRATE
+            .blockEntity("faucet", FaucetBlockEntity::new)
+            .validBlocks(AllBlocks.FAUCET)
+            .renderer(() -> FaucetRenderer::new)
             .register();
 
     public static final BlockEntityEntry<SmartFaucetBlockEntity> SMART_FAUCET = REGISTRATE

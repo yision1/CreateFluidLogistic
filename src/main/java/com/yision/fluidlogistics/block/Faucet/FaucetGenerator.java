@@ -1,4 +1,4 @@
-package com.yision.fluidlogistics.block.SmartFaucet;
+package com.yision.fluidlogistics.block.Faucet;
 
 import com.simibubi.create.foundation.data.SpecialBlockStateGen;
 import com.tterrag.registrate.providers.DataGenContext;
@@ -8,7 +8,15 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.client.model.generators.ModelFile;
 
-public class SmartFaucetGenerator extends SpecialBlockStateGen {
+public class FaucetGenerator extends SpecialBlockStateGen {
+
+    private final String closedModel;
+    private final String openModel;
+
+    public FaucetGenerator(String closedModel, String openModel) {
+        this.closedModel = closedModel;
+        this.openModel = openModel;
+    }
 
     @Override
     protected int getXRotation(BlockState state) {
@@ -17,14 +25,14 @@ public class SmartFaucetGenerator extends SpecialBlockStateGen {
 
     @Override
     protected int getYRotation(BlockState state) {
-        Direction facing = state.getValue(SmartFaucetBlock.FACING);
+        Direction facing = state.getValue(AbstractFaucetBlock.FACING);
         return horizontalAngle(facing) + 180;
     }
 
     @Override
     public <T extends Block> ModelFile getModel(DataGenContext<Block, T> ctx, RegistrateBlockstateProvider prov,
         BlockState state) {
-        String path = state.getValue(SmartFaucetBlock.OPEN) ? "block/smart_faucet/smart_faucet_open" : "block/smart_faucet/smart_faucet";
-        return prov.models().getExistingFile(prov.modLoc(path));
+        String path = state.getValue(AbstractFaucetBlock.OPEN) ? openModel : closedModel;
+        return prov.models().getExistingFile(prov.modLoc("block/" + path));
     }
 }

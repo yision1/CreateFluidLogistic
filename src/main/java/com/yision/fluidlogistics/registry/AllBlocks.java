@@ -31,8 +31,9 @@ import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPort
 import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlock;
 import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankGenerator;
 import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankModel;
+import com.yision.fluidlogistics.block.Faucet.FaucetBlock;
+import com.yision.fluidlogistics.block.Faucet.FaucetGenerator;
 import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetBlock;
-import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetGenerator;
 import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlock;
 import com.yision.fluidlogistics.block.SmartHopper.SmartHopperGenerator;
 import com.yision.fluidlogistics.block.FluidPump.FluidPumpBlock;
@@ -94,9 +95,28 @@ public class AllBlocks {
             .transform(pickaxeOnly())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
-            .blockstate(new SmartFaucetGenerator()::generate)
+            .blockstate(new FaucetGenerator("smart_faucet/smart_faucet", "smart_faucet/smart_faucet_open")::generate)
             .item()
             .model((c, p) -> p.withExistingParent(c.getName(), p.modLoc("block/smart_faucet/smart_faucet"))
+                .transforms()
+                .transform(ItemDisplayContext.GUI)
+                .rotation(30, -135, 0)
+                .translation(2.5f, -1.25f, 0)
+                .scale(0.625f))
+            .build()
+            .register();
+
+    public static final BlockEntry<FaucetBlock> FAUCET =
+        REGISTRATE.block("faucet", FaucetBlock::new)
+            .initialProperties(SharedProperties::copperMetal)
+            .properties(p -> p.noOcclusion().isRedstoneConductor(($1, $2, $3) -> false))
+            .properties(p -> p.mapColor(MapColor.COLOR_ORANGE).sound(SoundType.COPPER))
+            .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .addLayer(() -> RenderType::cutoutMipped)
+            .blockstate(new FaucetGenerator("faucet/faucet", "faucet/faucet_open")::generate)
+            .item()
+            .model((c, p) -> p.withExistingParent(c.getName(), p.modLoc("block/faucet/faucet"))
                 .transforms()
                 .transform(ItemDisplayContext.GUI)
                 .rotation(30, -135, 0)

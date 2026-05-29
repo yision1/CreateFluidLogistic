@@ -17,7 +17,7 @@ public class AllPartialModels {
     public static final PartialModel FLUID_PACKAGER_TRAY = block("fluid_packager/tray");
     public static final PartialModel FLUID_PACKAGER_HATCH_OPEN = block("fluid_packager/hatch_open");
     public static final PartialModel FLUID_PACKAGER_HATCH_CLOSED = block("fluid_packager/hatch_closed");
-    public static final Map<Direction, PartialModel> SMART_FAUCET_SOURCE_INTERFACE = new EnumMap<>(Direction.class);
+    public static final Map<Direction, PartialModel> FAUCET_SOURCE_INTERFACE = new EnumMap<>(Direction.class);
 
     public static final PartialModel FLUID_PUMP_SHAFT = block("fluid_pump/shaft");
 
@@ -31,10 +31,10 @@ public class AllPartialModels {
     private static boolean registered = false;
 
     static {
-        SMART_FAUCET_SOURCE_INTERFACE.put(Direction.NORTH, block("smart_faucet/source_interface/north"));
-        SMART_FAUCET_SOURCE_INTERFACE.put(Direction.SOUTH, block("smart_faucet/source_interface/south"));
-        SMART_FAUCET_SOURCE_INTERFACE.put(Direction.EAST, block("smart_faucet/source_interface/east"));
-        SMART_FAUCET_SOURCE_INTERFACE.put(Direction.WEST, block("smart_faucet/source_interface/west"));
+        FAUCET_SOURCE_INTERFACE.put(Direction.NORTH, block("faucet/source_interface/north"));
+        FAUCET_SOURCE_INTERFACE.put(Direction.SOUTH, block("faucet/source_interface/south"));
+        FAUCET_SOURCE_INTERFACE.put(Direction.EAST, block("faucet/source_interface/east"));
+        FAUCET_SOURCE_INTERFACE.put(Direction.WEST, block("faucet/source_interface/west"));
     }
 
     private static PartialModel block(String path) {
@@ -56,10 +56,10 @@ public class AllPartialModels {
                 FLUID_PACKAGER_HATCH_CLOSED.modelLocation(),
                 FLUID_PACKAGE.modelLocation(),
                 FLUID_PACKAGE_2.modelLocation(),
-                SMART_FAUCET_SOURCE_INTERFACE.get(Direction.NORTH).modelLocation(),
-                SMART_FAUCET_SOURCE_INTERFACE.get(Direction.SOUTH).modelLocation(),
-                SMART_FAUCET_SOURCE_INTERFACE.get(Direction.EAST).modelLocation(),
-                SMART_FAUCET_SOURCE_INTERFACE.get(Direction.WEST).modelLocation()
+                FAUCET_SOURCE_INTERFACE.get(Direction.NORTH).modelLocation(),
+                FAUCET_SOURCE_INTERFACE.get(Direction.SOUTH).modelLocation(),
+                FAUCET_SOURCE_INTERFACE.get(Direction.EAST).modelLocation(),
+                FAUCET_SOURCE_INTERFACE.get(Direction.WEST).modelLocation()
         );
     }
 
