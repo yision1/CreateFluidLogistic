@@ -100,6 +100,11 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
         BlockPos targetPos = packager.getBlockPos().relative(facing.getOpposite());
         BlockState targetState = level.getBlockState(targetPos);
         BlockEntity targetBlockEntity = level.getBlockEntity(targetPos);
+        if (!fluidlogistics$isCreateUnpackingTarget(level, targetPos, targetState, targetBlockEntity, facing)) {
+            cir.setReturnValue(false);
+            return;
+        }
+
         IFluidHandler fluidHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, targetState, targetBlockEntity, facing);
         if (fluidHandler == null) {
             cir.setReturnValue(false);
@@ -224,6 +229,16 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
         }
 
         return "";
+    }
+
+    @Unique
+    private static boolean fluidlogistics$isCreateUnpackingTarget(Level level, BlockPos targetPos, BlockState targetState,
+                                                                 BlockEntity targetBlockEntity, Direction facing) {
+        if (UnpackingHandler.REGISTRY.get(targetState) != null) {
+            return true;
+        }
+
+        return level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, targetState, targetBlockEntity, facing) != null;
     }
 
     @Unique
