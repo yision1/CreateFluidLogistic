@@ -34,6 +34,8 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
+import org.jetbrains.annotations.Nullable;
+
 import java.util.EnumMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -115,6 +117,71 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
             return null;
         }
         return sideCapabilities.computeIfAbsent(side, output -> new PortFluidHandler(this, output));
+    }
+
+    @Nullable
+    public IFluidHandler getFluidDisplayCapability(Direction hitSide) {
+        IFluidHandler handler = getConnectedFluidHandlerForDisplay();
+        if (handler == null) {
+            return null;
+        }
+
+        if (!powered && isOutputSide(hitSide)) {
+            return new CombinedFilteredDisplayFluidHandler(this, handler, List.of(hitSide), hasFilter(hitSide));
+        }
+
+        return new CombinedFilteredDisplayFluidHandler(this, handler,
+            List.of(getLeftOutputDirection(), getRightOutputDirection(), getBackOutputDirection()), hasAnyFilter());
+    }
+
+    private IFluidHandler getConnectedFluidHandlerForDisplay() {
+        if (level == null) {
+            return null;
+        }
+        Direction targetDirection = DirectedDirectionalBlock.getTargetDirection(getBlockState());
+        BlockPos targetPos = worldPosition.relative(targetDirection);
+        IFluidHandler handler =
+            level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, targetDirection.getOpposite());
+        if (handler instanceof WrappedPortFluidHandler) {
+            return null;
+        }
+        return handler;
+    }
+
+    private List<DisplayedFluid> collectFilteredDisplayFluids(IFluidHandler handler, List<Direction> filterSides,
+        boolean respectFilters) {
+        List<DisplayedFluid> merged = new ArrayList<>();
+        for (int tank = 0; tank < handler.getTanks(); tank++) {
+            FluidStack fluid = handler.getFluidInTank(tank);
+            if (fluid.isEmpty()) {
+                continue;
+            }
+            if (respectFilters && !passesAnyDisplayFilter(filterSides, fluid)) {
+                continue;
+            }
+            mergeDisplayedFluid(merged, fluid, handler.getTankCapacity(tank));
+        }
+        return merged;
+    }
+
+    private boolean passesAnyDisplayFilter(List<Direction> filterSides, FluidStack fluid) {
+        for (Direction side : filterSides) {
+            if (hasFilter(side) && testFilter(side, fluid)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void mergeDisplayedFluid(List<DisplayedFluid> merged, FluidStack fluid, int capacity) {
+        for (DisplayedFluid existing : merged) {
+            if (FluidStack.isSameFluidSameComponents(existing.stack, fluid)) {
+                existing.stack.grow(fluid.getAmount());
+                existing.addCapacity(capacity);
+                return;
+            }
+        }
+        merged.add(new DisplayedFluid(fluid.copy(), capacity));
     }
 
     public void updateConnectedStorage() {
@@ -245,7 +312,22 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
         return false;
     }
 
-    private record DisplayedFluid(FluidStack stack, int capacity) {
+    private static class DisplayedFluid {
+        FluidStack stack;
+        private int capacity;
+
+        DisplayedFluid(FluidStack stack, int capacity) {
+            this.stack = stack;
+            this.capacity = capacity;
+        }
+
+        int capacity() {
+            return capacity;
+        }
+
+        void addCapacity(int additional) {
+            this.capacity += additional;
+        }
     }
 
     private boolean isOutputSide(Direction side) {
@@ -350,6 +432,50 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
     private interface WrappedPortFluidHandler {
     }
 
+    private static class CombinedFilteredDisplayFluidHandler implements IFluidHandler {
+        private final List<DisplayedFluid> fluids;
+
+        private CombinedFilteredDisplayFluidHandler(MultiFluidAccessPortBlockEntity port, IFluidHandler source,
+            List<Direction> filterSides, boolean respectFilters) {
+            fluids = port.collectFilteredDisplayFluids(source, filterSides, respectFilters);
+        }
+
+        @Override
+        public int getTanks() {
+            return fluids.size();
+        }
+
+        @Override
+        public FluidStack getFluidInTank(int tank) {
+            return tank >= 0 && tank < fluids.size() ? fluids.get(tank).stack.copy() : FluidStack.EMPTY;
+        }
+
+        @Override
+        public int getTankCapacity(int tank) {
+            return tank >= 0 && tank < fluids.size() ? fluids.get(tank).capacity() : 0;
+        }
+
+        @Override
+        public boolean isFluidValid(int tank, FluidStack stack) {
+            return false;
+        }
+
+        @Override
+        public int fill(FluidStack resource, FluidAction action) {
+            return 0;
+        }
+
+        @Override
+        public FluidStack drain(FluidStack resource, FluidAction action) {
+            return FluidStack.EMPTY;
+        }
+
+        @Override
+        public FluidStack drain(int maxDrain, FluidAction action) {
+            return FluidStack.EMPTY;
+        }
+    }
+
     private static class PortFluidHandler implements IFluidHandler, WrappedPortFluidHandler, SharedCapacityFluidHandler {
         private final MultiFluidAccessPortBlockEntity blockEntity;
         private final Direction side;
@@ -384,7 +510,16 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
         public FluidStack getFluidInTank(int tank) {
             return preventRecursion(() -> {
                 IFluidHandler handler = blockEntity.getConnectedFluidHandler();
-                return handler == null ? FluidStack.EMPTY : blockEntity.getVisibleFluid(side, handler, tank);
+                if (handler == null || tank < 0 || tank >= handler.getTanks()) {
+                    return FluidStack.EMPTY;
+                }
+
+                FluidStack fluid = handler.getFluidInTank(tank);
+                if (fluid.isEmpty() || !blockEntity.testFilter(side, fluid)) {
+                    return FluidStack.EMPTY;
+                }
+
+                return fluid.copy();
             }, FluidStack.EMPTY);
         }
 
@@ -395,6 +530,12 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
                 if (handler == null || tank < 0 || tank >= handler.getTanks()) {
                     return 0;
                 }
+
+                FluidStack fluid = handler.getFluidInTank(tank);
+                if (!fluid.isEmpty() && !blockEntity.testFilter(side, fluid)) {
+                    return 0;
+                }
+
                 return handler.getTankCapacity(tank);
             }, 0);
         }
