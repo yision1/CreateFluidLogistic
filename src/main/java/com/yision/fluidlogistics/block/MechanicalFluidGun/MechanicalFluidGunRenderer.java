@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.simibubi.create.content.fluids.FluidTransportBehaviour.AttachmentTypes.ComponentPartials;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
-import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringRenderer;
 import com.yision.fluidlogistics.registry.AllPartialModels;
 
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
@@ -46,7 +45,7 @@ public class MechanicalFluidGunRenderer extends KineticBlockEntityRenderer<Mecha
 			renderSourceInterface(be, ms, buffer, light);
 		}
 
-		FilteringRenderer.renderOnBlockEntity(be, partialTicks, ms, buffer, light, overlay);
+
 	}
 
 	private void renderYawingPartial(MechanicalFluidGunBlockEntity be, PartialModel model, float yaw,

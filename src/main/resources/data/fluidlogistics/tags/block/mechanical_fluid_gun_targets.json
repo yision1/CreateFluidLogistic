@@ -48,6 +48,14 @@
     {
       "id": "kaleidoscope_tavern:pressing_tub",
       "required": false
+    },
+    {
+      "id": "northstar:ice_box",
+      "required": false
+    },
+    {
+      "id": "northstar:combustion_engine",
+      "required": false
     }
   ]
 }

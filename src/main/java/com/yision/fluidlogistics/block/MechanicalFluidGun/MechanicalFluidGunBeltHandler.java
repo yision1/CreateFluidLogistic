@@ -135,8 +135,12 @@ class MechanicalFluidGunBeltHandler {
 			return HOLD;
 		}
 
-		return startBeltFilling(source, transported.stack, fillableFluid,
-			handler.blockEntity.getBlockPos()) ? HOLD : PASS;
+		boolean started = startBeltFilling(source, transported.stack, fillableFluid,
+			handler.blockEntity.getBlockPos());
+		if (started) {
+			be.getCycleHelper().markScheduledTarget(targetIndex);
+		}
+		return started ? HOLD : PASS;
 	}
 
 	private boolean startBeltFilling(IFluidHandler sourceHandler, ItemStack item, FluidStack availableFluid, BlockPos beltPos) {

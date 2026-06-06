@@ -5,6 +5,9 @@ import com.simibubi.create.content.logistics.depot.DepotBehaviour;
 import com.yision.fluidlogistics.block.Faucet.FaucetFilling;
 import com.yision.fluidlogistics.config.FeatureToggle;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -16,11 +19,13 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 class MechanicalFluidGunProcessor {
 
 	static final int TRANSFER_INTERVAL = 10;
 	private static final int IDLE_RECHECK_INTERVAL = 20;
+	private static Field depotOutputBufferField;
 
 	private final MechanicalFluidGunBlockEntity be;
 
@@ -55,7 +60,7 @@ class MechanicalFluidGunProcessor {
 
 		boolean sprayCompleted = visuals.tickTransientSpray(itemFilling.isFilling(), () -> {
 			if (visuals.shouldAdvanceAfterSpray()) {
-				advanceToProcessableTargetOrIdle(targets.getActiveTargetIndex());
+				advanceToProcessableTargetOrIdle();
 			}
 		});
 		if (sprayCompleted) {
@@ -85,6 +90,7 @@ class MechanicalFluidGunProcessor {
 
 		if (!targets.hasValidTarget(be.getLevel(), be.gunPos())) {
 			cycle.setTransferCooldown(MechanicalFluidGunCycle.getSpeedAdjustedInterval(IDLE_RECHECK_INTERVAL, Math.abs(be.getSpeed())));
+			cycle.resetScheduledTarget();
 			be.endWorkCycle();
 			return;
 		}
@@ -95,10 +101,10 @@ class MechanicalFluidGunProcessor {
 			return;
 		}
 
-		int targetCount = targets.size();
-		int startIndex = getFirstCandidateIndex();
-		for (int step = 0; step < targetCount; step++) {
-			int index = Math.floorMod(startIndex + step, targetCount);
+		MechanicalFluidGunScheduleMode mode = be.getScheduleMode();
+		List<Integer> candidateIndices = getCandidateIndicesContinuingActiveTarget(mode, targets.size());
+
+		for (int index : candidateIndices) {
 			MechanicalFluidGunTargetConfig target = targets.get(index);
 			BlockPos absTarget = target.absoluteFrom(be.gunPos());
 			if (!targets.isTargetValid(be.getLevel(), be.gunPos(), absTarget)) continue;
@@ -112,22 +118,59 @@ class MechanicalFluidGunProcessor {
 				return;
 			}
 			if (tryProcess(sourceHandler, target, absTarget)) {
+				cycle.markScheduledTarget(index);
 				cycle.setTransferCooldown(MechanicalFluidGunCycle.getSpeedAdjustedInterval(TRANSFER_INTERVAL, Math.abs(be.getSpeed())));
 				return;
 			}
 		}
 
+		if (mode == MechanicalFluidGunScheduleMode.ROUND_ROBIN) {
+			cycle.resetScheduledTarget();
+		}
 		cycle.setTransferCooldown(MechanicalFluidGunCycle.getSpeedAdjustedInterval(IDLE_RECHECK_INTERVAL, Math.abs(be.getSpeed())));
 		be.endWorkCycle();
 	}
 
-	private int getFirstCandidateIndex() {
-		MechanicalFluidGunTargets targets = be.getTargetsHelper();
+	private List<Integer> getCandidateIndices(MechanicalFluidGunScheduleMode mode, int size) {
+		if (size <= 0) return List.of();
+
 		MechanicalFluidGunCycle cycle = be.getCycleHelper();
-		if (cycle.isActive() && targets.getActiveTargetIndex() >= 0 && targets.getActiveTargetIndex() < targets.size()) {
-			return targets.getActiveTargetIndex();
+		int last = cycle.getLastScheduledTargetIndex();
+		int start = Math.floorMod(last + 1, size);
+		List<Integer> indices = new ArrayList<>();
+
+		if (mode == MechanicalFluidGunScheduleMode.PREFER_FIRST) {
+			for (int i = 0; i < size; i++) indices.add(i);
+			return indices;
 		}
-		return 0;
+
+		if (mode == MechanicalFluidGunScheduleMode.FORCED_ROUND_ROBIN) {
+			indices.add(start);
+			return indices;
+		}
+
+		// ROUND_ROBIN
+		for (int step = 0; step < size; step++) {
+			indices.add(Math.floorMod(start + step, size));
+		}
+		return indices;
+	}
+
+	private List<Integer> getCandidateIndicesContinuingActiveTarget(MechanicalFluidGunScheduleMode mode, int size) {
+		List<Integer> indices = getCandidateIndices(mode, size);
+		int activeTarget = be.getTargetsHelper().getActiveTargetIndex();
+		if (activeTarget < 0 || activeTarget >= size) {
+			return indices;
+		}
+
+		List<Integer> activeFirst = new ArrayList<>();
+		activeFirst.add(activeTarget);
+		for (int index : indices) {
+			if (index != activeTarget) {
+				activeFirst.add(index);
+			}
+		}
+		return activeFirst;
 	}
 
 	private boolean canProcess(IFluidHandler sourceHandler, MechanicalFluidGunTargetConfig target,
@@ -276,8 +319,7 @@ class MechanicalFluidGunProcessor {
 			behaviour.setHeldItem(new TransportedItemStack(result));
 		} else {
 			behaviour.setHeldItem(new TransportedItemStack(remaining));
-			net.minecraft.world.Containers.dropItemStack(be.getLevel(),
-				absTarget.getX() + 0.5, absTarget.getY() + 0.75, absTarget.getZ() + 0.5, result);
+			storeDepotOutput(behaviour, result, absTarget);
 		}
 
 		targetEntity.setChanged();
@@ -293,8 +335,8 @@ class MechanicalFluidGunProcessor {
 		be.notifyGunUpdate();
 	}
 
-	boolean advanceToProcessableTargetOrIdle(int startIndex) {
-		int processableTarget = findNextProcessableTarget(startIndex);
+	boolean advanceToProcessableTargetOrIdle() {
+		int processableTarget = findNextProcessableTarget();
 		MechanicalFluidGunTargets targets = be.getTargetsHelper();
 		MechanicalFluidGunCycle cycle = be.getCycleHelper();
 
@@ -315,17 +357,16 @@ class MechanicalFluidGunProcessor {
 		return processableTarget != -1;
 	}
 
-	private int findNextProcessableTarget(int startIndex) {
+	private int findNextProcessableTarget() {
 		MechanicalFluidGunTargets targets = be.getTargetsHelper();
 		IFluidHandler sourceHandler = be.sourceHandler();
 		if (sourceHandler == null) return -1;
 
 		int size = targets.size();
 		if (size == 0) return -1;
-		int start = Math.max(0, Math.min(startIndex, size - 1));
+		MechanicalFluidGunScheduleMode mode = be.getScheduleMode();
 
-		for (int step = 0; step < size; step++) {
-			int index = Math.floorMod(start + step, size);
+		for (int index : getCandidateIndicesContinuingActiveTarget(mode, size)) {
 			MechanicalFluidGunTargetConfig target = targets.get(index);
 			BlockPos absTarget = target.absoluteFrom(be.gunPos());
 			if (!targets.isTargetValid(be.getLevel(), be.gunPos(), absTarget)) continue;
@@ -345,6 +386,39 @@ class MechanicalFluidGunProcessor {
 	ItemStack getItemOnDepot(BlockEntity depot) {
 		DepotBehaviour behaviour = DepotBehaviour.get(depot, DepotBehaviour.TYPE);
 		return behaviour == null ? ItemStack.EMPTY : behaviour.getHeldItemStack();
+	}
+
+	private void storeDepotOutput(DepotBehaviour behaviour, ItemStack result, BlockPos targetPos) {
+		try {
+			ItemStackHandler outputBuffer = getDepotOutputBuffer(behaviour);
+			ItemStack remainder = insertIntoOutputBuffer(outputBuffer, result);
+			if (!remainder.isEmpty()) {
+				dropDepotOutput(remainder, targetPos);
+			}
+		} catch (ReflectiveOperationException | ClassCastException exception) {
+			dropDepotOutput(result, targetPos);
+		}
+	}
+
+	private static ItemStackHandler getDepotOutputBuffer(DepotBehaviour behaviour) throws ReflectiveOperationException {
+		if (depotOutputBufferField == null) {
+			depotOutputBufferField = DepotBehaviour.class.getDeclaredField("processingOutputBuffer");
+			depotOutputBufferField.setAccessible(true);
+		}
+		return (ItemStackHandler) depotOutputBufferField.get(behaviour);
+	}
+
+	static ItemStack insertIntoOutputBuffer(ItemStackHandler outputBuffer, ItemStack result) {
+		ItemStack remainder = result.copy();
+		for (int slot = 0; slot < outputBuffer.getSlots() && !remainder.isEmpty(); slot++) {
+			remainder = outputBuffer.insertItem(slot, remainder, false);
+		}
+		return remainder;
+	}
+
+	private void dropDepotOutput(ItemStack stack, BlockPos targetPos) {
+		net.minecraft.world.Containers.dropItemStack(be.getLevel(),
+			targetPos.getX() + 0.5, targetPos.getY() + 0.75, targetPos.getZ() + 0.5, stack);
 	}
 
 	private boolean isBelt(BlockEntity entity) {

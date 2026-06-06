@@ -7,7 +7,7 @@ import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
-import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
+import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollOptionBehaviour;
 import com.simibubi.create.foundation.item.TooltipHelper;
 import dev.engine_room.flywheel.lib.transform.TransformStack;
 
@@ -45,7 +45,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 	private MechanicalFluidGunBeltHandler beltHandler;
 	private MechanicalFluidGunProcessor processor;
 
-	private FilteringBehaviour filtering;
+	private ScrollOptionBehaviour<MechanicalFluidGunScheduleMode> scheduleMode;
 	BeltProcessingBehaviour beltProcessing;
 
 	public MechanicalFluidGunBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
@@ -86,9 +86,11 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 		ensureComponentsInitialized(getBlockState());
 		super.addBehaviours(behaviours);
 
-		filtering = new FilteringBehaviour(this, new FilterSlotPositioning()).forFluids()
-			.withCallback($ -> notifyUpdate());
-		behaviours.add(filtering);
+		scheduleMode = new ScrollOptionBehaviour<>(
+			MechanicalFluidGunScheduleMode.class,
+			Component.translatable("fluidlogistics.mechanical_fluid_gun.schedule_mode"),
+			this, new ScheduleModeSlotPositioning());
+		behaviours.add(scheduleMode);
 
 		beltProcessing = new BeltProcessingBehaviour(this)
 			.whenItemEnters(beltHandler::onBeltItemReceived)
@@ -143,7 +145,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 
 	@Override
 	public boolean testFilter(FluidStack stack) {
-		return filtering == null || filtering.test(stack);
+		return true;
 	}
 
 	@Override
@@ -244,6 +246,10 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 		return MechanicalFluidGunTarget.getTargetCenter(absTarget);
 	}
 
+	MechanicalFluidGunScheduleMode getScheduleMode() {
+		return scheduleMode == null ? MechanicalFluidGunScheduleMode.ROUND_ROBIN : scheduleMode.get();
+	}
+
 	@Nullable
 	IFluidHandler getSourceHandler() {
 		if (level == null) return null;
@@ -262,6 +268,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 	public void setTargets(List<MechanicalFluidGunTargetConfig> newTargets) {
 		targets.setTargets(newTargets);
 		cycle.reset();
+		cycle.resetScheduledTarget();
 		cycle.setTransferCooldown(0);
 		cycle.clearContainerFillCooldowns();
 		beltHandler.clearBeltState();
@@ -273,6 +280,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 	public void clearTarget() {
 		targets.clear();
 		cycle.reset();
+		cycle.resetScheduledTarget();
 		cycle.clearContainerFillCooldowns();
 		visuals.clearSpray();
 		beltHandler.clearBeltState();
@@ -341,7 +349,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 		updateVisuals();
 	}
 
-	private static class FilterSlotPositioning extends ValueBoxTransform.Sided {
+	private static class ScheduleModeSlotPositioning extends ValueBoxTransform.Sided {
 
 		private static final Vec3 FLOOR_SIDE_SLOT = VecHelper.voxelSpace(8, 3, 15.5);
 
@@ -357,12 +365,15 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 		@Override
 		public void rotate(LevelAccessor level, BlockPos pos, BlockState state, PoseStack ms) {
 			Direction side = getSide();
+			Direction sourceDirection = MechanicalFluidGunMount.getMountFace(state).getOpposite();
 			float yRot = AngleHelper.horizontalAngle(side) + 180;
 			float xRot = side == Direction.UP ? 90 : side == Direction.DOWN ? 270 : 0;
+			float zRot = getIconRollTowardsSource(sourceDirection, xRot, yRot);
 
 			TransformStack.of(ms)
 				.rotateYDegrees(yRot)
-				.rotateXDegrees(xRot);
+				.rotateXDegrees(xRot)
+				.rotateZDegrees(zRot);
 		}
 
 		@Override
@@ -373,6 +384,23 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 		@Override
 		protected boolean isSideActive(BlockState state, Direction direction) {
 			return direction.getAxis() != MechanicalFluidGunMount.getMountFace(state).getAxis();
+		}
+
+		private static float getIconRollTowardsSource(Direction sourceDirection, float xRot, float yRot) {
+			Vec3 currentBottom = rotateForSide(new Vec3(0, -1, 0), xRot, yRot).normalize();
+			Vec3 currentRight = rotateForSide(new Vec3(1, 0, 0), xRot, yRot).normalize();
+			Vec3 desiredBottom = Vec3.atLowerCornerOf(sourceDirection.getNormal());
+
+			double sin = desiredBottom.dot(currentRight);
+			double cos = desiredBottom.dot(currentBottom);
+			if (Math.abs(sin) < 1e-6 && Math.abs(cos) < 1e-6) {
+				return 0;
+			}
+			return (float) Math.toDegrees(Math.atan2(sin, cos));
+		}
+
+		private static Vec3 rotateForSide(Vec3 vec, float xRot, float yRot) {
+			return VecHelper.rotate(VecHelper.rotate(vec, xRot, Direction.Axis.X), yRot, Direction.Axis.Y);
 		}
 	}
 }

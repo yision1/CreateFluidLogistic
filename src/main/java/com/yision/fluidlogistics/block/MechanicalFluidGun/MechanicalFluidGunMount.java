@@ -4,8 +4,10 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
 import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 
@@ -104,16 +106,50 @@ final class MechanicalFluidGunMount {
 		};
 	}
 
-	private static final VoxelShape FLOOR_SHAPE = net.minecraft.world.level.block.Block.box(0, 0, 0, 16, 10, 16);
+	private static final VoxelShape FLOOR_SHAPE = buildShape(Direction.UP);
+	private static final VoxelShape CEILING_SHAPE = buildShape(Direction.DOWN);
+	private static final VoxelShape NORTH_WALL_SHAPE = buildShape(Direction.NORTH);
+	private static final VoxelShape SOUTH_WALL_SHAPE = buildShape(Direction.SOUTH);
+	private static final VoxelShape EAST_WALL_SHAPE = buildShape(Direction.EAST);
+	private static final VoxelShape WEST_WALL_SHAPE = buildShape(Direction.WEST);
 
 	static VoxelShape getShapeForMount(Direction mountFace) {
 		return switch (mountFace) {
 			case UP -> FLOOR_SHAPE;
-			case DOWN -> net.minecraft.world.level.block.Block.box(0, 6, 0, 16, 16, 16);
-			case NORTH -> net.minecraft.world.level.block.Block.box(0, 0, 6, 16, 16, 16);
-			case SOUTH -> net.minecraft.world.level.block.Block.box(0, 0, 0, 16, 16, 10);
-			case EAST -> net.minecraft.world.level.block.Block.box(0, 0, 0, 10, 16, 16);
-			case WEST -> net.minecraft.world.level.block.Block.box(6, 0, 0, 16, 16, 16);
+			case DOWN -> CEILING_SHAPE;
+			case NORTH -> NORTH_WALL_SHAPE;
+			case SOUTH -> SOUTH_WALL_SHAPE;
+			case EAST -> EAST_WALL_SHAPE;
+			case WEST -> WEST_WALL_SHAPE;
 		};
+	}
+
+	private static VoxelShape buildShape(Direction mountFace) {
+		return Shapes.or(
+			rotatedBox(mountFace, 0, 0, 0, 16, 6, 16),
+			rotatedBox(mountFace, 2, 6, 2, 14, 10, 14)
+		);
+	}
+
+	private static VoxelShape rotatedBox(Direction mountFace, double minX, double minY, double minZ, double maxX,
+		double maxY, double maxZ) {
+		double[] bounds = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY,
+			Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
+
+		for (double x : new double[]{minX, maxX}) {
+			for (double y : new double[]{minY, maxY}) {
+				for (double z : new double[]{minZ, maxZ}) {
+					Vec3 rotated = toWorld(mountFace, new Vec3(x / 16, y / 16, z / 16)).scale(16);
+					bounds[0] = Math.min(bounds[0], rotated.x);
+					bounds[1] = Math.min(bounds[1], rotated.y);
+					bounds[2] = Math.min(bounds[2], rotated.z);
+					bounds[3] = Math.max(bounds[3], rotated.x);
+					bounds[4] = Math.max(bounds[4], rotated.y);
+					bounds[5] = Math.max(bounds[5], rotated.z);
+				}
+			}
+		}
+
+		return Block.box(bounds[0], bounds[1], bounds[2], bounds[3], bounds[4], bounds[5]);
 	}
 }

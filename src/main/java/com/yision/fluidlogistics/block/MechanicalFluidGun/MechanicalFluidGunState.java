@@ -53,6 +53,7 @@ class MechanicalFluidGunCycle {
 	private boolean workCycleActive;
 	private float targetProgress = 1;
 	private int transferCooldown;
+	private int lastScheduledTargetIndex = -1;
 
 	boolean isActive() {
 		return workCycleActive;
@@ -82,6 +83,18 @@ class MechanicalFluidGunCycle {
 		workCycleActive = false;
 		targetProgress = 1;
 		transferCooldown = 0;
+	}
+
+	int getLastScheduledTargetIndex() {
+		return lastScheduledTargetIndex;
+	}
+
+	void markScheduledTarget(int index) {
+		lastScheduledTargetIndex = index;
+	}
+
+	void resetScheduledTarget() {
+		lastScheduledTargetIndex = -1;
 	}
 
 	void tickContainerFillCooldowns() {
