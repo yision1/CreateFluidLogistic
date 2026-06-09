@@ -236,6 +236,9 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 
 	Vec3 getTargetAimPoint(@Nullable MechanicalFluidGunTargetConfig target) {
 		if (target == null) return null;
+		if (itemFilling.isFillingBelt() && itemFilling.getProcessingBeltAimPoint() != null) {
+			return itemFilling.getProcessingBeltAimPoint();
+		}
 		BlockPos absTarget = target.absoluteFrom(worldPosition);
 		if (level != null) {
 			BlockEntity targetEntity = level.getBlockEntity(absTarget);

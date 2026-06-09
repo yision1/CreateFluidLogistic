@@ -1,6 +1,7 @@
 package com.yision.fluidlogistics.block.MechanicalFluidGun;
 
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
+import com.simibubi.create.content.kinetics.belt.BeltBlock;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour.TransportedResult;
@@ -27,6 +28,7 @@ import static com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessing
 class MechanicalFluidGunBeltHandler {
 
 	private static final int BELT_KEEP_ALIVE_TICKS = 8;
+	private static final double BELT_ITEM_RENDER_HEIGHT = 7.0 / 16.0;
 
 	private final MechanicalFluidGunBlockEntity be;
 	private int beltKeepAliveTicks;
@@ -223,7 +225,7 @@ class MechanicalFluidGunBeltHandler {
 		}
 
 		boolean started = startBeltFilling(source, transported.stack, fillableFluid,
-			handler.blockEntity.getBlockPos());
+			handler.blockEntity.getBlockPos(), getBeltItemAimPoint(transported, handler));
 		if (started) {
 			be.getCycleHelper().markScheduledTarget(targetIndex);
 		}
@@ -257,10 +259,26 @@ class MechanicalFluidGunBeltHandler {
 			&& targets.isTargetValid(be.getLevel(), be.gunPos(), beltPos);
 	}
 
-	private boolean startBeltFilling(IFluidHandler sourceHandler, ItemStack item, FluidStack availableFluid, BlockPos beltPos) {
+	private boolean startBeltFilling(IFluidHandler sourceHandler, ItemStack item, FluidStack availableFluid,
+									 BlockPos beltPos, Vec3 beltAimPoint) {
 		return MechanicalFluidGunItemFilling.startFilling(
 			be, sourceHandler, item, availableFluid,
-			MechanicalFluidGunItemFilling.ProcessingTarget.BELT, beltPos);
+			MechanicalFluidGunItemFilling.ProcessingTarget.BELT, beltPos, beltAimPoint);
+	}
+
+	private Vec3 getBeltItemAimPoint(TransportedItemStack transported,
+									 TransportedItemStackHandlerBehaviour handler) {
+		Vec3 itemPos = handler.getWorldPositionOf(transported)
+			.add(0, BELT_ITEM_RENDER_HEIGHT, 0);
+
+		if (!(handler.blockEntity instanceof BeltBlockEntity belt)) {
+			return itemPos;
+		}
+
+		double sideOffset = transported.sideOffset;
+		return belt.getBlockState().getValue(BeltBlock.HORIZONTAL_FACING).getAxis() == net.minecraft.core.Direction.Axis.Z
+			? itemPos.add(sideOffset, 0, 0)
+			: itemPos.add(0, 0, -sideOffset);
 	}
 
 	private BeltProcessingBehaviour.ProcessingResult finishBeltItemFilling(TransportedItemStack transported,

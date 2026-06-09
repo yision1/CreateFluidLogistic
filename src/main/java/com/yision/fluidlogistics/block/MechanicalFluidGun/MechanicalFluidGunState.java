@@ -16,6 +16,7 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.Nullable;
@@ -185,6 +186,7 @@ class MechanicalFluidGunItemFilling {
 	private ProcessingTarget processingTarget = ProcessingTarget.NONE;
 	private int processingTicks;
 	private BlockPos processingBeltPos;
+	private Vec3 processingBeltAimPoint;
 
 	boolean isFilling() {
 		return isFillingItem;
@@ -207,6 +209,11 @@ class MechanicalFluidGunItemFilling {
 		return processingBeltPos;
 	}
 
+	@Nullable
+	Vec3 getProcessingBeltAimPoint() {
+		return processingBeltAimPoint;
+	}
+
 	FluidStack getPendingFluid() {
 		return pendingFluid;
 	}
@@ -223,13 +230,14 @@ class MechanicalFluidGunItemFilling {
 		processingTicks = ticks;
 	}
 
-	void startBelt(ItemStack item, FluidStack fluid, int ticks, BlockPos beltPos) {
+	void startBelt(ItemStack item, FluidStack fluid, int ticks, BlockPos beltPos, Vec3 beltAimPoint) {
 		isFillingItem = true;
 		processingTarget = ProcessingTarget.BELT;
 		processingItem = item.copyWithCount(1);
 		pendingFluid = fluid.copy();
 		processingTicks = ticks;
 		processingBeltPos = beltPos.immutable();
+		processingBeltAimPoint = beltAimPoint;
 	}
 
 	/**
@@ -244,6 +252,16 @@ class MechanicalFluidGunItemFilling {
 								FluidStack availableFluid,
 								ProcessingTarget targetType,
 								@Nullable BlockPos beltPos) {
+		return startFilling(be, sourceHandler, item, availableFluid, targetType, beltPos, null);
+	}
+
+	static boolean startFilling(MechanicalFluidGunBlockEntity be,
+								IFluidHandler sourceHandler,
+								ItemStack item,
+								FluidStack availableFluid,
+								ProcessingTarget targetType,
+								@Nullable BlockPos beltPos,
+								@Nullable Vec3 beltAimPoint) {
 		int requiredAmount = com.yision.fluidlogistics.block.Faucet.FaucetFilling
 			.getRequiredAmountForItem(be.getLevel(), item, availableFluid.copy());
 		if (requiredAmount <= 0 || requiredAmount > availableFluid.getAmount()) return false;
@@ -258,8 +276,8 @@ class MechanicalFluidGunItemFilling {
 		int fillingTicks = MechanicalFluidGunCycle.getSpeedAdjustedInterval(
 			FILLING_TIME, Math.abs(be.getSpeed()));
 
-		if (targetType == ProcessingTarget.BELT && beltPos != null) {
-			itemFilling.startBelt(item, simulatedDrain, fillingTicks, beltPos);
+		if (targetType == ProcessingTarget.BELT && beltPos != null && beltAimPoint != null) {
+			itemFilling.startBelt(item, simulatedDrain, fillingTicks, beltPos, beltAimPoint);
 		} else {
 			itemFilling.startDepot(item, simulatedDrain, fillingTicks);
 		}
@@ -287,6 +305,7 @@ class MechanicalFluidGunItemFilling {
 		processingItem = ItemStack.EMPTY;
 		pendingFluid = FluidStack.EMPTY;
 		processingBeltPos = null;
+		processingBeltAimPoint = null;
 	}
 
 	void write(CompoundTag tag, HolderLookup.Provider registries) {
@@ -301,6 +320,11 @@ class MechanicalFluidGunItemFilling {
 		}
 		if (processingBeltPos != null) {
 			tag.putLong("ProcessingBeltPos", processingBeltPos.asLong());
+		}
+		if (processingBeltAimPoint != null) {
+			tag.putDouble("ProcessingBeltAimX", processingBeltAimPoint.x);
+			tag.putDouble("ProcessingBeltAimY", processingBeltAimPoint.y);
+			tag.putDouble("ProcessingBeltAimZ", processingBeltAimPoint.z);
 		}
 	}
 
@@ -318,6 +342,10 @@ class MechanicalFluidGunItemFilling {
 			: FluidStack.EMPTY;
 		processingBeltPos = tag.contains("ProcessingBeltPos")
 			? BlockPos.of(tag.getLong("ProcessingBeltPos"))
+			: null;
+		processingBeltAimPoint = tag.contains("ProcessingBeltAimX")
+			? new Vec3(tag.getDouble("ProcessingBeltAimX"), tag.getDouble("ProcessingBeltAimY"),
+				tag.getDouble("ProcessingBeltAimZ"))
 			: null;
 	}
 }
