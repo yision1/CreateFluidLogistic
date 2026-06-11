@@ -6,6 +6,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.CenteredSideValueBox
 import dev.engine_room.flywheel.lib.transform.TransformStack;
 import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -24,7 +25,10 @@ public class FluidPumpDirectionSlot extends CenteredSideValueBoxTransform {
 	@Override
 	public void rotate(LevelAccessor level, BlockPos pos, BlockState state, PoseStack ms) {
 		super.rotate(level, pos, state, ms);
-		float zRot = FluidPumpBlock.getValueBoxZRotation(state);
+		Direction outputDirection = level.getBlockEntity(pos) instanceof FluidPumpBlockEntity pump
+			? pump.getEffectiveFront()
+			: FluidPumpBlock.getVisualOutputDirection(state);
+		float zRot = FluidPumpBlock.getValueBoxZRotation(state, outputDirection);
 		if (zRot != 0)
 			TransformStack.of(ms).rotateZDegrees(zRot);
 	}

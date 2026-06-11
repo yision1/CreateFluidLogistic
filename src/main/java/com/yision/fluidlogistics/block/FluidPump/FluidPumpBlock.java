@@ -9,6 +9,8 @@ import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 
 import net.createmod.catnip.data.Iterate;
+import net.createmod.catnip.math.AngleHelper;
+import net.createmod.catnip.math.VecHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -112,17 +114,24 @@ public class FluidPumpBlock extends PumpBlock {
 		return worldDirection == positive ? AxisDirection.POSITIVE : AxisDirection.NEGATIVE;
 	}
 
-	public static float getValueBoxZRotation(BlockState state) {
+	public static float getValueBoxZRotation(BlockState state, Direction outputDir) {
 		Direction top = getModelTop(state);
-		Axis fluidAxis = getFluidAxis(state);
-		return switch (top) {
-		case UP -> fluidAxis == Axis.Z ? 90 : 0;
-		case DOWN -> fluidAxis == Axis.X ? -90 : 0;
-		case NORTH -> fluidAxis == Axis.Y ? -90 : 0;
-		case SOUTH -> fluidAxis == Axis.X ? 180 : fluidAxis == Axis.Y ? -90 : 0;
-		case EAST -> fluidAxis == Axis.Z ? 180 : fluidAxis == Axis.Y ? -90 : 0;
-		case WEST -> fluidAxis == Axis.Y ? -90 : 0;
-		};
+		float yRot = AngleHelper.horizontalAngle(top) + 180;
+		float xRot = top == Direction.UP ? 90 : top == Direction.DOWN ? 270 : 0;
+		Vec3 currentRight = rotateValueBoxAxis(new Vec3(1, 0, 0), xRot, yRot).normalize();
+		Vec3 currentBottom = rotateValueBoxAxis(new Vec3(0, -1, 0), xRot, yRot).normalize();
+		Vec3 desiredRight = Vec3.atLowerCornerOf(outputDir.getOpposite()
+			.getNormal());
+
+		double sin = -desiredRight.dot(currentBottom);
+		double cos = desiredRight.dot(currentRight);
+		if (Math.abs(sin) < 1e-6 && Math.abs(cos) < 1e-6)
+			return 0;
+		return (float) Math.toDegrees(Math.atan2(sin, cos));
+	}
+
+	private static Vec3 rotateValueBoxAxis(Vec3 vec, float xRot, float yRot) {
+		return VecHelper.rotate(VecHelper.rotate(vec, xRot, Direction.Axis.X), yRot, Direction.Axis.Y);
 	}
 
 	private static boolean isVerticalModel(Direction direction, boolean alongFirst) {

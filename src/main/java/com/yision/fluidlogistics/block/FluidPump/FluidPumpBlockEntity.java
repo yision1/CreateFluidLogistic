@@ -41,7 +41,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
@@ -79,8 +78,7 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 			@Override
 			public ValueSettingsBoard createBoard(Player player, BlockHitResult hitResult) {
 				return new ValueSettingsBoard(label, max, 1, ImmutableList.of(Component.literal("Select")),
-					new ScrollOptionSettingsFormatter(
-						FluidTransferDirection.displayOptionsFor(getDisplayPumpOutDirection())));
+					new ScrollOptionSettingsFormatter(FluidTransferDirection.guiOptions()));
 			}
 		};
 		directionSelector.withCallback(this::onDirectionSelected);
@@ -168,10 +166,6 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 		updatePressureChange();
 		FluidPumpNetworkUpdater.propagateChangedPipeForFluidPumps(level, worldPosition, getBlockState());
 		notifyUpdate();
-	}
-
-	private AxisDirection getDisplayPumpOutDirection() {
-		return chooseDefaultOutputDirection();
 	}
 
 	public Direction getEffectiveFront() {

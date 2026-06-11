@@ -3,32 +3,26 @@ package com.yision.fluidlogistics.block.FluidPump;
 import com.simibubi.create.foundation.gui.AllIcons;
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.INamedIconOptions;
 
-import net.createmod.catnip.lang.Lang;
-
 import net.minecraft.core.Direction.AxisDirection;
 
 public enum FluidTransferDirection implements INamedIconOptions {
-	NEGATIVE(AxisDirection.NEGATIVE, AllIcons.I_MTD_LEFT),
-	POSITIVE(AxisDirection.POSITIVE, AllIcons.I_MTD_RIGHT),
-
+	NEGATIVE(AxisDirection.NEGATIVE, AllIcons.I_MTD_LEFT, "fluidlogistics.fluid_pump.direction.forward"),
+	POSITIVE(AxisDirection.POSITIVE, AllIcons.I_MTD_RIGHT, "fluidlogistics.fluid_pump.direction.reverse"),
 	;
 
-	private static final String PUMP_OUT_TRANSLATION_KEY = "fluidlogistics.fluid_pump.direction.positive";
-	private static final String DRAW_IN_TRANSLATION_KEY = "fluidlogistics.fluid_pump.direction.negative";
-
 	private final String translationKey;
-	private final AllIcons icon;
+	private final AllIcons guiIcon;
 	private final AxisDirection axisDirection;
 
-	FluidTransferDirection(AxisDirection axisDirection, AllIcons icon) {
+	FluidTransferDirection(AxisDirection axisDirection, AllIcons guiIcon, String translationKey) {
 		this.axisDirection = axisDirection;
-		this.icon = icon;
-		this.translationKey = "fluidlogistics.fluid_pump.direction." + Lang.asId(name());
+		this.guiIcon = guiIcon;
+		this.translationKey = translationKey;
 	}
 
 	@Override
 	public AllIcons getIcon() {
-		return icon;
+		return AllIcons.I_MTD_RIGHT;
 	}
 
 	@Override
@@ -40,11 +34,7 @@ public enum FluidTransferDirection implements INamedIconOptions {
 		return axisDirection;
 	}
 
-	public String getDisplayTranslationKey(AxisDirection pumpOutDirection) {
-		return axisDirection == pumpOutDirection ? PUMP_OUT_TRANSLATION_KEY : DRAW_IN_TRANSLATION_KEY;
-	}
-
-	public static INamedIconOptions[] displayOptionsFor(AxisDirection pumpOutDirection) {
+	public static INamedIconOptions[] guiOptions() {
 		FluidTransferDirection[] values = values();
 		INamedIconOptions[] options = new INamedIconOptions[values.length];
 		for (int i = 0; i < values.length; i++) {
@@ -52,12 +42,12 @@ public enum FluidTransferDirection implements INamedIconOptions {
 			options[i] = new INamedIconOptions() {
 				@Override
 				public AllIcons getIcon() {
-					return option.getIcon();
+					return option.guiIcon;
 				}
 
 				@Override
 				public String getTranslationKey() {
-					return option.getDisplayTranslationKey(pumpOutDirection);
+					return option.translationKey;
 				}
 			};
 		}
