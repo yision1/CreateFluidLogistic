@@ -83,13 +83,13 @@ public class SmartHopperBlock extends Block implements IWrenchable, IBE<SmartHop
 		BlockPos pos = context.getClickedPos();
 		boolean waterlogged = level.getFluidState(pos).getType() == Fluids.WATER;
 
-		Direction preferredFacing = context.getNearestLookingDirection();
-		if (preferredFacing == Direction.UP) {
-			preferredFacing = Direction.DOWN;
+		Direction facing = context.getClickedFace().getOpposite();
+		if (facing.getAxis() == Direction.Axis.Y) {
+			facing = Direction.DOWN;
 		}
 
 		return defaultBlockState()
-			.setValue(FACING, preferredFacing)
+			.setValue(FACING, facing)
 			.setValue(POWERED, level.hasNeighborSignal(pos))
 			.setValue(WATERLOGGED, waterlogged);
 	}
