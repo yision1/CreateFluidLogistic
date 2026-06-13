@@ -6,6 +6,7 @@ import com.simibubi.create.api.behaviour.display.DisplayTarget;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorInteractionHandler;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmBlockEntity;
 import com.simibubi.create.content.logistics.depot.EjectorBlockEntity;
+import com.simibubi.create.content.redstone.thresholdSwitch.ThresholdSwitchBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
 import com.yision.fluidlogistics.client.MechanicalFluidGunItemSelectionHandler;
@@ -20,6 +21,7 @@ import com.yision.fluidlogistics.network.MechanicalFluidGunPackets;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.createmod.catnip.gui.ScreenOpener;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -354,6 +356,12 @@ public class HandPointerInteractionHandler {
                 playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
                 HandPointerModeEnteredPacket.send();
             }
+            return true;
+        }
+
+        if (blockEntity instanceof ThresholdSwitchBlockEntity thresholdSwitch) {
+            ScreenOpener.open(new HandPointerThresholdSwitchScreen(thresholdSwitch));
+            playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.35f, 1.2f);
             return true;
         }
 
