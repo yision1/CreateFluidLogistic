@@ -119,6 +119,18 @@ public class MechanicalFluidGunBlock extends KineticBlock implements IBE<Mechani
 	}
 
 	@Override
+	public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean isMoving) {
+		super.onPlace(state, world, pos, oldState, isMoving);
+		withBlockEntityDo(world, pos, MechanicalFluidGunBlockEntity::redstoneUpdate);
+	}
+
+	@Override
+	public void neighborChanged(BlockState state, Level world, BlockPos pos, Block otherBlock,
+	                            BlockPos neighborPos, boolean isMoving) {
+		withBlockEntityDo(world, pos, MechanicalFluidGunBlockEntity::redstoneUpdate);
+	}
+
+	@Override
 	public boolean hasAnalogOutputSignal(BlockState state) {
 		return true;
 	}

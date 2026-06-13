@@ -23,7 +23,9 @@ public class MechanicalFluidGunTargetUseBlocker {
         }
 
         Player player = event.getEntity();
-        if (player.isSpectator() || !AllBlocks.MECHANICAL_FLUID_GUN.isIn(player.getMainHandItem())) {
+        if (player.isSpectator()
+            || player.isShiftKeyDown()
+            || !AllBlocks.MECHANICAL_FLUID_GUN.isIn(player.getMainHandItem())) {
             return;
         }
 

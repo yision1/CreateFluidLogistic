@@ -7,7 +7,6 @@ import com.yision.fluidlogistics.block.FluidHatch.FluidHatchFluidHandlerForwarde
 import com.yision.fluidlogistics.network.MechanicalFluidGunPackets;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import net.createmod.catnip.outliner.Outliner;
@@ -23,154 +22,152 @@ import org.jetbrains.annotations.Nullable;
 
 public class MechanicalFluidGunSelectionHandler {
 
-    private static final String GUN_HIGHLIGHT = "HandPointerMechanicalFluidGunHighlight";
-    private static final int SELECTED_COLOR = 0xDDC166;
-    private static final int VALID_COLOR = 0x7FCDE0;
+	private static final String GUN_HIGHLIGHT = "HandPointerMechanicalFluidGunHighlight";
+	private static final int HIGHLIGHT_COLOR = 0xDDC166;
 
-    private static BlockPos selectedGunPos;
-    private static final List<MechanicalFluidGunPackets.TargetPacket.TargetEntry> targets = new ArrayList<>();
+	private static BlockPos selectedGunPos;
+	private static final List<MechanicalFluidGunPackets.TargetPacket.TargetEntry> targets = new ArrayList<>();
 
-    private MechanicalFluidGunSelectionHandler() {
-    }
+	private MechanicalFluidGunSelectionHandler() {
+	}
 
-    public static void enterMode(Level level, BlockPos pos) {
-        selectedGunPos = pos.immutable();
-        targets.clear();
+	public static void enterMode(Level level, BlockPos pos) {
+		selectedGunPos = pos.immutable();
+		targets.clear();
 
-        BlockEntity be = level.getBlockEntity(pos);
-        if (be instanceof MechanicalFluidGunBlockEntity gun && gun.hasTarget()) {
-            for (MechanicalFluidGunTargetConfig target : gun.getTargets()) {
-                targets.add(new MechanicalFluidGunPackets.TargetPacket.TargetEntry(target.absoluteFrom(pos).immutable(), target.face()));
-            }
-        }
-    }
+		BlockEntity be = level.getBlockEntity(pos);
+		if (be instanceof MechanicalFluidGunBlockEntity gun && gun.hasTarget()) {
+			for (MechanicalFluidGunTargetConfig target : gun.getTargets()) {
+				targets.add(new MechanicalFluidGunPackets.TargetPacket.TargetEntry(target.absoluteFrom(pos).immutable(), target.face()));
+			}
+		}
+	}
 
-    public static boolean isSelectedGun(BlockPos pos) {
-        return selectedGunPos != null && selectedGunPos.equals(pos);
-    }
+	public static boolean isSelectedGun(BlockPos pos) {
+		return selectedGunPos != null && selectedGunPos.equals(pos);
+	}
 
-    public static boolean setTarget(Level level, BlockPos pos, @Nullable Direction face) {
-        if (!isValidTarget(level, pos)) {
-            return false;
-        }
+	public static boolean setTarget(Level level, BlockPos pos, @Nullable Direction face) {
+		if (!isValidTarget(level, pos)) {
+			return false;
+		}
 
-        Iterator<MechanicalFluidGunPackets.TargetPacket.TargetEntry> iterator = targets.iterator();
-        while (iterator.hasNext()) {
-            if (iterator.next().pos().equals(pos)) {
-                iterator.remove();
-                clearTargetOutline(pos);
-                return true;
-            }
-        }
+		for (int i = 0; i < targets.size(); i++) {
+			if (targets.get(i).pos().equals(pos)) {
+				clearTargetOutline(pos);
+				targets.remove(i);
+				return true;
+			}
+		}
 
-        if (targets.size() >= MechanicalFluidGunPackets.TargetPacket.MAX_TARGETS) {
-            return false;
-        }
+		if (targets.size() >= MechanicalFluidGunPackets.TargetPacket.MAX_TARGETS) {
+			return false;
+		}
 
-        targets.add(new MechanicalFluidGunPackets.TargetPacket.TargetEntry(pos.immutable(), getTargetFace(level, pos, face)));
-        return true;
-    }
+		targets.add(new MechanicalFluidGunPackets.TargetPacket.TargetEntry(pos.immutable(), getTargetFace(level, pos, face)));
+		return true;
+	}
 
-    public static boolean isTargetSelected(BlockPos pos) {
-        for (MechanicalFluidGunPackets.TargetPacket.TargetEntry target : targets) {
-            if (target.pos().equals(pos)) {
-                return true;
-            }
-        }
-        return false;
-    }
+	public static boolean isTargetSelected(BlockPos pos) {
+		for (MechanicalFluidGunPackets.TargetPacket.TargetEntry target : targets) {
+			if (target.pos().equals(pos)) {
+				return true;
+			}
+		}
+		return false;
+	}
 
-    public static boolean submit() {
-        if (selectedGunPos == null || targets.isEmpty()) {
-            return false;
-        }
+	public static boolean submit() {
+		if (selectedGunPos == null || targets.isEmpty()) {
+			return false;
+		}
 
-        PacketDistributor.sendToServer(MechanicalFluidGunPackets.TargetPacket.setTargets(selectedGunPos, List.copyOf(targets)));
-        return true;
-    }
+		PacketDistributor.sendToServer(MechanicalFluidGunPackets.TargetPacket.setTargets(selectedGunPos, List.copyOf(targets)));
+		return true;
+	}
 
-    public static boolean clearTarget() {
-        if (selectedGunPos == null) {
-            return false;
-        }
+	public static boolean clearTarget() {
+		if (selectedGunPos == null) {
+			return false;
+		}
 
-        PacketDistributor.sendToServer(MechanicalFluidGunPackets.TargetPacket.clearTarget(selectedGunPos));
-        clearTargetOutlines();
-        targets.clear();
-        return true;
-    }
+		PacketDistributor.sendToServer(MechanicalFluidGunPackets.TargetPacket.clearTarget(selectedGunPos));
+		clearHoverPreview();
+		targets.clear();
+		return true;
+	}
 
-    public static int getTargetCount() {
-        return targets.size();
-    }
+	public static int getTargetCount() {
+		return targets.size();
+	}
 
-    public static void clearSelection() {
-        selectedGunPos = null;
-        clearTargetOutlines();
-        targets.clear();
-        clearHoverPreview();
-        Outliner.getInstance().remove(GUN_HIGHLIGHT);
-    }
+	public static void clearSelection() {
+		selectedGunPos = null;
+		clearHoverPreview();
+		targets.clear();
+		Outliner.getInstance().remove(GUN_HIGHLIGHT);
+	}
 
-    public static void clearHoverPreview() {
-        clearTargetOutlines();
-    }
+	public static void clearHoverPreview() {
+		clearTargetOutlines();
+	}
 
-    public static void renderSelection(Minecraft mc) {
-        if (mc.level == null || selectedGunPos == null) {
-            clearSelection();
-            return;
-        }
+	public static void renderSelection(Minecraft mc) {
+		if (mc.level == null || selectedGunPos == null) {
+			clearSelection();
+			return;
+		}
 
-        renderOutline(mc.level, selectedGunPos, GUN_HIGHLIGHT, SELECTED_COLOR);
+		BlockState gunState = mc.level.getBlockState(selectedGunPos);
+		VoxelShape gunShape = gunState.getShape(mc.level, selectedGunPos);
+		if (!gunShape.isEmpty()) {
+			Outliner.getInstance()
+				.showAABB(GUN_HIGHLIGHT, gunShape.bounds().move(selectedGunPos))
+				.colored(HIGHLIGHT_COLOR)
+				.lineWidth(0.0625F);
+		}
 
-        if (targets.isEmpty()) {
-            clearHoverPreview();
-            return;
-        }
+		for (MechanicalFluidGunPackets.TargetPacket.TargetEntry target : targets) {
+			if (!isValidTarget(mc.level, target.pos())) {
+				continue;
+			}
 
-        for (MechanicalFluidGunPackets.TargetPacket.TargetEntry target : targets) {
-            if (isValidTarget(mc.level, target.pos())) {
-                renderOutline(mc.level, target.pos(), targetSlot(target.pos()), VALID_COLOR);
-            } else {
-                clearTargetOutline(target.pos());
-            }
-        }
-    }
+			BlockState state = mc.level.getBlockState(target.pos());
+			VoxelShape shape = state.getShape(mc.level, target.pos());
+			if (shape.isEmpty()) {
+				continue;
+			}
 
-    private static boolean isValidTarget(Level level, BlockPos pos) {
-        if (selectedGunPos == null || pos == null) {
-            return false;
-        }
-        return MechanicalFluidGunBlock.isSelectableTarget(level, selectedGunPos, pos);
-    }
+			Outliner.getInstance()
+				.showAABB(targetSlot(target.pos()), shape.bounds().move(target.pos()))
+				.colored(HIGHLIGHT_COLOR)
+				.lineWidth(0.0625F);
+		}
+	}
 
-    private static @Nullable Direction getTargetFace(Level level, BlockPos pos, @Nullable Direction clickedFace) {
-        Direction hatchSide = FluidHatchFluidHandlerForwarder.getExposedSide(level.getBlockState(pos));
-        return hatchSide == null ? clickedFace : hatchSide;
-    }
+	private static boolean isValidTarget(Level level, BlockPos pos) {
+		if (selectedGunPos == null || pos == null) {
+			return false;
+		}
+		return MechanicalFluidGunBlock.isSelectableTarget(level, selectedGunPos, pos);
+	}
 
-    private static void renderOutline(Level level, BlockPos pos, String slot, int color) {
-        BlockState state = level.getBlockState(pos);
-        VoxelShape shape = state.getShape(level, pos);
-        if (shape.isEmpty()) {
-            Outliner.getInstance().remove(slot);
-            return;
-        }
-        Outliner.getInstance().showAABB(slot, shape.bounds().move(pos)).colored(color).lineWidth(0.0625F);
-    }
+	private static @Nullable Direction getTargetFace(Level level, BlockPos pos, @Nullable Direction clickedFace) {
+		Direction hatchSide = FluidHatchFluidHandlerForwarder.getExposedSide(level.getBlockState(pos));
+		return hatchSide == null ? clickedFace : hatchSide;
+	}
 
-    private static String targetSlot(BlockPos pos) {
-        return "HandPointerMechanicalFluidGunTarget_" + pos.asLong();
-    }
+	private static String targetSlot(BlockPos pos) {
+		return "HandPointerMechanicalFluidGunTarget_" + pos.asLong();
+	}
 
-    private static void clearTargetOutline(BlockPos pos) {
-        Outliner.getInstance().remove(targetSlot(pos));
-    }
+	private static void clearTargetOutline(BlockPos pos) {
+		Outliner.getInstance().remove(targetSlot(pos));
+	}
 
-    private static void clearTargetOutlines() {
-        for (MechanicalFluidGunPackets.TargetPacket.TargetEntry target : targets) {
-            clearTargetOutline(target.pos());
-        }
-    }
+	private static void clearTargetOutlines() {
+		for (MechanicalFluidGunPackets.TargetPacket.TargetEntry target : targets) {
+			clearTargetOutline(target.pos());
+		}
+	}
 }

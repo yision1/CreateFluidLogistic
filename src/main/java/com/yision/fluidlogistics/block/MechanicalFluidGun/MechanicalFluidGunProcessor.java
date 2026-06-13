@@ -55,6 +55,9 @@ class MechanicalFluidGunProcessor {
 			}
 			if (itemFilling.getProcessingTicks() <= 0) {
 				finishDepotItemFilling();
+				if (be.isRedstoneLocked()) {
+					be.endWorkCycle();
+				}
 				return;
 			}
 			itemFilling.decrementTicks();
@@ -63,7 +66,11 @@ class MechanicalFluidGunProcessor {
 
 		boolean sprayCompleted = visuals.tickTransientSpray(itemFilling.isFilling(), () -> {
 			if (visuals.shouldAdvanceAfterSpray()) {
-				advanceToProcessableTargetOrIdle();
+				if (be.isRedstoneLocked()) {
+					be.endWorkCycle();
+				} else {
+					advanceToProcessableTargetOrIdle();
+				}
 			}
 		});
 		if (sprayCompleted) {
@@ -77,6 +84,10 @@ class MechanicalFluidGunProcessor {
 		}
 
 		if (cycle.tickCooldown()) {
+			return;
+		}
+
+		if (be.isRedstoneLocked() && !cycle.isActive()) {
 			return;
 		}
 
