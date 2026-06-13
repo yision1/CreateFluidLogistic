@@ -14,6 +14,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetFilterSlotPositioning;
+import com.yision.fluidlogistics.compat.sable.SableSublevelTargetHelper;
 import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.network.FaucetDripParticlePacket;
 import java.lang.reflect.Field;
@@ -236,8 +237,9 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private boolean hasProcessableTarget(BlockPos targetPos) {
-        BlockEntity targetEntity = level.getBlockEntity(targetPos);
-        BlockState targetState = level.getBlockState(targetPos);
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, targetPos);
+        BlockEntity targetEntity = resolved.blockEntity();
+        BlockState targetState = level.getBlockState(resolved.resolvedPos());
 
         if (targetEntity != null && isDepot(targetEntity)) {
             ItemStack itemOnDepot = getItemOnDepot(targetEntity);
@@ -252,8 +254,10 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private boolean tryProcess(IFluidHandler sourceHandler, BlockPos targetPos, Direction sourceDir, BlockPos sourcePos) {
-        BlockEntity targetEntity = level.getBlockEntity(targetPos);
-        BlockState targetState = level.getBlockState(targetPos);
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, targetPos);
+        BlockEntity targetEntity = resolved.blockEntity();
+        BlockPos resolvedPos = resolved.resolvedPos();
+        BlockState targetState = level.getBlockState(resolvedPos);
 
         if (targetEntity != null && isDepot(targetEntity)) {
             ItemStack itemOnDepot = getItemOnDepot(targetEntity);
@@ -268,7 +272,7 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
 
         if (targetState.is(Blocks.CAULDRON) || targetState.is(Blocks.WATER_CAULDRON)) {
             FluidStack fillableFluid = findFillableFluidForCauldron(sourceHandler, targetState);
-            return !fillableFluid.isEmpty() && tryFillCauldron(sourceHandler, targetPos, targetState, fillableFluid);
+            return !fillableFluid.isEmpty() && tryFillCauldron(sourceHandler, resolvedPos, targetState, fillableFluid);
         }
 
         if (targetEntity == null || !targetState.is(FAUCET_FILLABLE)) {
@@ -442,7 +446,10 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private boolean isDirectlyAbove(TransportedItemStackHandlerBehaviour handler) {
-        return handler.blockEntity != null && handler.blockEntity.getBlockPos().above().equals(worldPosition);
+        if (handler.blockEntity == null) {
+            return false;
+        }
+        return SableSublevelTargetHelper.isSameBlockAcrossSublevels(level, worldPosition.below(), handler.blockEntity.getBlockPos());
     }
 
     private boolean validateItemStillPresent() {
@@ -450,7 +457,8 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return false;
         }
 
-        BlockEntity targetEntity = level.getBlockEntity(worldPosition.below());
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, worldPosition.below());
+        BlockEntity targetEntity = resolved.blockEntity();
         if (!isDepot(targetEntity)) {
             return false;
         }
@@ -464,8 +472,9 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return;
         }
 
-        BlockPos targetPos = worldPosition.below();
-        BlockEntity targetEntity = level.getBlockEntity(targetPos);
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, worldPosition.below());
+        BlockPos targetPos = resolved.resolvedPos();
+        BlockEntity targetEntity = resolved.blockEntity();
         if (!isDepot(targetEntity)) {
             cancelItemFilling();
             return;
@@ -974,11 +983,16 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private ItemStack getCurrentStackInBeltSegment(BlockPos beltPos) {
-        var state = level.getBlockState(beltPos);
-        var blockEntity = level.getBlockEntity(beltPos);
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, beltPos);
+        BlockEntity blockEntity = resolved.blockEntity();
+        if (blockEntity == null) {
+            return ItemStack.EMPTY;
+        }
+        BlockPos resolvedPos = resolved.resolvedPos();
+        var state = level.getBlockState(resolvedPos);
         var handler = level.getCapability(
             Capabilities.ItemHandler.BLOCK,
-            beltPos,
+            resolvedPos,
             state,
             blockEntity,
             null
