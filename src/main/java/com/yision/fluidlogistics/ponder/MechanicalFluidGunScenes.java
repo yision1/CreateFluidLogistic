@@ -120,7 +120,7 @@ public class MechanicalFluidGunScenes {
 			.rightClick()
 			.withItem(gunItem);
 		scene.idle(7);
-		scene.overlay().chaseBoundingBoxOutline(PonderPalette.INPUT, leftKey, depotBounds.move(0, 2, 1), 280);
+		scene.overlay().chaseBoundingBoxOutline(PonderPalette.OUTPUT, leftKey, depotBounds.move(0, 2, 1), 280);
 
 		scene.overlay().showText(70)
 			.attachKeyFrame()
@@ -135,14 +135,14 @@ public class MechanicalFluidGunScenes {
 			.rightClick()
 			.withItem(gunItem);
 		scene.idle(7);
-		scene.overlay().chaseBoundingBoxOutline(PonderPalette.INPUT, rightKey, depotBounds.move(4, 2, 1), 180);
+		scene.overlay().chaseBoundingBoxOutline(PonderPalette.OUTPUT, rightKey, depotBounds.move(4, 2, 1), 180);
 		scene.idle(45);
 
 		scene.world().showSection(removableDepotS, Direction.DOWN);
 		scene.idle(15);
 
 		Object removeKey = new Object();
-		scene.overlay().chaseBoundingBoxOutline(PonderPalette.INPUT, removeKey, depotBounds.move(1, 1, 0), 55);
+		scene.overlay().chaseBoundingBoxOutline(PonderPalette.OUTPUT, removeKey, depotBounds.move(1, 1, 0), 55);
 
 		scene.overlay().showText(55)
 			.colored(PonderPalette.WHITE)
@@ -206,11 +206,11 @@ public class MechanicalFluidGunScenes {
 			MechanicalFluidGunTargetConfig.fromAbsolute(gunPos, upperDepot, Direction.UP)
 		)));
 
-		scene.overlay().chaseBoundingBoxOutline(PonderPalette.INPUT, new Object(), depotBounds.move(0, 2, 1), 60);
+		scene.overlay().chaseBoundingBoxOutline(PonderPalette.OUTPUT, new Object(), depotBounds.move(0, 2, 1), 60);
 		scene.idle(5);
-		scene.overlay().chaseBoundingBoxOutline(PonderPalette.INPUT, new Object(), depotBounds.move(4, 2, 1), 60);
+		scene.overlay().chaseBoundingBoxOutline(PonderPalette.OUTPUT, new Object(), depotBounds.move(4, 2, 1), 60);
 		scene.idle(5);
-		scene.overlay().chaseBoundingBoxOutline(PonderPalette.INPUT, new Object(), depotBounds.move(1, 3, 4), 60);
+		scene.overlay().chaseBoundingBoxOutline(PonderPalette.OUTPUT, new Object(), depotBounds.move(1, 3, 4), 60);
 		scene.idle(5);
 		scene.overlay().showText(80)
 			.attachKeyFrame()
@@ -248,8 +248,8 @@ public class MechanicalFluidGunScenes {
 		scene.idle(15);
 		Object hatchKey = new Object();
 		Object portKey = new Object();
-		scene.overlay().chaseBoundingBoxOutline(PonderPalette.INPUT, hatchKey, hatchBounds.move(4, 2, 2), 80);
-		scene.overlay().chaseBoundingBoxOutline(PonderPalette.INPUT, portKey, fullBlockBounds.move(0, 3, 3), 80);
+		scene.overlay().chaseBoundingBoxOutline(PonderPalette.OUTPUT, hatchKey, hatchBounds.move(4, 2, 2), 80);
+		scene.overlay().chaseBoundingBoxOutline(PonderPalette.OUTPUT, portKey, fullBlockBounds.move(0, 3, 3), 80);
 		scene.overlay().showText(80)
 			.attachKeyFrame()
 			.colored(PonderPalette.INPUT)

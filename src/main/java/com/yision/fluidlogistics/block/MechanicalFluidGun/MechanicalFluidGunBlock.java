@@ -152,9 +152,13 @@ public class MechanicalFluidGunBlock extends KineticBlock implements IBE<Mechani
 		return AllBlocks.DEPOT.has(state) || AllBlocks.BELT.has(state);
 	}
 
-	public static boolean isSelectableTarget(Level level, BlockPos gunPos, BlockPos targetPos) {
+	public static boolean isSelectableCandidate(Level level, BlockPos gunPos, BlockPos targetPos) {
 		return !gunPos.equals(targetPos)
-			&& isTargetInRange(gunPos, targetPos)
 			&& isTargetTagged(level, targetPos);
+	}
+
+	public static boolean isSelectableTarget(Level level, BlockPos gunPos, BlockPos targetPos) {
+		return isSelectableCandidate(level, gunPos, targetPos)
+			&& isTargetInRange(gunPos, targetPos);
 	}
 }

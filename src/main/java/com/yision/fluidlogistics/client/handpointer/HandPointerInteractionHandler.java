@@ -366,19 +366,36 @@ public class HandPointerInteractionHandler {
 
         if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.MECHANICAL_FLUID_GUN) {
             if (MechanicalFluidGunSelectionHandler.isSelectedGun(pos)) {
-                int targetCount = MechanicalFluidGunSelectionHandler.getTargetCount();
-                boolean success = player.isShiftKeyDown()
-                    ? MechanicalFluidGunSelectionHandler.clearTarget()
-                    : MechanicalFluidGunSelectionHandler.submit();
-                if (success) {
+                if (player.isShiftKeyDown()) {
+                    boolean success = MechanicalFluidGunSelectionHandler.clearTarget();
+                    if (success) {
+                        playBlockSound(level, pos, SoundEvents.NOTE_BLOCK_CHIME.value(), 0.8f, 1.0f);
+                        HandPointerModeManager.exitMode(player, level);
+                    } else {
+                        playDenySound(level, pos);
+                    }
+                    return;
+                }
+
+                MechanicalFluidGunSelectionHandler.SubmitResult result = MechanicalFluidGunSelectionHandler.submit(level);
+                if (result.success()) {
                     playBlockSound(level, pos, SoundEvents.NOTE_BLOCK_CHIME.value(), 0.8f, 1.0f);
                     HandPointerModeManager.exitMode(player, level);
-                    if (!player.isShiftKeyDown()) {
+                    if (result.skippedCount() > 0) {
+                        sendStatus(player, "fluidlogistics.mechanical_fluid_gun.targets_out_of_range",
+                            STATUS_INVALID_COLOR, result.skippedCount());
+                    } else {
                         sendStatus(player, "fluidlogistics.mechanical_fluid_gun.target_summary",
-                            STATUS_CONNECTABLE_COLOR, targetCount);
+                            STATUS_CONNECTABLE_COLOR, result.sentCount());
                     }
                 } else {
                     playDenySound(level, pos);
+                    if (result.skippedCount() > 0) {
+                        sendStatus(player, "fluidlogistics.mechanical_fluid_gun.targets_out_of_range",
+                            STATUS_INVALID_COLOR, result.skippedCount());
+                    } else {
+                        sendStatus(player, "fluidlogistics.hand_pointer.too_far", STATUS_INVALID_COLOR);
+                    }
                 }
                 return;
             }
@@ -590,11 +607,12 @@ public class HandPointerInteractionHandler {
         boolean isCreatePackager = AllBlocks.PACKAGER.has(state);
         boolean isRepackager = AllBlocks.REPACKAGER.has(state);
         boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
-        if (!isCreatePackager && !isRepackager && !isFluidPackager) {
+        boolean isFluidRepackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_REPACKAGER.has(state);
+        if (!isCreatePackager && !isRepackager && !isFluidPackager && !isFluidRepackager) {
             return false;
         }
 
-        if (player.isShiftKeyDown()) {
+        if (player.isShiftKeyDown() && (isCreatePackager || isFluidPackager)) {
             HandPointerClearClipboardAddressPacket.send(pos);
             playBlockSound(level, pos, SoundEvents.LEVER_CLICK, 0.3f, 0.85f);
             return true;
@@ -610,6 +628,10 @@ public class HandPointerInteractionHandler {
             ? (willBePowered
                 ? "fluidlogistics.hand_pointer.fluid_packager.powered_on"
                 : "fluidlogistics.hand_pointer.fluid_packager.powered_off")
+            : isFluidRepackager
+            ? (willBePowered
+                ? "fluidlogistics.hand_pointer.fluid_repackager.powered_on"
+                : "fluidlogistics.hand_pointer.fluid_repackager.powered_off")
             : isRepackager
             ? (willBePowered
                 ? "fluidlogistics.hand_pointer.repackager.powered_on"
@@ -624,7 +646,8 @@ public class HandPointerInteractionHandler {
     private static boolean isPackagerFamily(BlockState state) {
         return AllBlocks.PACKAGER.has(state)
             || AllBlocks.REPACKAGER.has(state)
-            || com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
+            || com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state)
+            || com.yision.fluidlogistics.registry.AllBlocks.FLUID_REPACKAGER.has(state);
     }
 
     private static boolean isDisplayBoard(Level level, BlockPos pos, BlockState state) {

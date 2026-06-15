@@ -23,7 +23,11 @@ import org.jetbrains.annotations.Nullable;
 public class MechanicalFluidGunSelectionHandler {
 
 	private static final String GUN_HIGHLIGHT = "HandPointerMechanicalFluidGunHighlight";
-	private static final int HIGHLIGHT_COLOR = 0xDDC166;
+	private static final int GUN_HIGHLIGHT_COLOR = 0x7FCDE0;
+	private static final int TARGET_HIGHLIGHT_COLOR = 0xDDC166;
+
+	public record SubmitResult(boolean success, int sentCount, int skippedCount) {
+	}
 
 	private static BlockPos selectedGunPos;
 	private static final List<MechanicalFluidGunPackets.TargetPacket.TargetEntry> targets = new ArrayList<>();
@@ -48,7 +52,7 @@ public class MechanicalFluidGunSelectionHandler {
 	}
 
 	public static boolean setTarget(Level level, BlockPos pos, @Nullable Direction face) {
-		if (!isValidTarget(level, pos)) {
+		if (!isValidCandidate(level, pos)) {
 			return false;
 		}
 
@@ -77,13 +81,32 @@ public class MechanicalFluidGunSelectionHandler {
 		return false;
 	}
 
-	public static boolean submit() {
+	public static SubmitResult submit(Level level) {
 		if (selectedGunPos == null || targets.isEmpty()) {
-			return false;
+			return new SubmitResult(false, 0, 0);
 		}
 
-		PacketDistributor.sendToServer(MechanicalFluidGunPackets.TargetPacket.setTargets(selectedGunPos, List.copyOf(targets)));
-		return true;
+		List<MechanicalFluidGunPackets.TargetPacket.TargetEntry> inRange = new ArrayList<>();
+		int skipped = 0;
+
+		for (MechanicalFluidGunPackets.TargetPacket.TargetEntry target : targets) {
+			if (!isValidCandidate(level, target.pos())) {
+				skipped++;
+				continue;
+			}
+			if (!MechanicalFluidGunBlock.isTargetInRange(selectedGunPos, target.pos())) {
+				skipped++;
+				continue;
+			}
+			inRange.add(target);
+		}
+
+		if (inRange.isEmpty()) {
+			return new SubmitResult(false, 0, skipped);
+		}
+
+		PacketDistributor.sendToServer(MechanicalFluidGunPackets.TargetPacket.setTargets(selectedGunPos, List.copyOf(inRange)));
+		return new SubmitResult(true, inRange.size(), skipped);
 	}
 
 	public static boolean clearTarget() {
@@ -123,12 +146,12 @@ public class MechanicalFluidGunSelectionHandler {
 		if (!gunShape.isEmpty()) {
 			Outliner.getInstance()
 				.showAABB(GUN_HIGHLIGHT, gunShape.bounds().move(selectedGunPos))
-				.colored(HIGHLIGHT_COLOR)
+				.colored(GUN_HIGHLIGHT_COLOR)
 				.lineWidth(0.0625F);
 		}
 
 		for (MechanicalFluidGunPackets.TargetPacket.TargetEntry target : targets) {
-			if (!isValidTarget(mc.level, target.pos())) {
+			if (!isValidCandidate(mc.level, target.pos())) {
 				continue;
 			}
 
@@ -140,16 +163,16 @@ public class MechanicalFluidGunSelectionHandler {
 
 			Outliner.getInstance()
 				.showAABB(targetSlot(target.pos()), shape.bounds().move(target.pos()))
-				.colored(HIGHLIGHT_COLOR)
+				.colored(TARGET_HIGHLIGHT_COLOR)
 				.lineWidth(0.0625F);
 		}
 	}
 
-	private static boolean isValidTarget(Level level, BlockPos pos) {
+	private static boolean isValidCandidate(Level level, BlockPos pos) {
 		if (selectedGunPos == null || pos == null) {
 			return false;
 		}
-		return MechanicalFluidGunBlock.isSelectableTarget(level, selectedGunPos, pos);
+		return MechanicalFluidGunBlock.isSelectableCandidate(level, selectedGunPos, pos);
 	}
 
 	private static @Nullable Direction getTargetFace(Level level, BlockPos pos, @Nullable Direction clickedFace) {

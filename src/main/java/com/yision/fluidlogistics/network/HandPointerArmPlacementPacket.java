@@ -35,6 +35,10 @@ public record HandPointerArmPlacementPacket(ListTag pointsTag, BlockPos armPos) 
         CatnipServices.NETWORK.sendToServer(new HandPointerArmPlacementPacket(points, armPos));
     }
 
+    public static void send(ListTag pointsTag, BlockPos armPos) {
+        CatnipServices.NETWORK.sendToServer(new HandPointerArmPlacementPacket(pointsTag, armPos));
+    }
+
     private static void encode(RegistryFriendlyByteBuf buf, HandPointerArmPlacementPacket packet) {
         CompoundTag tag = new CompoundTag();
         tag.put("Points", packet.pointsTag);
