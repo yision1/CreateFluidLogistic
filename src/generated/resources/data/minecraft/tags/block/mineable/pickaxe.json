@@ -2,6 +2,7 @@
   "values": [
     "fluidlogistics:fluid_transporter",
     "fluidlogistics:fluid_packager",
+    "fluidlogistics:fluid_repackager",
     "fluidlogistics:smart_faucet",
     "fluidlogistics:faucet",
     "fluidlogistics:multi_fluid_tank",

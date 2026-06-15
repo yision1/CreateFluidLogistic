@@ -66,7 +66,7 @@ public record HandPointerClearClipboardAddressPacket(BlockPos pos) implements Se
         }
 
         BlockState state = level.getBlockState(pos);
-        boolean isCreatePackager = AllBlocks.PACKAGER.has(state) || AllBlocks.REPACKAGER.has(state);
+        boolean isCreatePackager = AllBlocks.PACKAGER.has(state);
         boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
         if (!isCreatePackager && !isFluidPackager) {
             return;

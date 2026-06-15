@@ -5,6 +5,9 @@ import com.tterrag.registrate.util.entry.BlockEntityEntry;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerRenderer;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerVisual;
+import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerBlockEntity;
+import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerRenderer;
+import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerVisual;
 import com.yision.fluidlogistics.block.FluidPump.FluidPumpBlockEntity;
 import com.yision.fluidlogistics.block.FluidPump.FluidPumpRenderer;
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlockEntity;
@@ -45,6 +48,13 @@ public class AllBlockEntities {
             .visual(() -> FluidPackagerVisual::new, true)
             .validBlocks(AllBlocks.FLUID_PACKAGER)
             .renderer(() -> FluidPackagerRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<FluidRepackagerBlockEntity> FLUID_REPACKAGER = REGISTRATE
+            .blockEntity("fluid_repackager", FluidRepackagerBlockEntity::new)
+            .visual(() -> FluidRepackagerVisual::new, true)
+            .validBlocks(AllBlocks.FLUID_REPACKAGER)
+            .renderer(() -> FluidRepackagerRenderer::new)
             .register();
 
     public static final BlockEntityEntry<FaucetBlockEntity> FAUCET = REGISTRATE

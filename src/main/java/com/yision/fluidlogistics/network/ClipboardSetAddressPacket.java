@@ -3,7 +3,6 @@ package com.yision.fluidlogistics.network;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
-import com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.util.ClipboardAddressUtil;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
@@ -74,7 +73,7 @@ public record ClipboardSetAddressPacket(BlockPos pos) implements ServerboundPack
         }
 
         BlockState state = level.getBlockState(pos);
-        boolean isCreatePackager = AllBlocks.PACKAGER.has(state) || AllBlocks.REPACKAGER.has(state);
+        boolean isCreatePackager = AllBlocks.PACKAGER.has(state);
         boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
         if (!isCreatePackager && !isFluidPackager) {
             return;
@@ -138,10 +137,6 @@ public record ClipboardSetAddressPacket(BlockPos pos) implements ServerboundPack
     private static String fluidlogistics$getBlockTypeName(BlockState state, Level level, BlockPos pos) {
         if (com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state)) {
             return Component.translatable("block.fluidlogistics.fluid_packager").getString();
-        }
-        BlockEntity be = level.getBlockEntity(pos);
-        if (be instanceof RepackagerBlockEntity) {
-            return Component.translatable("block.create.repackager").getString();
         }
         return Component.translatable("block.create.packager").getString();
     }

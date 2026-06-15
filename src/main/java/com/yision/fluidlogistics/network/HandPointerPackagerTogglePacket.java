@@ -58,7 +58,8 @@ public record HandPointerPackagerTogglePacket(BlockPos pos) implements Serverbou
         BlockState state = level.getBlockState(pos);
         boolean isCreatePackager = AllBlocks.PACKAGER.has(state) || AllBlocks.REPACKAGER.has(state);
         boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
-        if ((!isCreatePackager && !isFluidPackager) || !state.hasProperty(BlockStateProperties.POWERED)) {
+        boolean isFluidRepackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_REPACKAGER.has(state);
+        if ((!isCreatePackager && !isFluidPackager && !isFluidRepackager) || !state.hasProperty(BlockStateProperties.POWERED)) {
             return;
         }
 

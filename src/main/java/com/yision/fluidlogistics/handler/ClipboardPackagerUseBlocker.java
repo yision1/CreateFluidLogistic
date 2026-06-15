@@ -68,7 +68,6 @@ public class ClipboardPackagerUseBlocker {
     private static boolean isBlockedPackager(Level level, BlockPos pos) {
         BlockState state = level.getBlockState(pos);
         return AllBlocks.PACKAGER.has(state)
-            || AllBlocks.REPACKAGER.has(state)
             || com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
     }
 }

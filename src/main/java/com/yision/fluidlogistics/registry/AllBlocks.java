@@ -25,6 +25,8 @@ import net.minecraft.world.level.storage.loot.functions.CopyComponentsFunction;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlock;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerGenerator;
+import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerBlock;
+import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerGenerator;
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlock;
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterGenerator;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlock;
@@ -89,6 +91,21 @@ public class AllBlocks {
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
             .blockstate(new FluidPackagerGenerator()::generate)
+            .item()
+            .model(AssetLookup::customItemModel)
+            .build()
+            .register();
+
+    public static final BlockEntry<FluidRepackagerBlock> FLUID_REPACKAGER = REGISTRATE.block("fluid_repackager", FluidRepackagerBlock::new)
+            .initialProperties(SharedProperties::softMetal)
+            .properties(p -> p.noOcclusion())
+            .properties(p -> p.isRedstoneConductor(($1, $2, $3) -> false))
+            .properties(p -> p.mapColor(MapColor.TERRACOTTA_BLUE)
+                    .sound(SoundType.NETHERITE_BLOCK))
+            .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .addLayer(() -> RenderType::cutoutMipped)
+            .blockstate(new FluidRepackagerGenerator()::generate)
             .item()
             .model(AssetLookup::customItemModel)
             .build()

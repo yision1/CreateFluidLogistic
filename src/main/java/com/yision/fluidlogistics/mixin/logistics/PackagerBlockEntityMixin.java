@@ -1,45 +1,29 @@
 package com.yision.fluidlogistics.mixin.logistics;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
-import com.simibubi.create.api.packager.unpacking.UnpackingHandler;
-import com.simibubi.create.compat.computercraft.events.PackageEvent;
-import com.simibubi.create.content.logistics.box.PackageItem;
+import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity;
-import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
-import com.simibubi.create.content.processing.basin.BasinBlockEntity;
-import com.simibubi.create.foundation.item.ItemHelper;
 import com.yision.fluidlogistics.goggle.PackagerGoggleInfo;
-import com.yision.fluidlogistics.item.CompressedTankItem;
-import com.yision.fluidlogistics.util.BasinFluidPackageUnpacking;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.createmod.catnip.data.Iterate;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(PackagerBlockEntity.class)
 public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGoggleInformation {
@@ -48,12 +32,16 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
     private boolean fluidlogistics$manualOverrideLocked;
     @Unique
     private String fluidlogistics$clipboardAddress = "";
+    @Unique
+    private int fluidlogistics$queuedPackageCount;
 
     @Inject(method = "write", at = @At("RETURN"))
     private void fluidlogistics$writeOverrideData(CompoundTag compound, HolderLookup.Provider registries,
                                                   boolean clientPacket, CallbackInfo ci) {
         compound.putBoolean("FluidLogisticsManualOverrideLocked", fluidlogistics$manualOverrideLocked);
         compound.putString("FluidLogisticsClipboardAddress", fluidlogistics$clipboardAddress);
+        compound.putInt("FluidLogisticsQueuedPackageCount",
+            fluidlogistics$countQueuedPackages((PackagerBlockEntity) (Object) this));
     }
 
     @Inject(method = "read", at = @At("RETURN"))
@@ -61,6 +49,7 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
                                                  boolean clientPacket, CallbackInfo ci) {
         fluidlogistics$manualOverrideLocked = compound.getBoolean("FluidLogisticsManualOverrideLocked");
         fluidlogistics$clipboardAddress = compound.getString("FluidLogisticsClipboardAddress");
+        fluidlogistics$queuedPackageCount = compound.getInt("FluidLogisticsQueuedPackageCount");
     }
 
     @Inject(method = "updateSignAddress", at = @At("RETURN"))
@@ -76,104 +65,6 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
         }
 
         packager.signBasedAddress = fluidlogistics$clipboardAddress;
-    }
-
-    @Inject(method = "unwrapBox", at = @At("HEAD"), cancellable = true)
-    private void fluidlogistics$unwrapCompressedTanksFirst(ItemStack box, boolean simulate,
-                                                           CallbackInfoReturnable<Boolean> cir) {
-        PackagerBlockEntity packager = (PackagerBlockEntity) (Object) this;
-        if (packager.animationTicks > 0) {
-            return;
-        }
-
-        Level level = packager.getLevel();
-        if (level == null) {
-            return;
-        }
-
-        ItemStackHandler contents = PackageItem.getContents(box);
-        List<ItemStack> items = ItemHelper.getNonEmptyStacks(contents);
-        List<FluidStack> packageFluids = fluidlogistics$collectCompressedTankFluids(items);
-        if (packageFluids.isEmpty()) {
-            return;
-        }
-
-        Direction facing = packager.getBlockState().getOptionalValue(PackagerBlock.FACING).orElse(Direction.UP);
-        BlockPos targetPos = packager.getBlockPos().relative(facing.getOpposite());
-        BlockState targetState = level.getBlockState(targetPos);
-        BlockEntity targetBlockEntity = level.getBlockEntity(targetPos);
-
-        List<FluidStack> mergedFluids = fluidlogistics$mergeFluidsByType(packageFluids);
-        if (mergedFluids.isEmpty()) {
-            return;
-        }
-
-        boolean multiFluid = mergedFluids.size() > 1;
-        boolean unpackedFluids;
-
-        if (multiFluid) {
-            if (!BasinFluidPackageUnpacking.isSupportedTarget(targetState, targetBlockEntity)) {
-                cir.setReturnValue(false);
-                return;
-            }
-
-            unpackedFluids = BasinFluidPackageUnpacking.unpackFluids(
-                (BasinBlockEntity) targetBlockEntity,
-                packageFluids,
-                simulate
-            );
-        } else {
-            if (!fluidlogistics$isCreateUnpackingTarget(level, targetPos, targetState, targetBlockEntity, facing)) {
-                cir.setReturnValue(false);
-                return;
-            }
-
-            IFluidHandler fluidHandler = level.getCapability(
-                Capabilities.FluidHandler.BLOCK,
-                targetPos,
-                targetState,
-                targetBlockEntity,
-                facing
-            );
-            if (fluidHandler == null) {
-                cir.setReturnValue(false);
-                return;
-            }
-
-            FluidStack fluid = mergedFluids.getFirst();
-            int accepted = fluidHandler.fill(fluid.copy(), FluidAction.SIMULATE);
-            unpackedFluids = accepted == fluid.getAmount();
-
-            if (unpackedFluids && !simulate) {
-                fluidHandler.fill(fluid.copy(), FluidAction.EXECUTE);
-            }
-        }
-
-        if (!unpackedFluids) {
-            cir.setReturnValue(false);
-            return;
-        }
-
-        items.removeIf(item -> item.getItem() instanceof CompressedTankItem);
-
-        if (items.isEmpty()) {
-            if (!simulate) {
-                fluidlogistics$finishUnwrap(packager, box);
-            }
-            cir.setReturnValue(true);
-            return;
-        }
-
-        PackageOrderWithCrafts orderContext = PackageItem.getOrderContext(box);
-        UnpackingHandler handler = UnpackingHandler.REGISTRY.get(targetState);
-        UnpackingHandler toUse = handler != null ? handler : UnpackingHandler.DEFAULT;
-        boolean unpacked = toUse.unpack(level, targetPos, targetState, facing, items, orderContext, simulate);
-
-        if (unpacked && !simulate) {
-            fluidlogistics$finishUnwrap(packager, box);
-        }
-
-        cir.setReturnValue(unpacked);
     }
 
     @Override
@@ -201,6 +92,20 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
         PackagerBlockEntity packager = (PackagerBlockEntity) (Object) this;
         Level level = packager.getLevel();
 
+        BlockState state = packager.getBlockState();
+        boolean isRepackager = packager instanceof RepackagerBlockEntity;
+        boolean isLinkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
+
+        if (isRepackager) {
+            int cachedPackageCount = fluidlogistics$countCachedPackages(packager);
+            if (!fluidlogistics$manualOverrideLocked && cachedPackageCount <= 0) {
+                return false;
+            }
+            PackagerGoggleInfo.addToTooltip(
+                tooltip, "", fluidlogistics$manualOverrideLocked, true, false, cachedPackageCount);
+            return true;
+        }
+
         String address = packager.signBasedAddress;
         if (level != null && level.isClientSide) {
             String scannedAddress = fluidlogistics$findSignAddress(packager);
@@ -213,11 +118,26 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
             address = fluidlogistics$clipboardAddress;
         }
 
-        BlockState state = packager.getBlockState();
-        boolean isRepackager = packager instanceof RepackagerBlockEntity;
-        boolean isLinkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
         PackagerGoggleInfo.addToTooltip(tooltip, address, fluidlogistics$manualOverrideLocked, isRepackager, isLinkedToNetwork);
         return true;
+    }
+
+    @Unique
+    private int fluidlogistics$countCachedPackages(PackagerBlockEntity packager) {
+        Level level = packager.getLevel();
+        if (level != null && level.isClientSide) {
+            return fluidlogistics$queuedPackageCount;
+        }
+        return fluidlogistics$countQueuedPackages(packager);
+    }
+
+    @Unique
+    private static int fluidlogistics$countQueuedPackages(PackagerBlockEntity packager) {
+        int count = 0;
+        for (BigItemStack entry : packager.queuedExitingPackages) {
+            count += Math.max(0, entry.count);
+        }
+        return count;
     }
 
     @Unique
@@ -258,63 +178,5 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
         }
 
         return "";
-    }
-
-    @Unique
-    private static boolean fluidlogistics$isCreateUnpackingTarget(Level level, BlockPos targetPos, BlockState targetState,
-                                                                 BlockEntity targetBlockEntity, Direction facing) {
-        if (UnpackingHandler.REGISTRY.get(targetState) != null) {
-            return true;
-        }
-
-        return level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, targetState, targetBlockEntity, facing) != null;
-    }
-
-    @Unique
-    private static List<FluidStack> fluidlogistics$collectCompressedTankFluids(List<ItemStack> items) {
-        List<FluidStack> packageFluids = new ArrayList<>();
-        for (ItemStack item : items) {
-            if (!(item.getItem() instanceof CompressedTankItem)) {
-                continue;
-            }
-
-            FluidStack fluid = CompressedTankItem.getFluid(item);
-            for (int count = 0; count < item.getCount(); count++) {
-                packageFluids.add(fluid.copy());
-            }
-        }
-        return packageFluids;
-    }
-
-    @Unique
-    private static List<FluidStack> fluidlogistics$mergeFluidsByType(List<FluidStack> fluids) {
-        List<FluidStack> merged = new ArrayList<>();
-        for (FluidStack fluid : fluids) {
-            if (fluid.isEmpty())
-                continue;
-
-            boolean found = false;
-            for (FluidStack existing : merged) {
-                if (FluidStack.isSameFluidSameComponents(existing, fluid)) {
-                    existing.grow(fluid.getAmount());
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                merged.add(fluid.copy());
-            }
-        }
-        return merged;
-    }
-
-    @Unique
-    private static void fluidlogistics$finishUnwrap(PackagerBlockEntity packager, ItemStack box) {
-        packager.computerBehaviour.prepareComputerEvent(new PackageEvent(box, "package_received"));
-        packager.previouslyUnwrapped = box;
-        packager.animationInward = true;
-        packager.animationTicks = PackagerBlockEntity.CYCLE;
-        packager.notifyUpdate();
     }
 }
