@@ -10,6 +10,7 @@ import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortBlockEntity;
 import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.item.FluidPackageItem;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
@@ -88,6 +89,12 @@ public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IB
             BlockPos targetPos = context.getClickedPos().relative(preferredFacing.getOpposite());
             BlockState targetState = level.getBlockState(targetPos);
             if (AllBlocks.PORTABLE_FLUID_INTERFACE.has(targetState)) {
+                CreateLang.translate("fluid_packager.no_portable_fluid_interface")
+                    .sendStatus(player);
+                return null;
+            }
+            if (level.getBlockEntity(targetPos) instanceof MultiFluidAccessPortBlockEntity port
+                && port.blocksFluidPackagerPlacement(preferredFacing)) {
                 CreateLang.translate("fluid_packager.no_portable_fluid_interface")
                     .sendStatus(player);
                 return null;
