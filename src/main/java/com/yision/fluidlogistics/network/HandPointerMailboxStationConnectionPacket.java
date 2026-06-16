@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
-import com.yision.fluidlogistics.config.Config;
-
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget;
 import com.simibubi.create.content.logistics.packagePort.postbox.PostboxBlockEntity;
 import com.simibubi.create.content.trains.station.GlobalStation;
@@ -58,10 +56,6 @@ public record HandPointerMailboxStationConnectionPacket(
 
     @Override
     public void handle(ServerPlayer player) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
-
         Level level = player.level();
         if (!level.isLoaded(stationPos)) {
             return;

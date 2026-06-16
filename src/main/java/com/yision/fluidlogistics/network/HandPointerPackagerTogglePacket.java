@@ -2,7 +2,6 @@ package com.yision.fluidlogistics.network;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.createmod.catnip.platform.CatnipServices;
@@ -38,28 +37,17 @@ public record HandPointerPackagerTogglePacket(BlockPos pos) implements Serverbou
 
     @Override
     public void handle(ServerPlayer player) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
-
-        if (!player.mayBuild()) {
+        if (!HandPointerInteractionGuard.canUseHandPointer(player, pos)) {
             return;
         }
 
         Level level = player.level();
-        if (!level.isLoaded(pos)) {
-            return;
-        }
-
-        if (player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64.0) {
-            return;
-        }
-
         BlockState state = level.getBlockState(pos);
         boolean isCreatePackager = AllBlocks.PACKAGER.has(state) || AllBlocks.REPACKAGER.has(state);
         boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
         boolean isFluidRepackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_REPACKAGER.has(state);
-        if ((!isCreatePackager && !isFluidPackager && !isFluidRepackager) || !state.hasProperty(BlockStateProperties.POWERED)) {
+        if ((!isCreatePackager && !isFluidPackager && !isFluidRepackager)
+            || !state.hasProperty(BlockStateProperties.POWERED)) {
             return;
         }
 

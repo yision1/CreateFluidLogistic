@@ -9,7 +9,6 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntit
 import com.simibubi.create.content.logistics.packagerLink.PackagerLinkBlockEntity;
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterBlockEntity;
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.item.HandPointerItem;
 
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
@@ -56,10 +55,6 @@ public record HandPointerAuthorizeLogisticsNetworkPacket(BlockPos sourcePos, Fac
 
     @Override
     public void handle(ServerPlayer player) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
-
         Level level = player.level();
         if (!level.isLoaded(sourcePos)) {
             return;

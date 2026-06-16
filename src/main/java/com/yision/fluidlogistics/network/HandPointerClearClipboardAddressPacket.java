@@ -3,7 +3,6 @@ package com.yision.fluidlogistics.network;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.createmod.catnip.data.Iterate;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
@@ -48,23 +47,11 @@ public record HandPointerClearClipboardAddressPacket(BlockPos pos) implements Se
 
     @Override
     public void handle(ServerPlayer player) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
-
-        if (!player.mayBuild()) {
+        if (!HandPointerInteractionGuard.canUseHandPointer(player, pos)) {
             return;
         }
 
         Level level = player.level();
-        if (!level.isLoaded(pos)) {
-            return;
-        }
-
-        if (player.distanceToSqr(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D) > 64.0D) {
-            return;
-        }
-
         BlockState state = level.getBlockState(pos);
         boolean isCreatePackager = AllBlocks.PACKAGER.has(state);
         boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
