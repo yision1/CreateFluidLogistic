@@ -82,7 +82,7 @@ public class HandPointerThresholdSwitchScreen extends AbstractSimiScreen {
 			.titled(CreateLang.translateDirect("schedule.condition.threshold.item_measure"))
 			.calling($ -> {
 				lastModification = 0;
-				syncTextBoxesFromScrollInputs(false);
+				syncTextBoxesFromScrollInputs(true);
 			})
 			.setState(blockEntity.inStacks ? 1 : 0);
 
@@ -479,8 +479,6 @@ public class HandPointerThresholdSwitchScreen extends AbstractSimiScreen {
 
 	private void syncTextBox(EditBox box, int value, boolean force) {
 		if (!force && box.isFocused())
-			return;
-		if (!force)
 			return;
 
 		String expected = Integer.toString(value);
