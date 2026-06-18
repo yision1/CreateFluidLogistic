@@ -9,7 +9,6 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemScr
 import com.simibubi.create.foundation.gui.menu.GhostItemSubmitPacket;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 
-import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.neoforge.NeoForgeTypes;
@@ -18,7 +17,6 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 @MethodsReturnNonnullByDefault
@@ -36,10 +34,7 @@ public class FactoryPanelSetItemFluidGhostHandler
             boolean doStart) {
         List<Target<I>> targets = new LinkedList<>();
 
-        boolean acceptsItem = ingredient.getType() == VanillaTypes.ITEM_STACK && ModList.get().isLoaded("emi");
-        boolean acceptsFluid = ingredient.getType() == NeoForgeTypes.FLUID_STACK;
-
-        if (acceptsItem || acceptsFluid) {
+        if (ingredient.getType() == NeoForgeTypes.FLUID_STACK) {
             for (int i = 36; i < gui.getMenu().slots.size(); i++) {
                 if (gui.getMenu().slots.get(i).isActive()) {
                     targets.add(new FactoryPanelGhostTarget(gui, i - 36));
@@ -79,17 +74,12 @@ public class FactoryPanelSetItemFluidGhostHandler
 
         @Override
         public void accept(I ingredient) {
-            ItemStack stack;
-
-            if (ingredient instanceof ItemStack itemStack) {
-                stack = itemStack.copy();
-                stack.setCount(1);
-            } else if (ingredient instanceof FluidStack fluidStack) {
-                stack = new ItemStack(com.yision.fluidlogistics.registry.AllItems.COMPRESSED_STORAGE_TANK.get());
-                CompressedTankItem.setFluidVirtual(stack, fluidStack.copyWithAmount(1));
-            } else {
+            if (!(ingredient instanceof FluidStack fluidStack)) {
                 return;
             }
+
+            ItemStack stack = new ItemStack(com.yision.fluidlogistics.registry.AllItems.COMPRESSED_STORAGE_TANK.get());
+            CompressedTankItem.setFluidVirtual(stack, fluidStack.copyWithAmount(1));
 
             gui.getMenu().ghostInventory.setStackInSlot(slotIndex, stack);
             CatnipServices.NETWORK.sendToServer(new GhostItemSubmitPacket(stack, slotIndex));
