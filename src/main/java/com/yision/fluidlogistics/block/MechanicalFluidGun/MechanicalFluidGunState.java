@@ -1,5 +1,7 @@
 package com.yision.fluidlogistics.block.MechanicalFluidGun;
 
+import com.simibubi.create.content.contraptions.StructureTransform;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -458,6 +460,16 @@ class MechanicalFluidGunTargets {
 		activeTargetIndex = tag.contains("ActiveTargetIndex")
 			? tag.getInt("ActiveTargetIndex")
 			: (targets.isEmpty() ? -1 : 0);
+		if (activeTargetIndex >= targets.size()) {
+			activeTargetIndex = targets.isEmpty() ? -1 : 0;
+		}
+	}
+
+	void transform(StructureTransform transform) {
+		if (targets.isEmpty()) return;
+		for (int i = 0; i < targets.size(); i++) {
+			targets.set(i, targets.get(i).transform(transform));
+		}
 		if (activeTargetIndex >= targets.size()) {
 			activeTargetIndex = targets.isEmpty() ? -1 : 0;
 		}

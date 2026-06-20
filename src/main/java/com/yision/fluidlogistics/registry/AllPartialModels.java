@@ -17,6 +17,7 @@ public class AllPartialModels {
     public static final PartialModel FLUID_PACKAGER_TRAY = block("fluid_packager/tray");
     public static final PartialModel FLUID_PACKAGER_HATCH_OPEN = block("fluid_packager/hatch_open");
     public static final PartialModel FLUID_PACKAGER_HATCH_CLOSED = block("fluid_packager/hatch_closed");
+    public static final PartialModel FLUID_REPACKAGER_TRAY = block("fluid_repackager/tray");
     public static final Map<Direction, PartialModel> FAUCET_SOURCE_INTERFACE = new EnumMap<>(Direction.class);
 
     public static final PartialModel FLUID_PUMP_SHAFT = block("fluid_pump/shaft");
@@ -61,6 +62,7 @@ public class AllPartialModels {
                 FLUID_PACKAGER_TRAY.modelLocation(),
                 FLUID_PACKAGER_HATCH_OPEN.modelLocation(),
                 FLUID_PACKAGER_HATCH_CLOSED.modelLocation(),
+                FLUID_REPACKAGER_TRAY.modelLocation(),
                 FLUID_PACKAGE.modelLocation(),
                 FLUID_PACKAGE_2.modelLocation(),
                 FAUCET_SOURCE_INTERFACE.get(Direction.NORTH).modelLocation(),

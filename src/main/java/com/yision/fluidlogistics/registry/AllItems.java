@@ -13,6 +13,7 @@ import com.yision.fluidlogistics.item.FluidPackageItem;
 import com.yision.fluidlogistics.item.HandPointerItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.Tags.Items;
 
@@ -49,6 +50,12 @@ public class AllItems {
             .item("hand_pointer", HandPointerItem::new)
             .properties(p -> p.stacksTo(1))
             .tag(Items.TOOLS)
+            .model(AssetLookup.existingItemModel())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .register();
+
+    public static final ItemEntry<Item> PHANTOM_CHAIN = REGISTRATE
+            .item("phantom_chain", Item::new)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();

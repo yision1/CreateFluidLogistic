@@ -5,10 +5,13 @@ import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPointTyp
 import com.simibubi.create.api.stress.BlockStressValues;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.simibubi.create.foundation.item.ItemDescription;
+import com.simibubi.create.foundation.item.KineticStats;
+import com.simibubi.create.foundation.item.TooltipModifier;
 import net.createmod.catnip.lang.FontHelper;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.block.WaterContainingCopperCasing.WaterContainingCopperCasingFluidHandler;
 import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerBlockEntity;
 import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlockEntity;
 import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
 import com.yision.fluidlogistics.block.InfiniteFluidTank.InfiniteFluidTankBlockEntity;
@@ -16,7 +19,6 @@ import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPort
 import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlockEntity;
 import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlockEntity;
 import com.yision.fluidlogistics.block.CopperBasin.CopperBasinBlockEntity;
-import com.yision.fluidlogistics.advancement.AllTriggers;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.yision.fluidlogistics.registry.FluidLogisticsArmInteractionPointTypes;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
@@ -25,6 +27,7 @@ import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.item.CompressedTankFluidHandler;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.item.CompressedTankTooltipModifier;
+import com.yision.fluidlogistics.item.InfiniteFluidTankItem;
 import com.yision.fluidlogistics.registry.AllDataComponents;
 import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.registry.AllConditionCodecs;
@@ -51,10 +54,8 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
-import net.neoforged.neoforge.registries.RegisterEvent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -76,11 +77,14 @@ public class FluidLogistics {
                     .build());
 
     public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(MODID)
-            .setTooltipModifierFactory(item ->
-                    item instanceof CompressedTankItem
+            .setTooltipModifierFactory(item -> {
+                TooltipModifier base = item instanceof InfiniteFluidTankItem
+                        ? new InfiniteFluidTankItem.TooltipModifier(item, FontHelper.Palette.STANDARD_CREATE)
+                        : item instanceof CompressedTankItem
                             ? new CompressedTankTooltipModifier(item, FontHelper.Palette.STANDARD_CREATE)
-                            : new ItemDescription.Modifier(item, FontHelper.Palette.STANDARD_CREATE)
-            )
+                            : new ItemDescription.Modifier(item, FontHelper.Palette.STANDARD_CREATE);
+                return base.andThen(TooltipModifier.mapNull(KineticStats.create(item)));
+            })
             .defaultCreativeTab(FLUID_LOGISTICS_TAB);
 
     public FluidLogistics(IEventBus modEventBus, ModContainer modContainer) {
@@ -100,7 +104,6 @@ public class FluidLogistics {
 
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
-        modEventBus.addListener(this::onRegister);
         modEventBus.addListener(this::hideDisabledItems);
 
         NeoForge.EVENT_BUS.register(this);
@@ -119,15 +122,10 @@ public class FluidLogistics {
         });
     }
 
-    private void onRegister(final RegisterEvent event) {
-        if (event.getRegistry() == BuiltInRegistries.TRIGGER_TYPES) {
-            AllTriggers.register();
-        }
-    }
-
     private void registerCapabilities(final RegisterCapabilitiesEvent event) {
         FluidTransporterBlockEntity.registerCapabilities(event);
         FluidPackagerBlockEntity.registerCapabilities(event);
+        FluidRepackagerBlockEntity.registerCapabilities(event);
         MultiFluidTankBlockEntity.registerCapabilities(event);
         HorizontalMultiFluidTankBlockEntity.registerCapabilities(event);
         MultiFluidAccessPortBlockEntity.registerCapabilities(event);
@@ -198,6 +196,7 @@ public class FluidLogistics {
             new FeatureItem(FeatureToggle.MECHANICAL_FLUID_GUN, AllBlocks.MECHANICAL_FLUID_GUN),
             new FeatureItem(FeatureToggle.HAND_POINTER, AllItems.HAND_POINTER),
             new FeatureItem(FeatureToggle.FLUID_PACKAGER, AllBlocks.FLUID_PACKAGER),
+            new FeatureItem(FeatureToggle.FLUID_REPACKAGER, AllBlocks.FLUID_REPACKAGER),
             new FeatureItem(FeatureToggle.COMPRESSED_STORAGE_TANK, AllItems.COMPRESSED_STORAGE_TANK),
             new FeatureItem(FeatureToggle.RARE_FLUID_PACKAGE, AllItems.RARE_FLUID_PACKAGE),
             new FeatureItem(FeatureToggle.RARE_FLUID_PACKAGE, AllItems.FLUID_PACKAGE_2),

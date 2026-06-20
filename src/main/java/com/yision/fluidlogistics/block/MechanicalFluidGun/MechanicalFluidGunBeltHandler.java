@@ -6,6 +6,7 @@ import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehavio
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour;
 import com.simibubi.create.content.kinetics.belt.behaviour.TransportedItemStackHandlerBehaviour.TransportedResult;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
+import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.yision.fluidlogistics.block.Faucet.FaucetFilling;
 import com.yision.fluidlogistics.config.FeatureToggle;
 
@@ -113,7 +114,7 @@ class MechanicalFluidGunBeltHandler {
 			return PASS;
 		}
 		if (handler.blockEntity.isVirtual()) return PASS;
-		if (be.getSpeed() == 0) return PASS;
+		if (be.getSpeed() == 0 || be.isRedstoneLocked()) return PASS;
 
 		MechanicalFluidGunTargets targets = be.getTargetsHelper();
 		int targetIndex = targets.getTargetIndexFor(be.gunPos(), handler.blockEntity.getBlockPos());
@@ -159,6 +160,9 @@ class MechanicalFluidGunBeltHandler {
 
 		MechanicalFluidGunTargets targets = be.getTargetsHelper();
 		MechanicalFluidGunItemFilling itemFilling = be.getItemFillingHelper();
+		if (be.isRedstoneLocked() && !itemFilling.isFillingBelt() && !hasActiveBeltSession()) {
+			return PASS;
+		}
 		int targetIndex = targets.getTargetIndexFor(be.gunPos(), handler.blockEntity.getBlockPos());
 
 		if (targetIndex == -1) {
@@ -363,6 +367,79 @@ class MechanicalFluidGunBeltHandler {
 		clearActiveBeltSession();
 	}
 
+	/**
+	 * Redstone unlock recovery: scan configured belt targets for items waiting
+	 * to be filled and re-establish a held belt session for the first match.
+	 */
+	boolean resumeWaitingBeltItem() {
+		if (!FeatureToggle.isEnabled(FeatureToggle.MECHANICAL_FLUID_GUN))
+			return false;
+		if (be.getSpeed() == 0 || be.isRedstoneLocked())
+			return false;
+		if (be.sourceHandler() == null)
+			return false;
+		if (be.getItemFillingHelper().isFilling() || hasActiveBeltSession())
+			return false;
+
+		Level level = be.getLevel();
+		MechanicalFluidGunTargets targets = be.getTargetsHelper();
+		IFluidHandler source = be.sourceHandler();
+		if (targets.isEmpty())
+			return false;
+
+		for (int i = 0; i < targets.size(); i++) {
+			MechanicalFluidGunTargetConfig target = targets.get(i);
+			BlockPos absTarget = target.absoluteFrom(be.gunPos());
+			if (!targets.isTargetValid(level, be.gunPos(), absTarget))
+				continue;
+			if (!isBeltTarget(absTarget))
+				continue;
+
+			TransportedItemStackHandlerBehaviour handler = BlockEntityBehaviour.get(
+				level, absTarget, TransportedItemStackHandlerBehaviour.TYPE);
+			if (handler == null)
+				continue;
+
+			final int targetIndex = i;
+			boolean[] found = {false};
+			handler.handleProcessingOnAllItems(transported -> {
+				if (found[0])
+					return TransportedResult.doNothing();
+
+				if (!FaucetFilling.canItemBeFilled(level, transported.stack))
+					return TransportedResult.doNothing();
+
+				FluidStack fillable = MechanicalFluidGunFillOperations
+					.findFillableFluidForItem(be, source, transported.stack);
+				if (fillable.isEmpty())
+					return TransportedResult.doNothing();
+
+				if (be.getItemFillingHelper().isFillingDepot())
+					return TransportedResult.doNothing();
+
+				found[0] = true;
+				TransportedItemStack held = transported.copy();
+				held.locked = true;
+				held.lockedExternally = false;
+
+				be.setActiveTarget(targetIndex);
+				bindActiveBeltSession(held, absTarget);
+				keepBeltTargetAlive();
+
+				return TransportedResult.convertToAndLeaveHeld(List.of(), held);
+			});
+
+			if (found[0])
+				return true;
+		}
+		return false;
+	}
+
+	boolean hasActiveBeltWorkAt(BlockPos beltPos) {
+		return activeBeltPos != null && activeBeltPos.equals(beltPos)
+			|| be.getItemFillingHelper().isProcessingBeltPos(beltPos);
+	}
+
 	boolean targetsBeltPos(BlockPos beltPos) {
 		return be.getTargetsHelper().getTargetIndexFor(be.gunPos(), beltPos) != -1;
 	}
@@ -386,6 +463,9 @@ class MechanicalFluidGunBeltHandler {
 				continue;
 			}
 			if (gun.getSpeed() == 0 || !gun.targetsBeltPos(beltPos) || gun.sourceHandler() == null) {
+				continue;
+			}
+			if (gun.isRedstoneLocked() && !gun.getBeltHandlerHelper().hasActiveBeltWorkAt(beltPos)) {
 				continue;
 			}
 			double distance = candidate.distSqr(beltPos);

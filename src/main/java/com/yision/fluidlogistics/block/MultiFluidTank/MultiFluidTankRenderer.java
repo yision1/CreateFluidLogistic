@@ -20,7 +20,7 @@ public class MultiFluidTankRenderer extends SafeBlockEntityRenderer<MultiFluidTa
                               int light, int overlay) {
         if (!be.isController())
             return;
-        if (!be.window) {
+        if (be.getWindowStyle() == MultiFluidTankBlock.WindowStyle.NONE) {
             return;
         }
         if (be.tankInventory.isEmpty()) {

@@ -24,10 +24,12 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 @OnlyIn(Dist.CLIENT)
 public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
 
+    public static final float PACKAGE_VISUAL_WIDTH = 12f / 16f;
+    public static final float PACKAGE_VISUAL_HEIGHT = 10f / 16f;
+
     private static final float PACKAGE_MIN = 2f / 16f;
     private static final float PACKAGE_MAX_XZ = 14f / 16f;
     private static final float PACKAGE_MAX_Y = 10f / 16f;
-    private static final float PACKAGE_SIZE_XZ = PACKAGE_MAX_XZ - PACKAGE_MIN;
     private static final float SHRINK = 1f / 128f;
 
     public static boolean entityRendering = false;
@@ -48,56 +50,7 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
     }
 
     public static void renderFluidContents(ItemStack box, float fluidLevel, PoseStack ms, MultiBufferSource buffer, int light) {
-        List<FluidStack> fluids = getContainedFluids(box);
-        if (fluids.isEmpty()) return;
-
-        float totalFluid = 0;
-        for (FluidStack fluid : fluids) {
-            totalFluid += fluid.getAmount();
-        }
-
-        if (totalFluid <= 0) return;
-
-        if (fluidLevel < 0) {
-            fluidLevel = totalFluid;
-        }
-
-        FluidStack primaryFluid = fluids.get(0);
-        float fillLevel = Math.min(fluidLevel / Config.getFluidPerPackage(), 1.0f);
-
-        float fluidHeight = PACKAGE_MAX_Y * fillLevel;
-        if (fluidHeight <= 0) return;
-
-        float xMin = PACKAGE_MIN + SHRINK;
-        float xMax = PACKAGE_MAX_XZ - SHRINK;
-        float yMin = SHRINK;
-        float yMax = PACKAGE_MAX_Y - SHRINK;
-        float zMin = PACKAGE_MIN + SHRINK;
-        float zMax = PACKAGE_MAX_XZ - SHRINK;
-
-        boolean isLighterThanAir = primaryFluid.getFluid().getFluidType().isLighterThanAir();
-        if (isLighterThanAir) {
-            float yOffset = PACKAGE_MAX_Y - fluidHeight;
-            yMin += yOffset;
-        }
-
-        float calculatedYMax = yMin + fluidHeight - SHRINK * 2;
-        yMax = Math.min(yMax, Math.max(yMin + SHRINK, calculatedYMax));
-
-        if (yMax <= yMin) return;
-
-        ms.pushPose();
-        ms.translate(-0.5f, -0.5f, -0.5f);
-
-        NeoForgeCatnipServices.FLUID_RENDERER.renderFluidBox(
-            primaryFluid,
-            xMin, yMin, zMin,
-            xMax, yMax, zMax,
-            buffer, ms, light,
-            true, false
-        );
-
-        ms.popPose();
+        renderFluidContents(box, fluidLevel, ms, buffer, light, CoordinateMode.ITEM_MODEL);
     }
 
     public static void renderFluidContentsForEntity(ItemStack box, PoseStack ms, MultiBufferSource buffer, int light) {
@@ -105,6 +58,11 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
     }
 
     public static void renderFluidContentsForEntity(ItemStack box, float fluidLevel, PoseStack ms, MultiBufferSource buffer, int light) {
+        renderFluidContents(box, fluidLevel, ms, buffer, light, CoordinateMode.CENTERED_ENTITY);
+    }
+
+    private static void renderFluidContents(ItemStack box, float fluidLevel, PoseStack ms,
+                                            MultiBufferSource buffer, int light, CoordinateMode mode) {
         List<FluidStack> fluids = getContainedFluids(box);
         if (fluids.isEmpty()) return;
 
@@ -125,12 +83,23 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
         float fluidHeight = PACKAGE_MAX_Y * fillLevel;
         if (fluidHeight <= 0) return;
 
-        float xMin = -PACKAGE_SIZE_XZ / 2 + SHRINK;
-        float xMax = PACKAGE_SIZE_XZ / 2 - SHRINK;
+        float xMin;
+        float xMax;
+        float zMin;
+        float zMax;
+        if (mode == CoordinateMode.ITEM_MODEL) {
+            xMin = PACKAGE_MIN + SHRINK;
+            xMax = PACKAGE_MAX_XZ - SHRINK;
+            zMin = PACKAGE_MIN + SHRINK;
+            zMax = PACKAGE_MAX_XZ - SHRINK;
+        } else {
+            xMin = -PACKAGE_VISUAL_WIDTH / 2 + SHRINK;
+            xMax = PACKAGE_VISUAL_WIDTH / 2 - SHRINK;
+            zMin = -PACKAGE_VISUAL_WIDTH / 2 + SHRINK;
+            zMax = PACKAGE_VISUAL_WIDTH / 2 - SHRINK;
+        }
         float yMin = SHRINK;
         float yMax = PACKAGE_MAX_Y - SHRINK;
-        float zMin = -PACKAGE_SIZE_XZ / 2 + SHRINK;
-        float zMax = PACKAGE_SIZE_XZ / 2 - SHRINK;
 
         boolean isLighterThanAir = primaryFluid.getFluid().getFluidType().isLighterThanAir();
         if (isLighterThanAir) {
@@ -143,6 +112,11 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
 
         if (yMax <= yMin) return;
 
+        if (mode == CoordinateMode.ITEM_MODEL) {
+            ms.pushPose();
+            ms.translate(-0.5f, -0.5f, -0.5f);
+        }
+
         NeoForgeCatnipServices.FLUID_RENDERER.renderFluidBox(
             primaryFluid,
             xMin, yMin, zMin,
@@ -150,6 +124,15 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
             buffer, ms, light,
             true, false
         );
+
+        if (mode == CoordinateMode.ITEM_MODEL) {
+            ms.popPose();
+        }
+    }
+
+    public static FluidStack getPrimaryContainedFluid(ItemStack box) {
+        List<FluidStack> fluids = getContainedFluids(box);
+        return fluids.isEmpty() ? FluidStack.EMPTY : fluids.get(0);
     }
 
     public static List<FluidStack> getContainedFluids(ItemStack box) {
@@ -178,5 +161,10 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
             }
         }
         fluids.add(newFluid.copy());
+    }
+
+    private enum CoordinateMode {
+        ITEM_MODEL,
+        CENTERED_ENTITY
     }
 }

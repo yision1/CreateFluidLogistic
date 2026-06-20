@@ -1,6 +1,7 @@
 package com.yision.fluidlogistics.block.MultiFluidAccessPort;
 
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.contraptions.actors.psi.PortableFluidInterfaceBlockEntity;
 import com.simibubi.create.content.redstone.DirectedDirectionalBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
@@ -216,6 +217,15 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
             return null;
         }
         return handler;
+    }
+
+    public boolean blocksFluidPackagerPlacement(Direction side) {
+        if (!isOutputSide(side) || level == null) {
+            return false;
+        }
+        Direction targetDirection = DirectedDirectionalBlock.getTargetDirection(getBlockState());
+        BlockPos targetPos = worldPosition.relative(targetDirection);
+        return level.getBlockEntity(targetPos) instanceof PortableFluidInterfaceBlockEntity;
     }
 
     @Override

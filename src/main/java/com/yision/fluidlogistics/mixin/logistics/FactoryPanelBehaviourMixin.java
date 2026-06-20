@@ -212,16 +212,15 @@ public abstract class FactoryPanelBehaviourMixin {
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$getUnloadedLinksForFluidPackager(CallbackInfoReturnable<Integer> cir) {
+    private void fluidlogistics$getUnloadedLinksForFluidRestocker(CallbackInfoReturnable<Integer> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         FactoryPanelBlockEntity panelBE = self.panelBE();
-        
-        if (cir.getReturnValue() != 1) {
+
+        if (!panelBE.restocker || cir.getReturnValue() != 1) {
             return;
         }
-        
-        IFluidPackager fluidPackager = FluidGaugeHelper.getFluidPackager(panelBE);
-        if (fluidPackager != null) {
+
+        if (FluidGaugeHelper.getFluidPackager(panelBE) != null) {
             cir.setReturnValue(0);
         }
     }

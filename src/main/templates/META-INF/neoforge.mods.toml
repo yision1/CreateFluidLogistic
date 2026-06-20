@@ -101,6 +101,13 @@ config="${mod_id}.mixins.json"
     side="CLIENT"
 
 [[dependencies.${mod_id}]]
+    modId="emi"
+    type="optional"
+    versionRange="[1.1.22,)"
+    ordering="AFTER"
+    side="CLIENT"
+
+[[dependencies.${mod_id}]]
     modId="jade"
     type="optional"
     versionRange="[15.0.0,)"

@@ -27,6 +27,7 @@ public final class FeatureToggle {
     public static final ResourceLocation ADVANCED_LOGISTICS_NETWORK = FluidLogistics.asResource("advanced_logistics_network");
 
     public static final ResourceLocation FLUID_PACKAGER = FluidLogistics.asResource("fluid_packager");
+    public static final ResourceLocation FLUID_REPACKAGER = FluidLogistics.asResource("fluid_repackager");
     public static final ResourceLocation COMPRESSED_STORAGE_TANK = FluidLogistics.asResource("compressed_storage_tank");
     public static final ResourceLocation RARE_FLUID_PACKAGE = FluidLogistics.asResource("rare_fluid_package");
 
@@ -51,6 +52,7 @@ public final class FeatureToggle {
         map.put(HAND_POINTER, Config::isHandPointerEnabled);
         map.put(ADVANCED_LOGISTICS_NETWORK, Config::isAdvancedLogisticsNetworkEnabled);
         map.put(FLUID_PACKAGER, Config::isAdvancedLogisticsNetworkEnabled);
+        map.put(FLUID_REPACKAGER, Config::isAdvancedLogisticsNetworkEnabled);
         map.put(COMPRESSED_STORAGE_TANK, Config::isAdvancedLogisticsNetworkEnabled);
         map.put(RARE_FLUID_PACKAGE, Config::isAdvancedLogisticsNetworkEnabled);
         map.put(FLUID_HATCH, Config::isFluidHatchEnabled);

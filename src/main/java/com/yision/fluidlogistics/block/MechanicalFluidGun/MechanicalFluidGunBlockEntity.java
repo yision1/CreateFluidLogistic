@@ -3,6 +3,8 @@ package com.yision.fluidlogistics.block.MechanicalFluidGun;
 import java.util.List;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.simibubi.create.api.contraption.transformable.TransformableBlockEntity;
+import com.simibubi.create.content.contraptions.StructureTransform;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
@@ -31,12 +33,15 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.Nullable;
 
-public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements MechanicalFluidGunContext {
+public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
+	implements MechanicalFluidGunContext, TransformableBlockEntity {
 
 	public static final int RANGE = 5;
 
 	public LerpedFloat yaw;
 	public LerpedFloat pitch;
+
+	private boolean redstoneLocked;
 
 	private MechanicalFluidGunTargets targets;
 	private MechanicalFluidGunCycle cycle;
@@ -227,6 +232,32 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 		notifyUpdate();
 	}
 
+	public boolean isRedstoneLocked() {
+		return redstoneLocked;
+	}
+
+	public void redstoneUpdate() {
+		if (level == null || level.isClientSide)
+			return;
+
+		boolean blockPowered = level.hasNeighborSignal(worldPosition);
+		if (blockPowered == redstoneLocked)
+			return;
+
+		redstoneLocked = blockPowered;
+		updateVisuals();
+		setChanged();
+		sendData();
+
+		if (!redstoneLocked)
+			resumeAfterRedstoneUnlock();
+	}
+
+	private void resumeAfterRedstoneUnlock() {
+		cycle.setTransferCooldown(0);
+		beltHandler.resumeWaitingBeltItem();
+	}
+
 	void updateVisuals() {
 		MechanicalFluidGunTargetConfig activeTarget = targets.getActiveTarget();
 		Vec3 aimPoint = getTargetAimPoint(activeTarget);
@@ -336,6 +367,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 	@Override
 	protected void write(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
 		super.write(tag, registries, clientPacket);
+		tag.putBoolean("Powered", redstoneLocked);
 		targets.write(tag);
 		cycle.write(tag);
 		visuals.write(tag, registries);
@@ -345,11 +377,24 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity implements
 	@Override
 	protected void read(CompoundTag tag, HolderLookup.Provider registries, boolean clientPacket) {
 		super.read(tag, registries, clientPacket);
+		redstoneLocked = tag.getBoolean("Powered");
 		targets.read(tag);
 		cycle.read(tag);
 		visuals.read(tag, registries);
 		itemFilling.read(tag, registries);
 		updateVisuals();
+	}
+
+	@Override
+	public void writeSafe(CompoundTag tag, HolderLookup.Provider registries) {
+		super.writeSafe(tag, registries);
+		targets.write(tag);
+	}
+
+	@Override
+	public void transform(BlockEntity be, StructureTransform transform) {
+		targets.transform(transform);
+		notifyUpdate();
 	}
 
 	private static class ScheduleModeSlotPositioning extends ValueBoxTransform.Sided {

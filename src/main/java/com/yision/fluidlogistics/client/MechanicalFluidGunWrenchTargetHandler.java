@@ -19,19 +19,16 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @EventBusSubscriber(modid = FluidLogistics.MODID, value = Dist.CLIENT)
 public final class MechanicalFluidGunWrenchTargetHandler {
 
-	private static final int TARGET_COLOR = 0x7FCDE0;
+	private static final int TARGET_COLOR = 0xDDC166;
 	private static final float LINE_WIDTH = 1 / 16f;
 	private static final String OUTLINE_PREFIX = "MFGWrenchTarget_";
 
 	private static BlockPos hoveredGunPos;
-	private static final Set<String> activeOutlines = new HashSet<>();
 
 	private MechanicalFluidGunWrenchTargetHandler() {
 	}
@@ -43,32 +40,30 @@ public final class MechanicalFluidGunWrenchTargetHandler {
 		Level level = mc.level;
 
 		if (player == null || level == null || !AllItems.WRENCH.isIn(player.getMainHandItem())) {
-			clear();
+			hoveredGunPos = null;
 			return;
 		}
 
 		if (!(mc.hitResult instanceof BlockHitResult hit)) {
-			clear();
+			hoveredGunPos = null;
 			return;
 		}
 
 		BlockPos gunPos = hit.getBlockPos();
 		if (!(level.getBlockEntity(gunPos) instanceof MechanicalFluidGunBlockEntity gun)) {
-			clear();
+			hoveredGunPos = null;
 			return;
 		}
 
-		renderTargets(level, gunPos, gun);
-	}
-
-	private static void renderTargets(Level level, BlockPos gunPos, MechanicalFluidGunBlockEntity gun) {
 		if (!gunPos.equals(hoveredGunPos)) {
-			clear();
 			hoveredGunPos = gunPos.immutable();
 		}
 
+		drawOutlines(level, gunPos, gun);
+	}
+
+	private static void drawOutlines(Level level, BlockPos gunPos, MechanicalFluidGunBlockEntity gun) {
 		List<MechanicalFluidGunTargetConfig> targets = gun.getTargets();
-		Set<String> validKeys = new HashSet<>();
 
 		for (MechanicalFluidGunTargetConfig target : targets) {
 			BlockPos targetPos = target.absoluteFrom(gunPos);
@@ -82,32 +77,11 @@ public final class MechanicalFluidGunWrenchTargetHandler {
 				continue;
 			}
 
-			String key = outlineKey(gunPos, targetPos);
-			validKeys.add(key);
-
 			Outliner.getInstance()
-				.showAABB(key, shape.bounds().move(targetPos))
+				.showAABB(outlineKey(gunPos, targetPos), shape.bounds().move(targetPos))
 				.colored(TARGET_COLOR)
 				.lineWidth(LINE_WIDTH);
 		}
-
-		activeOutlines.removeIf(oldKey -> {
-			if (!validKeys.contains(oldKey)) {
-				Outliner.getInstance().remove(oldKey);
-				return true;
-			}
-			return false;
-		});
-
-		activeOutlines.addAll(validKeys);
-	}
-
-	private static void clear() {
-		for (String key : activeOutlines) {
-			Outliner.getInstance().remove(key);
-		}
-		activeOutlines.clear();
-		hoveredGunPos = null;
 	}
 
 	private static String outlineKey(BlockPos gunPos, BlockPos targetPos) {

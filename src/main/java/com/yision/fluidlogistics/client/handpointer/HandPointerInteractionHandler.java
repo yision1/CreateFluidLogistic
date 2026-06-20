@@ -6,6 +6,7 @@ import com.simibubi.create.api.behaviour.display.DisplayTarget;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorInteractionHandler;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmBlockEntity;
 import com.simibubi.create.content.logistics.depot.EjectorBlockEntity;
+import com.simibubi.create.content.redstone.thresholdSwitch.ThresholdSwitchBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
 import com.yision.fluidlogistics.client.MechanicalFluidGunItemSelectionHandler;
@@ -14,12 +15,12 @@ import com.yision.fluidlogistics.item.HandPointerItem;
 import com.yision.fluidlogistics.network.HandPointerAuthorizeLogisticsNetworkPacket;
 import com.yision.fluidlogistics.network.HandPointerClearClipboardAddressPacket;
 import com.yision.fluidlogistics.network.HandPointerDisplayLinkConfigurationPacket;
-import com.yision.fluidlogistics.network.HandPointerModeEnteredPacket;
 import com.yision.fluidlogistics.network.HandPointerPackagerTogglePacket;
 import com.yision.fluidlogistics.network.MechanicalFluidGunPackets;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.createmod.catnip.gui.ScreenOpener;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -81,9 +82,7 @@ public class HandPointerInteractionHandler {
             return;
         }
 
-        boolean advancedEnabled = Config.isAdvancedLogisticsNetworkEnabled();
-
-        if (advancedEnabled && HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.ARM) {
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.ARM) {
             ArmSelectionHandler.renderSelection(mc);
             DepotSelectionHandler.clearHoverPreview();
             DisplayLinkSelectionHandler.clearHoverPreview();
@@ -93,7 +92,7 @@ public class HandPointerInteractionHandler {
             return;
         }
 
-        if (advancedEnabled && HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.DEPOT) {
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.DEPOT) {
             DepotSelectionHandler.renderSelection(mc);
             DisplayLinkSelectionHandler.clearHoverPreview();
             FrogportSelectionHandler.clearHoverPreview();
@@ -102,7 +101,7 @@ public class HandPointerInteractionHandler {
             return;
         }
 
-        if (advancedEnabled && HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.DISPLAY_LINK) {
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.DISPLAY_LINK) {
             DisplayLinkSelectionHandler.renderSelection(mc);
             DepotSelectionHandler.clearHoverPreview();
             FrogportSelectionHandler.clearHoverPreview();
@@ -111,7 +110,7 @@ public class HandPointerInteractionHandler {
             return;
         }
 
-        if (advancedEnabled && HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.FROGPORT) {
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.FROGPORT) {
             FrogportSelectionHandler.tickChainTarget(mc);
             FrogportSelectionHandler.renderSelection(mc);
             DepotSelectionHandler.clearHoverPreview();
@@ -121,7 +120,7 @@ public class HandPointerInteractionHandler {
             return;
         }
 
-        if (advancedEnabled && HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.MAILBOX) {
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.MAILBOX) {
             MailboxSelectionHandler.tickStationTarget(mc);
             MailboxSelectionHandler.renderSelection(mc);
             DepotSelectionHandler.clearHoverPreview();
@@ -131,7 +130,7 @@ public class HandPointerInteractionHandler {
             return;
         }
 
-        if (advancedEnabled && HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.LOGISTICS) {
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.LOGISTICS) {
             LogisticsSelectionHandler.renderSelection(mc);
             DepotSelectionHandler.clearHoverPreview();
             DisplayLinkSelectionHandler.clearHoverPreview();
@@ -151,13 +150,8 @@ public class HandPointerInteractionHandler {
 
         DepotSelectionHandler.clearHoverPreview();
         DisplayLinkSelectionHandler.clearHoverPreview();
-        if (advancedEnabled) {
-            FrogportSelectionHandler.renderHoveredConnectionPreview(mc);
-            MailboxSelectionHandler.renderHoveredConnectionPreview(mc);
-        } else {
-            FrogportSelectionHandler.clearHoverPreview();
-            MailboxSelectionHandler.clearHoverPreview();
-        }
+        FrogportSelectionHandler.renderHoveredConnectionPreview(mc);
+        MailboxSelectionHandler.renderHoveredConnectionPreview(mc);
         MechanicalFluidGunSelectionHandler.clearHoverPreview();
     }
 
@@ -240,120 +234,117 @@ public class HandPointerInteractionHandler {
 
         Vec3 clickLocation = hitResult.getLocation();
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        boolean advancedEnabled = Config.isAdvancedLogisticsNetworkEnabled();
 
-        if (advancedEnabled) {
-            HandPointerPackagerClickRouting.PackagerClickAction packagerClickAction =
-                HandPointerPackagerClickRouting.route(HandPointerModeManager.getCurrentMode(), isPackagerFamily(state));
+        HandPointerPackagerClickRouting.PackagerClickAction packagerClickAction =
+            HandPointerPackagerClickRouting.route(HandPointerModeManager.getCurrentMode(), isPackagerFamily(state));
 
-            if (packagerClickAction == HandPointerPackagerClickRouting.PackagerClickAction.EXIT_MODE) {
-                HandPointerModeManager.exitMode(player, level);
-                sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
+        if (packagerClickAction == HandPointerPackagerClickRouting.PackagerClickAction.EXIT_MODE) {
+            HandPointerModeManager.exitMode(player, level);
+            sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
+            return true;
+        }
+
+        if (packagerClickAction == HandPointerPackagerClickRouting.PackagerClickAction.TOGGLE_PACKAGER) {
+            if (tryTogglePackager(player, level, pos, state)) {
                 return true;
             }
+        }
 
-            if (packagerClickAction == HandPointerPackagerClickRouting.PackagerClickAction.TOGGLE_PACKAGER
-                && tryTogglePackager(player, level, pos, state)) {
-                return true;
-            }
+        if (!HandPointerModeManager.isInSelectionMode()
+            && player.isShiftKeyDown()
+            && LogisticsSelectionHandler.isLogisticsBlockEntity(blockEntity)) {
+            HandPointerAuthorizeLogisticsNetworkPacket.send(pos, getTargetedPanelSlot(pos, state, clickLocation));
+            return true;
+        }
 
-            if (!HandPointerModeManager.isInSelectionMode()
-                && player.isShiftKeyDown()
-                && LogisticsSelectionHandler.isLogisticsBlockEntity(blockEntity)) {
-                HandPointerAuthorizeLogisticsNetworkPacket.send(pos, getTargetedPanelSlot(pos, state, clickLocation));
-                return true;
-            }
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.FROGPORT
+            && MailboxSelectionHandler.isMailbox(level, pos)) {
+            HandPointerModeManager.exitMode(player, level);
+            sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
+            return true;
+        }
 
-            if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.FROGPORT
-                && MailboxSelectionHandler.isMailbox(level, pos)) {
-                HandPointerModeManager.exitMode(player, level);
-                sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
-                return true;
-            }
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.MAILBOX
+            && FrogportSelectionHandler.isFrogport(level, pos)) {
+            HandPointerModeManager.exitMode(player, level);
+            sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
+            return true;
+        }
 
-            if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.MAILBOX
-                && FrogportSelectionHandler.isFrogport(level, pos)) {
-                HandPointerModeManager.exitMode(player, level);
-                sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
-                return true;
-            }
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.LOGISTICS
+            && !LogisticsSelectionHandler.isLogisticsBlockEntity(blockEntity)) {
+            HandPointerModeManager.exitMode(player, level);
+            sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
+            return true;
+        }
 
-            if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.LOGISTICS
-                && !LogisticsSelectionHandler.isLogisticsBlockEntity(blockEntity)) {
-                HandPointerModeManager.exitMode(player, level);
-                sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
-                return true;
-            }
+        if (HandPointerModeManager.isInSelectionMode()) {
+            handleSelectionClick(player, level, pos, state, hitResult);
+            return true;
+        }
 
-            if (HandPointerModeManager.isInSelectionMode()) {
-                handleSelectionClick(player, level, pos, state, hitResult);
-                return true;
+        if (LogisticsSelectionHandler.isLogisticsBlockEntity(blockEntity)) {
+            if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.LOGISTICS)) {
+                LogisticsSelectionHandler.handleNetworkClick(blockEntity, pos, player, level, state, clickLocation);
             }
+            return true;
+        }
 
-            if (LogisticsSelectionHandler.isLogisticsBlockEntity(blockEntity)) {
-                if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.LOGISTICS)) {
-                    LogisticsSelectionHandler.handleNetworkClick(blockEntity, pos, player, level, state, clickLocation);
-                    HandPointerModeEnteredPacket.send();
-                }
-                return true;
+        if (FrogportSelectionHandler.isFrogport(level, pos)) {
+            if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.FROGPORT)) {
+                FrogportSelectionHandler.setSelection(pos);
+                playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
+                sendStatus(player, "fluidlogistics.hand_pointer.frogport.selected", STATUS_SELECTED_COLOR);
             }
+            return true;
+        }
 
-            if (FrogportSelectionHandler.isFrogport(level, pos)) {
-                if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.FROGPORT)) {
-                    FrogportSelectionHandler.setSelection(pos);
-                    playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                    sendStatus(player, "fluidlogistics.hand_pointer.frogport.selected", STATUS_SELECTED_COLOR);
-                    HandPointerModeEnteredPacket.send();
-                }
-                return true;
+        if (MailboxSelectionHandler.isMailbox(level, pos)) {
+            if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.MAILBOX)) {
+                MailboxSelectionHandler.setSelection(pos);
+                playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
+                sendStatus(player, "fluidlogistics.hand_pointer.mailbox.selected", STATUS_SELECTED_COLOR);
             }
+            return true;
+        }
 
-            if (MailboxSelectionHandler.isMailbox(level, pos)) {
-                if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.MAILBOX)) {
-                    MailboxSelectionHandler.setSelection(pos);
-                    playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                    sendStatus(player, "fluidlogistics.hand_pointer.mailbox.selected", STATUS_SELECTED_COLOR);
-                    HandPointerModeEnteredPacket.send();
-                }
-                return true;
+        if (blockEntity instanceof ArmBlockEntity) {
+            if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.ARM)) {
+                ArmSelectionHandler.enterArmMode(pos, player, level);
+                sendStatus(player, "fluidlogistics.hand_pointer.arm.selected", STATUS_SELECTED_COLOR);
             }
+            return true;
+        }
 
-            if (blockEntity instanceof ArmBlockEntity) {
-                if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.ARM)) {
-                    ArmSelectionHandler.enterArmMode(pos, player, level);
-                    sendStatus(player, "fluidlogistics.hand_pointer.arm.selected", STATUS_SELECTED_COLOR);
-                    HandPointerModeEnteredPacket.send();
-                }
-                return true;
+        if (blockEntity instanceof EjectorBlockEntity) {
+            if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.DEPOT)) {
+                DepotSelectionHandler.enterMode(level, pos);
+                playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
+                sendStatus(player, "fluidlogistics.hand_pointer.depot.selected", STATUS_SELECTED_COLOR);
             }
+            return true;
+        }
 
-            if (blockEntity instanceof EjectorBlockEntity) {
-                if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.DEPOT)) {
-                    DepotSelectionHandler.enterMode(level, pos);
-                    playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                    sendStatus(player, "fluidlogistics.hand_pointer.depot.selected", STATUS_SELECTED_COLOR);
-                    HandPointerModeEnteredPacket.send();
-                }
-                return true;
+        if (isDisplayBoard(level, pos, state)) {
+            if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.DISPLAY_LINK)) {
+                DisplayLinkSelectionHandler.setSelectedDisplayBoard(level, pos);
+                playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
+                sendStatus(player, "fluidlogistics.hand_pointer.display_link.selected", STATUS_SELECTED_COLOR);
             }
-
-            if (isDisplayBoard(level, pos, state)) {
-                if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.DISPLAY_LINK)) {
-                    DisplayLinkSelectionHandler.setSelectedDisplayBoard(level, pos);
-                    playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                    sendStatus(player, "fluidlogistics.hand_pointer.display_link.selected", STATUS_SELECTED_COLOR);
-                    HandPointerModeEnteredPacket.send();
-                }
-                return true;
-            }
+            return true;
         }
 
         if (blockEntity instanceof MechanicalFluidGunBlockEntity) {
             if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.MECHANICAL_FLUID_GUN)) {
                 MechanicalFluidGunSelectionHandler.enterMode(level, pos);
                 playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
-                HandPointerModeEnteredPacket.send();
             }
+            return true;
+        }
+
+        if (blockEntity instanceof ThresholdSwitchBlockEntity thresholdSwitch) {
+            ScreenOpener.open(new HandPointerThresholdSwitchScreen(thresholdSwitch));
+            playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.35f, 1.2f);
             return true;
         }
 
@@ -366,19 +357,36 @@ public class HandPointerInteractionHandler {
 
         if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.MECHANICAL_FLUID_GUN) {
             if (MechanicalFluidGunSelectionHandler.isSelectedGun(pos)) {
-                int targetCount = MechanicalFluidGunSelectionHandler.getTargetCount();
-                boolean success = player.isShiftKeyDown()
-                    ? MechanicalFluidGunSelectionHandler.clearTarget()
-                    : MechanicalFluidGunSelectionHandler.submit();
-                if (success) {
+                if (player.isShiftKeyDown()) {
+                    boolean success = MechanicalFluidGunSelectionHandler.clearTarget();
+                    if (success) {
+                        playBlockSound(level, pos, SoundEvents.NOTE_BLOCK_CHIME.value(), 0.8f, 1.0f);
+                        HandPointerModeManager.exitMode(player, level);
+                    } else {
+                        playDenySound(level, pos);
+                    }
+                    return;
+                }
+
+                MechanicalFluidGunSelectionHandler.SubmitResult result = MechanicalFluidGunSelectionHandler.submit(level);
+                if (result.success()) {
                     playBlockSound(level, pos, SoundEvents.NOTE_BLOCK_CHIME.value(), 0.8f, 1.0f);
                     HandPointerModeManager.exitMode(player, level);
-                    if (!player.isShiftKeyDown()) {
+                    if (result.skippedCount() > 0) {
+                        sendStatus(player, "fluidlogistics.mechanical_fluid_gun.targets_out_of_range",
+                            STATUS_INVALID_COLOR, result.skippedCount());
+                    } else {
                         sendStatus(player, "fluidlogistics.mechanical_fluid_gun.target_summary",
-                            STATUS_CONNECTABLE_COLOR, targetCount);
+                            STATUS_CONNECTABLE_COLOR, result.sentCount());
                     }
                 } else {
                     playDenySound(level, pos);
+                    if (result.skippedCount() > 0) {
+                        sendStatus(player, "fluidlogistics.mechanical_fluid_gun.targets_out_of_range",
+                            STATUS_INVALID_COLOR, result.skippedCount());
+                    } else {
+                        sendStatus(player, "fluidlogistics.hand_pointer.too_far", STATUS_INVALID_COLOR);
+                    }
                 }
                 return;
             }
@@ -590,11 +598,12 @@ public class HandPointerInteractionHandler {
         boolean isCreatePackager = AllBlocks.PACKAGER.has(state);
         boolean isRepackager = AllBlocks.REPACKAGER.has(state);
         boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
-        if (!isCreatePackager && !isRepackager && !isFluidPackager) {
+        boolean isFluidRepackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_REPACKAGER.has(state);
+        if (!isCreatePackager && !isRepackager && !isFluidPackager && !isFluidRepackager) {
             return false;
         }
 
-        if (player.isShiftKeyDown()) {
+        if (player.isShiftKeyDown() && (isCreatePackager || isFluidPackager)) {
             HandPointerClearClipboardAddressPacket.send(pos);
             playBlockSound(level, pos, SoundEvents.LEVER_CLICK, 0.3f, 0.85f);
             return true;
@@ -610,6 +619,10 @@ public class HandPointerInteractionHandler {
             ? (willBePowered
                 ? "fluidlogistics.hand_pointer.fluid_packager.powered_on"
                 : "fluidlogistics.hand_pointer.fluid_packager.powered_off")
+            : isFluidRepackager
+            ? (willBePowered
+                ? "fluidlogistics.hand_pointer.fluid_repackager.powered_on"
+                : "fluidlogistics.hand_pointer.fluid_repackager.powered_off")
             : isRepackager
             ? (willBePowered
                 ? "fluidlogistics.hand_pointer.repackager.powered_on"
@@ -624,7 +637,8 @@ public class HandPointerInteractionHandler {
     private static boolean isPackagerFamily(BlockState state) {
         return AllBlocks.PACKAGER.has(state)
             || AllBlocks.REPACKAGER.has(state)
-            || com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
+            || com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state)
+            || com.yision.fluidlogistics.registry.AllBlocks.FLUID_REPACKAGER.has(state);
     }
 
     private static boolean isDisplayBoard(Level level, BlockPos pos, BlockState state) {

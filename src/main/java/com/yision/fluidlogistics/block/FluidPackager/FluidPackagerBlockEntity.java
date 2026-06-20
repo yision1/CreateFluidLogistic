@@ -38,7 +38,6 @@ import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipul
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.TankManipulationBehaviour;
 import com.simibubi.create.foundation.item.ItemHelper;
 import com.yision.fluidlogistics.api.IFluidPackager;
-import com.yision.fluidlogistics.advancement.AllTriggers;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.goggle.PackagerGoggleInfo;
 import com.yision.fluidlogistics.item.CompressedTankItem;
@@ -57,13 +56,11 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Clearable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -401,19 +398,8 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
         animationTicks = CYCLE;
 
         advancements.awardPlayer(AllAdvancements.PACKAGER);
-        awardFluidPackageCreatedAdvancement();
         triggerStockCheck();
         notifyUpdate();
-    }
-
-    private void awardFluidPackageCreatedAdvancement() {
-        if (level == null || level.isClientSide())
-            return;
-        List<ServerPlayer> players = level.getEntitiesOfClass(ServerPlayer.class,
-            new AABB(worldPosition).inflate(16));
-        for (ServerPlayer player : players) {
-            AllTriggers.FLUID_PACKAGE_CREATED.trigger(player);
-        }
     }
 
     private FluidStack extractFluidFromTank(IFluidHandler handler, int maxAmount) {
@@ -687,7 +673,6 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
         animationTicks = CYCLE;
 
         advancements.awardPlayer(AllAdvancements.PACKAGER);
-        awardFluidPackageCreatedAdvancement();
         triggerStockCheck();
         notifyUpdate();
     }

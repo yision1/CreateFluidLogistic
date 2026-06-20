@@ -40,14 +40,14 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
     protected SmartMultiFluidTank tankInventory;
     protected IFluidHandler fluidCapability;
     protected BlockPos controller;
-    
+
     public SmartMultiFluidTank getTankInventory() {
         return tankInventory;
     };
     protected BlockPos lastKnownPos;
     protected boolean updateConnectivity;
     protected boolean updateCapability;
-    protected boolean window;
+    protected MultiFluidTankBlock.WindowStyle windowStyle;
     public int luminosity;
     protected int width;
     protected int height;
@@ -60,7 +60,7 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
     public MultiFluidTankBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
         tankInventory = createInventory();
-        window = true;
+        windowStyle = MultiFluidTankBlock.WindowStyle.FULL;
         updateConnectivity = false;
         updateCapability = false;
         forceFluidLevelUpdate = true;
@@ -192,15 +192,20 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
         ConnectivityHandler.formMulti(this);
     }
 
-    public static void toggleWindows(MultiFluidTankBlockEntity be) {
+    public MultiFluidTankBlock.WindowStyle getWindowStyle() {
+        return windowStyle;
+    }
+
+    public static void cycleWindowStyle(MultiFluidTankBlockEntity be) {
         MultiFluidTankBlockEntity controllerBE = be.getControllerBE();
         if (controllerBE == null)
             return;
-        controllerBE.setWindows(!controllerBE.window);
+        controllerBE.setWindowStyle(controllerBE.windowStyle.nextAllowed(controllerBE.width));
     }
 
-    public void setWindows(boolean window) {
-        this.window = window;
+    public void setWindowStyle(MultiFluidTankBlock.WindowStyle style) {
+        style = style.normalizeForWidth(width);
+        this.windowStyle = style;
         for (int yOffset = 0; yOffset < height; yOffset++) {
             for (int xOffset = 0; xOffset < width; xOffset++) {
                 for (int zOffset = 0; zOffset < width; zOffset++) {
@@ -209,10 +214,7 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
                     if (!MultiFluidTankBlock.isTank(blockState))
                         continue;
 
-                    MultiFluidTankBlock.Shape shape = MultiFluidTankBlock.Shape.PLAIN;
-                    if (window) {
-                        shape = MultiFluidTankBlock.Shape.WINDOW;
-                    }
+                    MultiFluidTankBlock.Shape shape = getShapeForWindowStyle(style, xOffset, zOffset);
 
                     level.setBlock(pos, blockState.setValue(MultiFluidTankBlock.SHAPE, shape),
                             Block.UPDATE_CLIENTS | Block.UPDATE_INVISIBLE | Block.UPDATE_KNOWN_SHAPE);
@@ -220,6 +222,25 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
                 }
             }
         }
+        setChanged();
+        sendData();
+    }
+
+    private MultiFluidTankBlock.Shape getShapeForWindowStyle(MultiFluidTankBlock.WindowStyle style,
+                                                             int xOffset, int zOffset) {
+        return switch (style) {
+            case FULL -> MultiFluidTankBlock.Shape.WINDOW;
+            case NONE -> MultiFluidTankBlock.Shape.PLAIN;
+            case SINGLE -> switch (width) {
+                case 1 -> MultiFluidTankBlock.Shape.WINDOW;
+                case 2 -> xOffset == 0
+                        ? zOffset == 0 ? MultiFluidTankBlock.Shape.WINDOW_NW : MultiFluidTankBlock.Shape.WINDOW_SW
+                        : zOffset == 0 ? MultiFluidTankBlock.Shape.WINDOW_NE : MultiFluidTankBlock.Shape.WINDOW_SE;
+                default -> Math.abs(xOffset - zOffset) == 1
+                        ? MultiFluidTankBlock.Shape.WINDOW
+                        : MultiFluidTankBlock.Shape.PLAIN;
+            };
+        };
     }
 
     protected void onFluidStackChanged(FluidStack[] newFluidStack) {
@@ -352,13 +373,15 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
         controller = null;
         width = 1;
         height = 1;
+        windowStyle = windowStyle.normalizeForWidth(width);
         onFluidStackChanged(tankInventory.getFluids());
 
         BlockState state = getBlockState();
         if (MultiFluidTankBlock.isTank(state)) {
+            MultiFluidTankBlock.Shape shape = getShapeForWindowStyle(windowStyle, 0, 0);
             state = state.setValue(MultiFluidTankBlock.BOTTOM, true);
             state = state.setValue(MultiFluidTankBlock.TOP, true);
-            state = state.setValue(MultiFluidTankBlock.SHAPE, window ? MultiFluidTankBlock.Shape.WINDOW : MultiFluidTankBlock.Shape.PLAIN);
+            state = state.setValue(MultiFluidTankBlock.SHAPE, shape);
             getLevel().setBlock(worldPosition, state, Block.UPDATE_CLIENTS | Block.UPDATE_INVISIBLE | Block.UPDATE_KNOWN_SHAPE);
         }
 
@@ -386,29 +409,27 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
             level.setBlock(getBlockPos(), state, Block.UPDATE_CLIENTS | Block.UPDATE_INVISIBLE);
         }
         if (isController())
-            setWindows(window);
+            setWindowStyle(windowStyle);
         onFluidStackChanged(tankInventory.getFluids());
         setChanged();
     }
 
     @Override
     public void setExtraData(@Nullable Object data) {
-        if (data instanceof Boolean)
-            window = (boolean) data;
+        if (data instanceof MultiFluidTankBlock.WindowStyle style)
+            windowStyle = style;
     }
 
     @Override
     @Nullable
     public Object getExtraData() {
-        return window;
+        return windowStyle;
     }
 
     @Override
     public Object modifyExtraData(Object data) {
-        if (data instanceof Boolean windows) {
-            windows |= window;
-            return windows;
-        }
+        if (data instanceof MultiFluidTankBlock.WindowStyle existing)
+            return MultiFluidTankBlock.WindowStyle.merge(existing, windowStyle);
         return data;
     }
 
@@ -536,9 +557,10 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
             controller = NBTHelper.readBlockPos(compound, "Controller");
 
         if (isController()) {
-            window = compound.getBoolean("Window");
+            windowStyle = MultiFluidTankBlock.WindowStyle.safeParse(compound.getString("WindowStyle"));
             width = compound.getInt("Size");
             height = compound.getInt("Height");
+            windowStyle = windowStyle.normalizeForWidth(width);
             tankInventory.setCapacity(getTotalTankSize() * getCapacityMultiplier());
             tankInventory.load(registries, compound.getCompound("TankContent"));
             if (tankInventory.getSpace() < 0)
@@ -586,7 +608,7 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
         if (!isController())
             compound.put("Controller", NbtUtils.writeBlockPos(controller));
         if (isController()) {
-            compound.putBoolean("Window", window);
+            compound.putString("WindowStyle", windowStyle.getSerializedName());
             compound.put("TankContent", tankInventory.save(registries, new CompoundTag()));
             compound.putInt("Size", width);
             compound.putInt("Height", height);
@@ -606,7 +628,7 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
     @Override
     public void writeSafe(CompoundTag compound, HolderLookup.Provider registries) {
         if (isController()) {
-            compound.putBoolean("Window", window);
+            compound.putString("WindowStyle", windowStyle.getSerializedName());
             compound.putInt("Size", width);
             compound.putInt("Height", height);
         }

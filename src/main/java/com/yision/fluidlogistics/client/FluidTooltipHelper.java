@@ -19,7 +19,16 @@ public final class FluidTooltipHelper {
         }
 
         List<Component> jeiLines = JeiClientBridge.getFluidTooltipLines(fluid);
-        return jeiLines.size() > 1 ? jeiLines : List.of(fluid.getHoverName().copy());
+        if (jeiLines.size() > 1) {
+            return jeiLines;
+        }
+
+        List<Component> emiLines = EmiClientBridge.getFluidTooltipLines(fluid);
+        if (emiLines != null && !emiLines.isEmpty()) {
+            return emiLines;
+        }
+
+        return List.of(fluid.getHoverName().copy());
     }
 
     public static List<Component> getVirtualCompressedTankTooltipLines(ItemStack stack) {

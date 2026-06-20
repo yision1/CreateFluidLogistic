@@ -11,6 +11,7 @@ import net.minecraft.network.chat.Component;
 public class FluidAmountScrollInput extends ScrollInput {
 
     private Supplier<Component> secondaryHeader;
+    private Supplier<Boolean> hasRedstoneLink = () -> false;
 
     public FluidAmountScrollInput(int xIn, int yIn, int widthIn, int heightIn) {
         super(xIn, yIn, widthIn, heightIn);
@@ -18,6 +19,12 @@ public class FluidAmountScrollInput extends ScrollInput {
 
     public FluidAmountScrollInput withSecondaryHeader(Supplier<Component> secondaryHeader) {
         this.secondaryHeader = secondaryHeader;
+        updateTooltip();
+        return this;
+    }
+
+    public FluidAmountScrollInput withRedstoneLinkInfo(Supplier<Boolean> hasRedstoneLink) {
+        this.hasRedstoneLink = hasRedstoneLink;
         updateTooltip();
         return this;
     }
@@ -47,6 +54,13 @@ public class FluidAmountScrollInput extends ScrollInput {
                 .style(ChatFormatting.DARK_GRAY)
                 .style(ChatFormatting.ITALIC)
                 .component());
-        //toolTip.add(shiftScrollsFaster.plainCopy().withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY));
+
+        if (hasRedstoneLink.get()) {
+            toolTip.add(Component.empty());
+            toolTip.add(CreateLang.translate("gui.factory_panel.has_link_connections")
+                    .component().withStyle(s -> s.withColor(HEADER_RGB.getRGB())));
+            toolTip.add(CreateLang.translate("gui.factory_panel.left_click_disconnect")
+                    .component().withStyle(ChatFormatting.ITALIC, ChatFormatting.DARK_GRAY));
+        }
     }
 }

@@ -33,7 +33,6 @@ public class ClipboardPasteHandler {
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
         if (!AllBlocks.PACKAGER.has(level.getBlockState(pos))
-            && !AllBlocks.REPACKAGER.has(level.getBlockState(pos))
             && !com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(level.getBlockState(pos))) {
             return;
         }

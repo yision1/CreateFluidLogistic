@@ -26,7 +26,7 @@ public class FluidLogisticsArmInteractionPointTypes {
 	private static class FluidPackagerType extends ArmInteractionPointType {
 		@Override
 		public boolean canCreatePoint(Level level, BlockPos pos, BlockState state) {
-			return AllBlocks.FLUID_PACKAGER.has(state);
+			return AllBlocks.FLUID_PACKAGER.has(state) || AllBlocks.FLUID_REPACKAGER.has(state);
 		}
 
 		@Override

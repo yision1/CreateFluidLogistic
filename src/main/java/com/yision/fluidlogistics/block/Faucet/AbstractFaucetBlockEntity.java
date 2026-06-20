@@ -14,12 +14,11 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetFilterSlotPositioning;
+import com.yision.fluidlogistics.compat.sable.SableSublevelTargetHelper;
 import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.network.FaucetDripParticlePacket;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -30,7 +29,6 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -41,7 +39,6 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
@@ -70,8 +67,6 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     private static final String TAG_TRANSFER_COOLDOWN = "TransferCooldown";
     private static final String TAG_DRIP_TICK_COUNTER = "DripTickCounter";
     private static final String TAG_DRIP_CYCLE_INDEX = "DripCycleIndex";
-    private static final InfiniteWaterSourceHandler INFINITE_WATER_SOURCE = new InfiniteWaterSourceHandler();
-    private static Field depotOutputBufferField;
 
     protected BeltProcessingBehaviour beltProcessing;
     protected FilteringBehaviour filtering;
@@ -186,7 +181,29 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return false;
         }
 
-        return hasFluidCapability(sourcePos, sourceSide.getOpposite()) || hasFluidCapability(sourcePos, null);
+        return FaucetFluidSupport.hasFluidCapability(level, sourcePos, sourceSide.getOpposite())
+            || FaucetFluidSupport.hasFluidCapability(level, sourcePos, null);
+    }
+
+    @Nullable
+    public IFluidHandler getFluidDisplayCapability() {
+        if (level == null) {
+            return null;
+        }
+
+        Direction facing = getBlockState().getValue(AbstractFaucetBlock.FACING);
+        BlockPos sourcePos = worldPosition.relative(facing.getOpposite());
+        if (AbstractFaucetBlock.isInfiniteWaterSource(level.getBlockState(sourcePos))) {
+            return null;
+        }
+
+        IFluidHandler source = FaucetFluidSupport.getSourceHandler(level, sourcePos, facing);
+        if (source == null) {
+            return null;
+        }
+
+        FaucetFluidDisplayHandler display = new FaucetFluidDisplayHandler(source, this::testFluidFilter);
+        return display.getTanks() == 0 ? null : display;
     }
 
     public void onTargetChanged() {
@@ -198,11 +215,15 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         notifyUpdate();
     }
 
+    private boolean testFluidFilter(FluidStack fluid) {
+        return filtering == null || filtering.test(fluid);
+    }
+
     private void tryTransferFluid() {
         BlockPos targetPos = worldPosition.below();
         Direction facing = getBlockState().getValue(AbstractFaucetBlock.FACING);
         BlockPos sourcePos = worldPosition.relative(facing.getOpposite());
-        IFluidHandler sourceHandler = getSourceHandler(sourcePos, facing);
+        IFluidHandler sourceHandler = FaucetFluidSupport.getSourceHandler(level, sourcePos, facing);
 
         if (!hasProcessableTarget(targetPos)) {
             transferCooldown = IDLE_RECHECK_INTERVAL;
@@ -236,11 +257,12 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private boolean hasProcessableTarget(BlockPos targetPos) {
-        BlockEntity targetEntity = level.getBlockEntity(targetPos);
-        BlockState targetState = level.getBlockState(targetPos);
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, targetPos);
+        BlockEntity targetEntity = resolved.blockEntity();
+        BlockState targetState = level.getBlockState(resolved.resolvedPos());
 
-        if (targetEntity != null && isDepot(targetEntity)) {
-            ItemStack itemOnDepot = getItemOnDepot(targetEntity);
+        if (targetEntity != null && FaucetTargetSupport.isDepot(targetEntity)) {
+            ItemStack itemOnDepot = FaucetTargetSupport.getItemOnDepot(targetEntity);
             return !itemOnDepot.isEmpty() && FaucetFilling.canItemBeFilled(level, itemOnDepot);
         }
 
@@ -252,13 +274,16 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private boolean tryProcess(IFluidHandler sourceHandler, BlockPos targetPos, Direction sourceDir, BlockPos sourcePos) {
-        BlockEntity targetEntity = level.getBlockEntity(targetPos);
-        BlockState targetState = level.getBlockState(targetPos);
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, targetPos);
+        BlockEntity targetEntity = resolved.blockEntity();
+        BlockPos resolvedPos = resolved.resolvedPos();
+        BlockState targetState = level.getBlockState(resolvedPos);
 
-        if (targetEntity != null && isDepot(targetEntity)) {
-            ItemStack itemOnDepot = getItemOnDepot(targetEntity);
+        if (targetEntity != null && FaucetTargetSupport.isDepot(targetEntity)) {
+            ItemStack itemOnDepot = FaucetTargetSupport.getItemOnDepot(targetEntity);
             if (!itemOnDepot.isEmpty() && FaucetFilling.canItemBeFilled(level, itemOnDepot)) {
-                FluidStack fillableFluid = findFillableFluidForItem(sourceHandler, itemOnDepot);
+                FluidStack fillableFluid = FaucetFluidSupport.findFillableFluidForItem(level, sourceHandler,
+                    this::testFluidFilter, itemOnDepot);
                 if (!fillableFluid.isEmpty()) {
                     return startItemFilling(sourceHandler, itemOnDepot, sourceDir, sourcePos, fillableFluid);
                 }
@@ -267,15 +292,37 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         }
 
         if (targetState.is(Blocks.CAULDRON) || targetState.is(Blocks.WATER_CAULDRON)) {
-            FluidStack fillableFluid = findFillableFluidForCauldron(sourceHandler, targetState);
-            return !fillableFluid.isEmpty() && tryFillCauldron(sourceHandler, targetPos, targetState, fillableFluid);
+            FluidStack fillableFluid = FaucetFluidSupport.findFillableFluidForCauldron(sourceHandler,
+                this::testFluidFilter, targetState);
+            if (fillableFluid.isEmpty()) {
+                return false;
+            }
+            FluidStack transferred = FaucetTargetSupport.fillCauldron(level, sourceHandler, resolvedPos, targetState, fillableFluid);
+            if (transferred.isEmpty()) {
+                return false;
+            }
+            renderingFluid = transferred.copy();
+            notifyUpdate();
+            return true;
         }
 
         if (targetEntity == null || !targetState.is(FAUCET_FILLABLE)) {
             return false;
         }
 
-        return tryFillContainer(sourceHandler, targetEntity);
+        IFluidHandler targetHandler = FaucetTargetSupport.getTargetHandler(level, targetEntity);
+        if (targetHandler == null) {
+            return false;
+        }
+
+        FluidStack transferred = FaucetTargetSupport.fillContainer(level, worldPosition, sourceHandler, targetHandler,
+            this::testFluidFilter, TRANSFER_RATE);
+        if (transferred.isEmpty()) {
+            return false;
+        }
+        renderingFluid = transferred.copy();
+        notifyUpdate();
+        return true;
     }
 
     private boolean startItemFilling(IFluidHandler sourceHandler, ItemStack item, Direction sourceDir, BlockPos sourcePos,
@@ -313,53 +360,16 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         return true;
     }
 
-    private FluidStack findFillableFluidForItem(IFluidHandler sourceHandler, ItemStack item) {
-        for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
-            FluidStack candidate = sourceHandler.getFluidInTank(tank);
-            if (candidate.isEmpty() || filtering != null && !filtering.test(candidate)) {
-                continue;
-            }
-
-            int requiredAmount = FaucetFilling.getRequiredAmountForItem(level, item, candidate.copy());
-            if (requiredAmount > 0 && requiredAmount <= candidate.getAmount()) {
-                return candidate.copy();
-            }
-        }
-
-        FluidStack fallback = previewFluid(sourceHandler, Integer.MAX_VALUE);
-        if (fallback.isEmpty()) {
-            return FluidStack.EMPTY;
-        }
-
-        int requiredAmount = FaucetFilling.getRequiredAmountForItem(level, item, fallback.copy());
-        return requiredAmount > 0 && requiredAmount <= fallback.getAmount() ? fallback : FluidStack.EMPTY;
-    }
-
-    private boolean hasPotentialFluidForItem(IFluidHandler sourceHandler, ItemStack item) {
-        for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
-            FluidStack candidate = sourceHandler.getFluidInTank(tank);
-            if (candidate.isEmpty() || filtering != null && !filtering.test(candidate)) {
-                continue;
-            }
-
-            if (FaucetFilling.getRequiredAmountForItem(level, item, candidate.copy()) > 0) {
-                return true;
-            }
-        }
-
-        FluidStack fallback = previewFluid(sourceHandler, Integer.MAX_VALUE);
-        return !fallback.isEmpty() && FaucetFilling.getRequiredAmountForItem(level, item, fallback.copy()) > 0;
-    }
-
     private @Nullable ItemFillContext getItemFillContext(ItemStack item) {
         Direction facing = getBlockState().getValue(AbstractFaucetBlock.FACING);
         BlockPos sourcePos = worldPosition.relative(facing.getOpposite());
-        IFluidHandler sourceHandler = getSourceHandler(sourcePos, facing);
+        IFluidHandler sourceHandler = FaucetFluidSupport.getSourceHandler(level, sourcePos, facing);
         if (sourceHandler == null) {
             return null;
         }
 
-        FluidStack fillableFluid = findFillableFluidForItem(sourceHandler, item);
+        FluidStack fillableFluid = FaucetFluidSupport.findFillableFluidForItem(level, sourceHandler,
+            this::testFluidFilter, item);
         if (fillableFluid.isEmpty()) {
             return null;
         }
@@ -392,8 +402,9 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         }
 
         Direction facing = getBlockState().getValue(AbstractFaucetBlock.FACING);
-        IFluidHandler sourceHandler = getSourceHandler(worldPosition.relative(facing.getOpposite()), facing);
-        return sourceHandler != null && hasPotentialFluidForItem(sourceHandler, transported.stack) ? HOLD : PASS;
+        IFluidHandler sourceHandler = FaucetFluidSupport.getSourceHandler(level, worldPosition.relative(facing.getOpposite()), facing);
+        return sourceHandler != null && FaucetFluidSupport.hasPotentialFluidForItem(level, sourceHandler,
+            this::testFluidFilter, transported.stack) ? HOLD : PASS;
     }
 
     private BeltProcessingBehaviour.ProcessingResult whenBeltItemHeld(TransportedItemStack transported,
@@ -434,15 +445,19 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         ItemFillContext fillContext = getItemFillContext(transported.stack);
         if (fillContext == null) {
             Direction facing = getBlockState().getValue(AbstractFaucetBlock.FACING);
-            IFluidHandler sourceHandler = getSourceHandler(worldPosition.relative(facing.getOpposite()), facing);
-            return sourceHandler != null && hasPotentialFluidForItem(sourceHandler, transported.stack) ? HOLD : PASS;
+            IFluidHandler sourceHandler = FaucetFluidSupport.getSourceHandler(level, worldPosition.relative(facing.getOpposite()), facing);
+            return sourceHandler != null && FaucetFluidSupport.hasPotentialFluidForItem(level, sourceHandler,
+                this::testFluidFilter, transported.stack) ? HOLD : PASS;
         }
 
         return startBeltFilling(fillContext, transported.stack) ? HOLD : PASS;
     }
 
     private boolean isDirectlyAbove(TransportedItemStackHandlerBehaviour handler) {
-        return handler.blockEntity != null && handler.blockEntity.getBlockPos().above().equals(worldPosition);
+        if (handler.blockEntity == null) {
+            return false;
+        }
+        return SableSublevelTargetHelper.isSameBlockAcrossSublevels(level, worldPosition.below(), handler.blockEntity.getBlockPos());
     }
 
     private boolean validateItemStillPresent() {
@@ -450,12 +465,13 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return false;
         }
 
-        BlockEntity targetEntity = level.getBlockEntity(worldPosition.below());
-        if (!isDepot(targetEntity)) {
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, worldPosition.below());
+        BlockEntity targetEntity = resolved.blockEntity();
+        if (!FaucetTargetSupport.isDepot(targetEntity)) {
             return false;
         }
 
-        ItemStack currentItem = getItemOnDepot(targetEntity);
+        ItemStack currentItem = FaucetTargetSupport.getItemOnDepot(targetEntity);
         return ItemStack.isSameItemSameComponents(currentItem, processingItem) && currentItem.getCount() >= 1;
     }
 
@@ -464,14 +480,15 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return;
         }
 
-        BlockPos targetPos = worldPosition.below();
-        BlockEntity targetEntity = level.getBlockEntity(targetPos);
-        if (!isDepot(targetEntity)) {
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, worldPosition.below());
+        BlockPos targetPos = resolved.resolvedPos();
+        BlockEntity targetEntity = resolved.blockEntity();
+        if (!FaucetTargetSupport.isDepot(targetEntity)) {
             cancelItemFilling();
             return;
         }
 
-        ItemStack currentItem = getItemOnDepot(targetEntity);
+        ItemStack currentItem = FaucetTargetSupport.getItemOnDepot(targetEntity);
         if (!ItemStack.isSameItemSameComponents(currentItem, processingItem) || currentItem.getCount() < 1) {
             cancelItemFilling();
             return;
@@ -488,24 +505,21 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return;
         }
 
-        ItemStack singleItem = currentItem.copyWithCount(1);
-        ItemStack result = FaucetFilling.fillItem(level, pendingFluid.getAmount(), singleItem, pendingFluid.copy());
+        ItemStack result = FaucetFilling.fillItem(level, pendingFluid.getAmount(), currentItem, pendingFluid.copy());
         if (result.isEmpty()) {
             cancelItemFilling();
             return;
         }
 
-        ItemStack remaining = currentItem.copy();
-        remaining.shrink(1);
-        if (remaining.isEmpty()) {
+        if (currentItem.isEmpty()) {
             behaviour.setHeldItem(new TransportedItemStack(result));
         } else {
-            behaviour.setHeldItem(new TransportedItemStack(remaining));
-            storeDepotOutput(behaviour, result, targetPos);
+            behaviour.setHeldItem(new TransportedItemStack(currentItem.copy()));
+            FaucetTargetSupport.storeDepotOutput(level, behaviour, result, targetPos);
         }
 
         targetEntity.setChanged();
-        notifyTargetUpdate(targetEntity);
+        FaucetTargetSupport.notifyTargetUpdate(level, targetEntity);
         level.playSound(null, targetPos, net.minecraft.sounds.SoundEvents.BOTTLE_FILL,
             net.minecraft.sounds.SoundSource.BLOCKS, 0.5f, 1.0f + level.random.nextFloat() * 0.2f);
 
@@ -587,152 +601,6 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         processingTarget = ProcessingTarget.NONE;
     }
 
-    private boolean tryFillCauldron(IFluidHandler sourceHandler, BlockPos targetPos, BlockState targetState,
-        FluidStack availableFluid) {
-        if (availableFluid.getFluid() == Fluids.WATER) {
-            if (targetState.is(Blocks.CAULDRON)) {
-                return fillWaterCauldronLevel(sourceHandler, targetPos, 1);
-            }
-
-            if (targetState.is(Blocks.WATER_CAULDRON) && targetState.hasProperty(LayeredCauldronBlock.LEVEL)) {
-                int currentLevel = targetState.getValue(LayeredCauldronBlock.LEVEL);
-                if (currentLevel < LayeredCauldronBlock.MAX_FILL_LEVEL) {
-                    return fillWaterCauldronLevel(sourceHandler, targetPos, currentLevel + 1);
-                }
-            }
-            return false;
-        }
-
-        if (!targetState.is(Blocks.CAULDRON)) {
-            return false;
-        }
-
-        var cauldronInfo = com.simibubi.create.api.behaviour.spouting.CauldronSpoutingBehavior.CAULDRON_INFO
-            .get(availableFluid.getFluid());
-        if (cauldronInfo == null || availableFluid.getAmount() < cauldronInfo.amount()) {
-            return false;
-        }
-
-        FluidStack drained = sourceHandler.drain(availableFluid.copyWithAmount(cauldronInfo.amount()), FluidAction.EXECUTE);
-        if (drained.isEmpty() || drained.getAmount() < cauldronInfo.amount()) {
-            return false;
-        }
-
-        level.setBlockAndUpdate(targetPos, cauldronInfo.cauldron());
-        renderingFluid = drained.copy();
-        level.playSound(null, targetPos, net.minecraft.sounds.SoundEvents.BUCKET_EMPTY,
-            net.minecraft.sounds.SoundSource.BLOCKS, 0.5f, 1.0f);
-        notifyUpdate();
-        return true;
-    }
-
-    private boolean fillWaterCauldronLevel(IFluidHandler sourceHandler, BlockPos targetPos, int targetLevel) {
-        FluidStack drained = sourceHandler.drain(new FluidStack(Fluids.WATER, 250), FluidAction.EXECUTE);
-        if (drained.isEmpty() || drained.getAmount() < 250) {
-            return false;
-        }
-
-        level.setBlockAndUpdate(targetPos,
-            Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, targetLevel));
-        renderingFluid = drained.copy();
-        level.playSound(null, targetPos, net.minecraft.sounds.SoundEvents.BUCKET_EMPTY,
-            net.minecraft.sounds.SoundSource.BLOCKS, 0.5f, 0.8f + targetLevel * 0.1f);
-        notifyUpdate();
-        return true;
-    }
-
-    private boolean tryFillContainer(IFluidHandler sourceHandler, BlockEntity targetEntity) {
-        IFluidHandler targetHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, targetEntity.getBlockPos(),
-            Direction.UP);
-        if (targetHandler == null) {
-            targetHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, targetEntity.getBlockPos(), null);
-        }
-        if (targetHandler == null) {
-            return false;
-        }
-
-        FluidStack availableFluid = findFillableFluidForContainer(sourceHandler, targetHandler);
-        if (availableFluid.isEmpty()) {
-            return false;
-        }
-
-        FluidStack toTransfer = availableFluid.copyWithAmount(Math.min(availableFluid.getAmount(), TRANSFER_RATE));
-        int filled = targetHandler.fill(toTransfer, FluidAction.SIMULATE);
-        if (filled <= 0) {
-            return false;
-        }
-
-        FluidStack actualDrain = sourceHandler.drain(toTransfer.copyWithAmount(filled), FluidAction.EXECUTE);
-        if (actualDrain.isEmpty()) {
-            return false;
-        }
-
-        targetHandler.fill(actualDrain, FluidAction.EXECUTE);
-        renderingFluid = actualDrain.copy();
-        if (level.random.nextFloat() < 0.1f) {
-            AllSoundEvents.SPOUTING.playOnServer(level, worldPosition, 0.3f, 0.9f + 0.2f * level.random.nextFloat());
-        }
-        notifyUpdate();
-        return true;
-    }
-
-    private FluidStack findFillableFluidForCauldron(IFluidHandler sourceHandler, BlockState targetState) {
-        return findMatchingFluid(sourceHandler, candidate -> canFillCauldron(targetState, candidate), Integer.MAX_VALUE);
-    }
-
-    private FluidStack findFillableFluidForContainer(IFluidHandler sourceHandler, IFluidHandler targetHandler) {
-        return findMatchingFluid(sourceHandler, candidate -> {
-            FluidStack preview = candidate.copyWithAmount(Math.min(candidate.getAmount(), TRANSFER_RATE));
-            return targetHandler.fill(preview, FluidAction.SIMULATE) > 0;
-        }, TRANSFER_RATE);
-    }
-
-    private FluidStack findMatchingFluid(IFluidHandler sourceHandler, Predicate<FluidStack> predicate, int maxAmount) {
-        for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
-            FluidStack candidate = sourceHandler.getFluidInTank(tank);
-            if (candidate.isEmpty() || filtering != null && !filtering.test(candidate)) {
-                continue;
-            }
-
-            FluidStack preview = candidate.copyWithAmount(Math.min(candidate.getAmount(), maxAmount));
-            if (predicate.test(preview)) {
-                return preview;
-            }
-        }
-
-        FluidStack drained = sourceHandler.drain(maxAmount, FluidAction.SIMULATE);
-        if (!drained.isEmpty() && (filtering == null || filtering.test(drained)) && predicate.test(drained)) {
-            return drained;
-        }
-        return FluidStack.EMPTY;
-    }
-
-    private boolean canFillCauldron(BlockState targetState, FluidStack availableFluid) {
-        if (availableFluid.isEmpty()) {
-            return false;
-        }
-
-        if (availableFluid.getFluid() == Fluids.WATER) {
-            if (targetState.is(Blocks.CAULDRON)) {
-                return availableFluid.getAmount() >= 250;
-            }
-
-            if (targetState.is(Blocks.WATER_CAULDRON) && targetState.hasProperty(LayeredCauldronBlock.LEVEL)) {
-                int currentLevel = targetState.getValue(LayeredCauldronBlock.LEVEL);
-                return currentLevel < LayeredCauldronBlock.MAX_FILL_LEVEL && availableFluid.getAmount() >= 250;
-            }
-            return false;
-        }
-
-        if (!targetState.is(Blocks.CAULDRON)) {
-            return false;
-        }
-
-        var cauldronInfo = com.simibubi.create.api.behaviour.spouting.CauldronSpoutingBehavior.CAULDRON_INFO
-            .get(availableFluid.getFluid());
-        return cauldronInfo != null && availableFluid.getAmount() >= cauldronInfo.amount();
-    }
-
     private void spawnDripParticle() {
         if (!(level instanceof ServerLevel serverLevel) || dripFluid.isEmpty()) {
             return;
@@ -772,102 +640,6 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             clearDripState();
             notifyUpdate();
         }
-    }
-
-    private void storeDepotOutput(DepotBehaviour behaviour, ItemStack result, BlockPos targetPos) {
-        try {
-            if (depotOutputBufferField == null) {
-                depotOutputBufferField = DepotBehaviour.class.getDeclaredField("processingOutputBuffer");
-                depotOutputBufferField.setAccessible(true);
-            }
-            ItemStackHandler outputBuffer = (ItemStackHandler) depotOutputBufferField.get(behaviour);
-            ItemStack remainder = result.copy();
-            for (int slot = 0; slot < outputBuffer.getSlots() && !remainder.isEmpty(); slot++) {
-                remainder = outputBuffer.insertItem(slot, remainder, false);
-            }
-            if (!remainder.isEmpty()) {
-                net.minecraft.world.Containers.dropItemStack(level, targetPos.getX() + 0.5, targetPos.getY() + 0.75,
-                    targetPos.getZ() + 0.5, remainder);
-            }
-        } catch (ReflectiveOperationException exception) {
-            net.minecraft.world.Containers.dropItemStack(level, targetPos.getX() + 0.5, targetPos.getY() + 0.75,
-                targetPos.getZ() + 0.5, result);
-        }
-    }
-
-    private void notifyTargetUpdate(BlockEntity targetEntity) {
-        level.sendBlockUpdated(targetEntity.getBlockPos(), targetEntity.getBlockState(), targetEntity.getBlockState(), 3);
-        if (targetEntity instanceof SmartBlockEntity smartBlockEntity) {
-            smartBlockEntity.notifyUpdate();
-        }
-    }
-
-    private boolean isDepot(@Nullable BlockEntity entity) {
-        return entity != null && DepotBehaviour.get(entity, DepotBehaviour.TYPE) != null;
-    }
-
-    private ItemStack getItemOnDepot(BlockEntity depot) {
-        DepotBehaviour behaviour = DepotBehaviour.get(depot, DepotBehaviour.TYPE);
-        return behaviour == null ? ItemStack.EMPTY : behaviour.getHeldItemStack();
-    }
-
-    private @Nullable IFluidHandler getSourceHandler(BlockPos sourcePos, Direction side) {
-        if (AbstractFaucetBlock.isInfiniteWaterSource(level.getBlockState(sourcePos))) {
-            return INFINITE_WATER_SOURCE;
-        }
-        IFluidHandler sidedHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, sourcePos, side);
-        if (sidedHandler != null) {
-            return sidedHandler;
-        }
-        return level.getCapability(Capabilities.FluidHandler.BLOCK, sourcePos, null);
-    }
-
-    private FluidStack previewFluid(IFluidHandler sourceHandler, int maxAmount) {
-        for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
-            FluidStack candidate = sourceHandler.getFluidInTank(tank);
-            if (candidate.isEmpty() || filtering != null && !filtering.test(candidate)) {
-                continue;
-            }
-            return candidate.copyWithAmount(Math.min(candidate.getAmount(), maxAmount));
-        }
-
-        FluidStack drained = sourceHandler.drain(maxAmount, FluidAction.SIMULATE);
-        if (!drained.isEmpty() && (filtering == null || filtering.test(drained))) {
-            return drained;
-        }
-        return FluidStack.EMPTY;
-    }
-
-    private List<FluidStack> previewDripFluids(IFluidHandler sourceHandler) {
-        List<FluidStack> dripFluids = new ArrayList<>();
-        for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
-            FluidStack candidate = sourceHandler.getFluidInTank(tank);
-            if (candidate.isEmpty() || filtering != null && !filtering.test(candidate)) {
-                continue;
-            }
-
-            FluidStack preview = candidate.copyWithAmount(Math.min(candidate.getAmount(), DRIP_AMOUNT));
-            boolean duplicate = false;
-            for (FluidStack existing : dripFluids) {
-                if (FluidStack.isSameFluidSameComponents(existing, preview)) {
-                    duplicate = true;
-                    break;
-                }
-            }
-            if (!duplicate) {
-                dripFluids.add(preview);
-            }
-        }
-
-        if (!dripFluids.isEmpty()) {
-            return dripFluids;
-        }
-
-        FluidStack drained = sourceHandler.drain(DRIP_AMOUNT, FluidAction.SIMULATE);
-        if (!drained.isEmpty() && (filtering == null || filtering.test(drained))) {
-            dripFluids.add(drained.copyWithAmount(Math.min(drained.getAmount(), DRIP_AMOUNT)));
-        }
-        return dripFluids;
     }
 
     @Override
@@ -974,11 +746,16 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private ItemStack getCurrentStackInBeltSegment(BlockPos beltPos) {
-        var state = level.getBlockState(beltPos);
-        var blockEntity = level.getBlockEntity(beltPos);
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, beltPos);
+        BlockEntity blockEntity = resolved.blockEntity();
+        if (blockEntity == null) {
+            return ItemStack.EMPTY;
+        }
+        BlockPos resolvedPos = resolved.resolvedPos();
+        var state = level.getBlockState(resolvedPos);
         var handler = level.getCapability(
             Capabilities.ItemHandler.BLOCK,
-            beltPos,
+            resolvedPos,
             state,
             blockEntity,
             null
@@ -1029,7 +806,7 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private void updateDripPreview(IFluidHandler sourceHandler) {
-        List<FluidStack> dripPreview = previewDripFluids(sourceHandler);
+        List<FluidStack> dripPreview = FaucetFluidSupport.previewDripFluids(sourceHandler, this::testFluidFilter, DRIP_AMOUNT);
         cacheDripFluids(dripPreview);
         if (dripPreview.isEmpty()) {
             clearFlowVisuals();
@@ -1064,14 +841,14 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         }
 
         Direction facing = getBlockState().getValue(AbstractFaucetBlock.FACING);
-        IFluidHandler sourceHandler = getSourceHandler(worldPosition.relative(facing.getOpposite()), facing);
+        IFluidHandler sourceHandler = FaucetFluidSupport.getSourceHandler(level, worldPosition.relative(facing.getOpposite()), facing);
         if (sourceHandler == null) {
             cachedDripFluids.clear();
             clearFlowVisuals();
             return;
         }
 
-        List<FluidStack> dripPreview = previewDripFluids(sourceHandler);
+        List<FluidStack> dripPreview = FaucetFluidSupport.previewDripFluids(sourceHandler, this::testFluidFilter, DRIP_AMOUNT);
         cacheDripFluids(dripPreview);
         if (dripPreview.isEmpty()) {
             clearFlowVisuals();
@@ -1126,10 +903,6 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             }
         }
         return -1;
-    }
-
-    private boolean hasFluidCapability(BlockPos pos, @Nullable Direction side) {
-        return level.getCapability(Capabilities.FluidHandler.BLOCK, pos, side) != null;
     }
 
     private void writeFluid(CompoundTag tag, HolderLookup.Provider registries, String key, FluidStack stack) {
@@ -1189,48 +962,6 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
                 return NONE;
             }
             return values[ordinal];
-        }
-    }
-
-    private static class InfiniteWaterSourceHandler implements IFluidHandler {
-        private static final FluidStack WATER = new FluidStack(Fluids.WATER, 1000);
-
-        @Override
-        public int getTanks() {
-            return 1;
-        }
-
-        @Override
-        public FluidStack getFluidInTank(int tank) {
-            return WATER.copy();
-        }
-
-        @Override
-        public int getTankCapacity(int tank) {
-            return Integer.MAX_VALUE;
-        }
-
-        @Override
-        public boolean isFluidValid(int tank, FluidStack stack) {
-            return false;
-        }
-
-        @Override
-        public int fill(FluidStack resource, FluidAction action) {
-            return 0;
-        }
-
-        @Override
-        public FluidStack drain(FluidStack resource, FluidAction action) {
-            if (resource.isEmpty() || resource.getFluid() != Fluids.WATER) {
-                return FluidStack.EMPTY;
-            }
-            return WATER.copyWithAmount(Math.min(resource.getAmount(), WATER.getAmount()));
-        }
-
-        @Override
-        public FluidStack drain(int maxDrain, FluidAction action) {
-            return maxDrain <= 0 ? FluidStack.EMPTY : WATER.copyWithAmount(Math.min(maxDrain, WATER.getAmount()));
         }
     }
 }

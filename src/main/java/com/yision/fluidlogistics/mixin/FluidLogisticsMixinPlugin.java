@@ -17,15 +17,18 @@ public class FluidLogisticsMixinPlugin implements IMixinConfigPlugin {
         "com.yision.fluidlogistics.mixin.client.StockKeeperTransferHandlerMixin"
     );
 
-    private static final Set<String> ADVANCED_LOGISTICS_MIXINS = Set.of(
-        // Accessors
+    private static final Set<String> HAND_POINTER_SUPPORT_MIXINS = Set.of(
         "com.yision.fluidlogistics.mixin.accessor.ArmBlockEntityAccessor",
-        "com.yision.fluidlogistics.mixin.accessor.StockTickerBlockEntityAccessor",
         "com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorOBBAccessor",
         "com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorShapeAccessor",
-        // Item
+        "com.yision.fluidlogistics.mixin.logistics.PackagerBlockEntityMixin",
+        "com.yision.fluidlogistics.mixin.logistics.PackagerBlockMixin"
+    );
+
+    private static final Set<String> ADVANCED_LOGISTICS_MIXINS = Set.of(
+
+        "com.yision.fluidlogistics.mixin.accessor.StockTickerBlockEntityAccessor",
         "com.yision.fluidlogistics.mixin.item.PackageItemMixin",
-        // Logistics (server/common)
         "com.yision.fluidlogistics.mixin.logistics.AttributeFilterItemStackMixin",
         "com.yision.fluidlogistics.mixin.logistics.FactoryPanelBehaviourLegacyLinkCleanupMixin",
         "com.yision.fluidlogistics.mixin.logistics.FactoryPanelBehaviourMixin",
@@ -35,12 +38,8 @@ public class FluidLogisticsMixinPlugin implements IMixinConfigPlugin {
         "com.yision.fluidlogistics.mixin.logistics.LogisticallyLinkedBehaviourLegacyLinkCleanupMixin",
         "com.yision.fluidlogistics.mixin.logistics.LogisticsManagerMixin",
         "com.yision.fluidlogistics.mixin.logistics.PackageEntityMixin",
-        "com.yision.fluidlogistics.mixin.logistics.PackagerBlockEntityMixin",
-        "com.yision.fluidlogistics.mixin.logistics.PackagerBlockMixin",
         "com.yision.fluidlogistics.mixin.logistics.RequestPromiseQueueMixin",
-        // Client
-        "com.yision.fluidlogistics.mixin.client.ChainConveyorRendererMixin",
-        "com.yision.fluidlogistics.mixin.client.ChainConveyorVisualMixin",
+
         "com.yision.fluidlogistics.mixin.client.CraftableBigItemStackMixin",
         "com.yision.fluidlogistics.mixin.client.FactoryPanelBehaviourClientMixin",
         "com.yision.fluidlogistics.mixin.client.FactoryPanelScreenMixin",

@@ -42,7 +42,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class FluidPumpBlockEntity extends PumpBlockEntity {
 
@@ -353,12 +352,8 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 			return false;
 
 		if (blockEntity != null) {
-			IFluidHandler capability = blockEntity.getLevel()
-				.getCapability(Capabilities.FluidHandler.BLOCK, blockEntity.getBlockPos(), face.getOpposite());
-			if (capability == null)
-				capability = blockEntity.getLevel()
-					.getCapability(Capabilities.FluidHandler.BLOCK, blockEntity.getBlockPos(), null);
-			if (capability != null)
+			if (blockEntity.getLevel()
+				.getCapability(Capabilities.FluidHandler.BLOCK, blockEntity.getBlockPos(), face.getOpposite()) != null)
 				return true;
 		}
 

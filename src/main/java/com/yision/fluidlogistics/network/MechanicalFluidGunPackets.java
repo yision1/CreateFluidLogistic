@@ -1,9 +1,11 @@
 package com.yision.fluidlogistics.network;
 
+import com.yision.fluidlogistics.block.FluidHatch.FluidHatchFluidHandlerForwarder;
 import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlock;
 import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
+import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunItem;
 import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunTargetConfig;
-import com.yision.fluidlogistics.client.MechanicalFluidGunItemSelectionHandler;
+import com.yision.fluidlogistics.registry.AllBlocks;
 
 import com.simibubi.create.content.fluids.FluidFX;
 import java.util.ArrayList;
@@ -17,8 +19,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -121,26 +125,93 @@ public final class MechanicalFluidGunPackets {
         }
     }
 
-    public record PlacementRequestPacket(BlockPos gunPos) implements ClientboundPacketPayload {
+    public record ItemTargetSelectionPacket(BlockPos targetPos, @Nullable Direction face,
+                                             boolean remove, boolean clearSelectedTargets,
+                                             int selectedSlot) implements ServerboundPacketPayload {
 
-        public static final StreamCodec<RegistryFriendlyByteBuf, PlacementRequestPacket> STREAM_CODEC =
-            StreamCodec.composite(
-                BlockPos.STREAM_CODEC, PlacementRequestPacket::gunPos,
-                PlacementRequestPacket::new
-            );
+        public static final StreamCodec<RegistryFriendlyByteBuf, ItemTargetSelectionPacket> STREAM_CODEC =
+            StreamCodec.of(ItemTargetSelectionPacket::encode, ItemTargetSelectionPacket::decode);
+
+        public ItemTargetSelectionPacket(BlockPos targetPos, @Nullable Direction face, boolean remove) {
+            this(targetPos, face, remove, false, -1);
+        }
+
+        public static ItemTargetSelectionPacket clearSelectedTargets(int selectedSlot) {
+            return new ItemTargetSelectionPacket(BlockPos.ZERO, null, false, true, selectedSlot);
+        }
+
+        private static void encode(RegistryFriendlyByteBuf buf, ItemTargetSelectionPacket pkt) {
+            buf.writeBoolean(pkt.clearSelectedTargets);
+            if (pkt.clearSelectedTargets) {
+                buf.writeVarInt(pkt.selectedSlot);
+                return;
+            }
+            buf.writeBlockPos(pkt.targetPos);
+            buf.writeBoolean(pkt.face != null);
+            if (pkt.face != null) {
+                buf.writeVarInt(pkt.face.get3DDataValue());
+            }
+            buf.writeBoolean(pkt.remove);
+        }
+
+        private static ItemTargetSelectionPacket decode(RegistryFriendlyByteBuf buf) {
+            boolean clearSelectedTargets = buf.readBoolean();
+            if (clearSelectedTargets) {
+                return clearSelectedTargets(buf.readVarInt());
+            }
+            BlockPos targetPos = buf.readBlockPos();
+            Direction face = buf.readBoolean() ? Direction.from3DDataValue(buf.readVarInt()) : null;
+            boolean remove = buf.readBoolean();
+            return new ItemTargetSelectionPacket(targetPos, face, remove);
+        }
 
         @Override
-        @OnlyIn(Dist.CLIENT)
-        public void handle(LocalPlayer player) {
-            MechanicalFluidGunItemSelectionHandler.flushTarget(gunPos);
+        public void handle(ServerPlayer player) {
+            if (player == null || player.isSpectator()) return;
+
+            if (clearSelectedTargets) {
+                if (selectedSlot < 0 || selectedSlot >= player.getInventory().getContainerSize()) return;
+                ItemStack selectedStack = player.getInventory().getItem(selectedSlot);
+                if (AllBlocks.MECHANICAL_FLUID_GUN.isIn(selectedStack)) {
+                    MechanicalFluidGunItem.clearSelectedTargets(selectedStack);
+                }
+                return;
+            }
+
+            ItemStack mainHand = player.getMainHandItem();
+            if (!AllBlocks.MECHANICAL_FLUID_GUN.isIn(mainHand)) return;
+
+            Level level = player.level();
+            if (!level.isLoaded(targetPos)) return;
+            if (!player.mayInteract(level, targetPos)) return;
+            if (player.distanceToSqr(targetPos.getX() + 0.5D, targetPos.getY() + 0.5D, targetPos.getZ() + 0.5D) > 64.0D)
+                return;
+            if (!MechanicalFluidGunBlock.isTargetTagged(level, targetPos)) return;
+
+            if (!remove) {
+                int currentCount = MechanicalFluidGunItem.getSelectedTargets(mainHand, level).size();
+                if (currentCount >= TargetPacket.MAX_TARGETS) return;
+            }
+
+            if (remove) {
+                MechanicalFluidGunItem.removeSelectedTarget(mainHand, targetPos);
+            } else {
+                Direction normalizedFace = face;
+                BlockState targetState = level.getBlockState(targetPos);
+                Direction hatchSide = FluidHatchFluidHandlerForwarder.getExposedSide(targetState);
+                if (hatchSide != null) {
+                    normalizedFace = hatchSide;
+                }
+                MechanicalFluidGunItem.addSelectedTarget(mainHand, level, targetPos, normalizedFace);
+            }
         }
 
         @Override
         public PacketTypeProvider getTypeProvider() {
-            return FluidLogisticsPackets.MECHANICAL_FLUID_GUN_PLACEMENT_REQUEST;
+            return FluidLogisticsPackets.MECHANICAL_FLUID_GUN_ITEM_TARGET_SELECTION;
         }
     }
-    
+
     public record SprayParticlePacket(Vec3 target,
                                        FluidStack fluid) implements ClientboundPacketPayload {
 

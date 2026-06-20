@@ -94,8 +94,7 @@ public class MultiFluidTankMountedStorage extends WrapperMountedFluidStorage<Mul
         for (int i = 0; i < this.wrapped.getTanks() && i < inv.getTanks(); i++) {
             inv.setFluid(i, this.wrapped.getFluidInTank(i).copy());
         }
-        
-        tank.setWindows(true);
+
         tank.initFluidLevel();
         LerpedFloat[] fluidLevel = tank.getFluidLevel();
         if (fluidLevel != null) {

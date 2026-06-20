@@ -12,26 +12,25 @@ import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorPackage;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorVisual;
-import com.simibubi.create.content.logistics.box.PackageItem;
+import com.yision.fluidlogistics.client.phantomchain.PhantomChainVisibility;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.item.FluidPackageItem;
+import com.yision.fluidlogistics.render.FluidPackageItemRenderer;
 import com.yision.fluidlogistics.render.FluidVisual;
 import dev.engine_room.flywheel.api.visual.DynamicVisual;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import dev.engine_room.flywheel.lib.instance.TransformedInstance;
 import dev.engine_room.flywheel.lib.transform.Translate;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.BlockPos;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Mixin(ChainConveyorVisual.class)
 public class ChainConveyorVisualMixin {
@@ -44,6 +43,9 @@ public class ChainConveyorVisualMixin {
             at = @At("RETURN")
     )
     private void fluidlogistics$ctor(VisualizationContext context, ChainConveyorBlockEntity blockEntity, float partialTick, CallbackInfo ci) {
+        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
+            return;
+        }
         fluidlogistics$fluidVisual = new FluidVisual(context, false, true);
     }
 
@@ -52,6 +54,9 @@ public class ChainConveyorVisualMixin {
             at = @At("HEAD")
     )
     private void fluidlogistics$begin(DynamicVisual.Context ctx, CallbackInfo ci) {
+        if (fluidlogistics$fluidVisual == null) {
+            return;
+        }
         fluidlogistics$fluidVisual.begin();
     }
 
@@ -60,6 +65,9 @@ public class ChainConveyorVisualMixin {
             at = @At("RETURN")
     )
     private void fluidlogistics$delete(CallbackInfo ci) {
+        if (fluidlogistics$fluidVisual == null) {
+            return;
+        }
         fluidlogistics$fluidVisual.delete();
     }
 
@@ -68,7 +76,28 @@ public class ChainConveyorVisualMixin {
             at = @At("RETURN")
     )
     private void fluidlogistics$end(DynamicVisual.Context ctx, CallbackInfo ci) {
+        if (fluidlogistics$fluidVisual == null) {
+            return;
+        }
         fluidlogistics$fluidVisual.end();
+    }
+
+    @WrapOperation(
+            method = "beginFrame",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorVisual;setupBoxVisual(Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorBlockEntity;Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorPackage;F)V",
+                    ordinal = 1
+            )
+    )
+    private void fluidlogistics$skipPhantomTravellingBoxVisual(ChainConveyorVisual instance,
+                                                               ChainConveyorBlockEntity be, ChainConveyorPackage box,
+                                                               float partialTicks, Operation<Void> original,
+                                                               @Local(ordinal = 0) Map.Entry<BlockPos, List<ChainConveyorPackage>> entry) {
+        if (!PhantomChainVisibility.shouldRenderConnection(be, entry.getKey())) {
+            return;
+        }
+        original.call(instance, be, box, partialTicks);
     }
 
     @Definition(id = "TransformedInstance", type = TransformedInstance.class)
@@ -80,9 +109,12 @@ public class ChainConveyorVisualMixin {
     private TransformedInstance[] fluidlogistics$setupFluidBuffers(TransformedInstance[] original,
                                                                    @Local(argsOnly = true) ChainConveyorPackage box,
                                                                    @Share("fluid") LocalRef<FluidStack> fluid) {
+        if (!Config.isAdvancedLogisticsNetworkEnabled() || fluidlogistics$fluidVisual == null) {
+            return original;
+        }
         if (!(box.item.getItem() instanceof FluidPackageItem)) return original;
 
-        fluid.set(fluidlogistics$getPrimaryFluid(box.item));
+        fluid.set(FluidPackageItemRenderer.getPrimaryContainedFluid(box.item));
 
         if (fluid.get().isEmpty()) return original;
 
@@ -106,40 +138,16 @@ public class ChainConveyorVisualMixin {
                                                       @Local(ordinal = 2) TransformedInstance buf,
                                                       @Share("fluidBufferIndex") LocalIntRef fluidBufferIndex,
                                                       @Share("fluid") LocalRef<FluidStack> fluid) {
+        if (!Config.isAdvancedLogisticsNetworkEnabled() || fluidlogistics$fluidVisual == null) {
+            return original.call(instance);
+        }
         if (buf == rigBuffer || buf == boxBuffer) return original.call(instance);
 
-        fluidlogistics$fluidVisual.setupBuffer(fluid.get(), Config.getFluidPerPackage(), buf, fluidBufferIndex.get(), 12f / 16, 10f / 16);
+        fluidlogistics$fluidVisual.setupBuffer(fluid.get(), Config.getFluidPerPackage(), buf, fluidBufferIndex.get(),
+            FluidPackageItemRenderer.PACKAGE_VISUAL_WIDTH,
+            FluidPackageItemRenderer.PACKAGE_VISUAL_HEIGHT);
         fluidBufferIndex.set(fluidBufferIndex.get() + 1);
 
         return instance;
-    }
-
-    @Unique
-    private FluidStack fluidlogistics$getPrimaryFluid(ItemStack box) {
-        if (!PackageItem.isPackage(box)) return FluidStack.EMPTY;
-
-        ItemStackHandler contents = PackageItem.getContents(box);
-        List<FluidStack> fluids = new ArrayList<>();
-
-        for (int i = 0; i < contents.getSlots(); i++) {
-            var slotStack = contents.getStackInSlot(i);
-            if (!slotStack.isEmpty() && slotStack.getItem() instanceof CompressedTankItem) {
-                FluidStack fluid = CompressedTankItem.getFluid(slotStack);
-                fluidlogistics$mergeFluid(fluids, fluid);
-            }
-        }
-
-        return fluids.isEmpty() ? FluidStack.EMPTY : fluids.get(0);
-    }
-
-    @Unique
-    private void fluidlogistics$mergeFluid(List<FluidStack> fluids, FluidStack newFluid) {
-        for (FluidStack existing : fluids) {
-            if (FluidStack.isSameFluidSameComponents(existing, newFluid)) {
-                existing.grow(newFluid.getAmount());
-                return;
-            }
-        }
-        fluids.add(newFluid.copy());
     }
 }

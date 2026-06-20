@@ -1,5 +1,6 @@
 package com.yision.fluidlogistics.block.MechanicalFluidGun;
 
+import com.simibubi.create.content.contraptions.StructureTransform;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -31,5 +32,15 @@ public record MechanicalFluidGunTargetConfig(BlockPos relativePos, @Nullable Dir
 		BlockPos relativePos = new BlockPos(tag.getInt("X"), tag.getInt("Y"), tag.getInt("Z"));
 		Direction face = tag.contains("Face") ? Direction.from3DDataValue(tag.getInt("Face")) : null;
 		return new MechanicalFluidGunTargetConfig(relativePos, face);
+	}
+
+	public MechanicalFluidGunTargetConfig transform(StructureTransform transform) {
+		BlockPos transformedPos = transform.applyWithoutOffset(relativePos);
+		Direction transformedFace = face;
+		if (transformedFace != null) {
+			transformedFace = transform.mirrorFacing(transformedFace);
+			transformedFace = transform.rotateFacing(transformedFace);
+		}
+		return new MechanicalFluidGunTargetConfig(transformedPos, transformedFace);
 	}
 }

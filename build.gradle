@@ -30,6 +30,18 @@ repositories {
     maven { url "https://www.cursemaven.com" }
     maven { url "https://api.modrinth.com/maven" }
     maven { url "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" }
+    exclusiveContent {
+        forRepository {
+            maven {
+                url = "https://maven.ryanhcode.dev/releases"
+                name = "RyanHCode Maven"
+            }
+        }
+        filter {
+            includeGroup("dev.ryanhcode.sable")
+            includeGroup("dev.ryanhcode.sable-companion")
+        }
+    }
 }
 
 base {
@@ -138,6 +150,7 @@ dependencies {
     compileOnly("maven.modrinth:jade:${jade_version}+neoforge")
     compileOnly("curse.maven:create-enchantment-industry-688768:7970748")
     compileOnly("plus.dragons.createdragonsplus:create-dragons-plus-${minecraft_version}:1.10.0")
+    compileOnly("dev.ryanhcode.sable:sable-common-${minecraft_version}:${sable_version}")
     testImplementation(platform("org.junit:junit-bom:5.12.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }

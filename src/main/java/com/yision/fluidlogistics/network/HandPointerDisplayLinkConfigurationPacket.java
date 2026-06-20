@@ -4,7 +4,6 @@ import com.simibubi.create.AllBlocks;
 import com.simibubi.create.api.behaviour.display.DisplayTarget;
 import com.simibubi.create.content.redstone.displayLink.DisplayLinkBlockEntity;
 import com.simibubi.create.infrastructure.config.AllConfigs;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.item.HandPointerItem;
 
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
@@ -34,10 +33,6 @@ public record HandPointerDisplayLinkConfigurationPacket(
 
     @Override
     public void handle(ServerPlayer player) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
-
         if (!player.mayBuild()) {
             return;
         }

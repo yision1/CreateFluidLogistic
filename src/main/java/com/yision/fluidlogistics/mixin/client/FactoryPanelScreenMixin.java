@@ -2,6 +2,12 @@ package com.yision.fluidlogistics.mixin.client;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+
+import org.jetbrains.annotations.Nullable;
+import com.mojang.math.Axis;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -10,10 +16,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
+import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelScreen;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
 import com.simibubi.create.foundation.utility.CreateLang;
@@ -30,13 +38,18 @@ import com.yision.fluidlogistics.util.IFluidPromiseLimit;
 import com.yision.fluidlogistics.util.IFluidRestockThreshold;
 
 import net.createmod.catnip.gui.AbstractSimiScreen;
+import net.createmod.catnip.gui.UIRenderHelper;
+import net.createmod.catnip.gui.element.RenderElement;
 import net.createmod.catnip.platform.CatnipServices;
+import net.createmod.catnip.platform.NeoForgeCatnipServices;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -57,6 +70,15 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     @Shadow(remap = false)
     private boolean restocker;
 
+    @Shadow(remap = false)
+    private boolean sendRedstoneReset;
+
+    @Shadow(remap = false)
+    private void sendIt(@Nullable FactoryPanelPosition toRemove, boolean clearPromises) {}
+
+    @Shadow(remap = false)
+    private void playButtonSound() {}
+
     protected FactoryPanelScreenMixin(Component title) {
         super(title);
     }
@@ -69,6 +91,12 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
 
     @Unique
     private FluidStack fluidlogistics$cachedFluid = null;
+
+    @Unique
+    private static final float fluidlogistics$FACTORY_GAUGE_FILTER_PREVIEW_SCALE = 1.625f;
+
+    @Unique
+    private static final float fluidlogistics$DEFAULT_BLOCK_GUI_SCALE = 0.625f;
 
     @Inject(
         method = "renderInputItem",
@@ -263,6 +291,9 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         promiseInput.withSecondaryHeader(() -> CreateLang.text(fluidlogistics$formatPromiseLimitTooltip(
             fluidlogistics$promiseLimitInput == null ? -1 : fluidlogistics$promiseLimitInput.getState()))
             .component());
+        if (!restocker) {
+            promiseInput.withRedstoneLinkInfo(() -> !behaviour.targetedByLinks.isEmpty());
+        }
         fluidlogistics$promiseLimitInput = promiseInput.setState(promiseLimitData.fluidlogistics$getPromiseLimit());
         fluidlogistics$updatePromiseLimitLabel();
         addRenderableWidget(fluidlogistics$promiseLimitInput);
@@ -338,6 +369,104 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private void fluidlogistics$beforeRenderWindow(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks,
             CallbackInfo ci) {
         fluidlogistics$clearCalCompatibilityControls();
+    }
+
+    @Redirect(
+        method = "renderWindow",
+        at = @At(
+            value = "INVOKE",
+            target = "Ljava/util/Map;isEmpty()Z"
+        ),
+        remap = false
+    )
+    private boolean fluidlogistics$hideRedstoneLinkWhenFluidPromiseLimitPresent(Map map) {
+        if (!restocker && fluidlogistics$hasFluidPromiseLimitControl() && map == behaviour.targetedByLinks) {
+            return true;
+        }
+        return map.isEmpty();
+    }
+
+    @Redirect(
+        method = "renderWindow",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/createmod/catnip/gui/element/RenderElement;render(" +
+                     "Lnet/minecraft/client/gui/GuiGraphics;II)V",
+            ordinal = 1,
+            remap = false
+        ),
+        remap = false
+    )
+    private void fluidlogistics$renderFactoryGaugePreviewFluidAsBlock(RenderElement element, GuiGraphics graphics,
+            int x, int y) {
+        ItemStack filter = behaviour.getFilter();
+        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
+            FluidStack fluid = CompressedTankItem.getFluid(filter);
+            if (!fluid.isEmpty() && fluid.getFluid() != Fluids.EMPTY) {
+                fluidlogistics$renderFluidAsFactoryGaugeFilterPreview(graphics, fluid, x, y);
+                return;
+            }
+        }
+        element.render(graphics, x, y);
+    }
+
+    @Unique
+    private static void fluidlogistics$renderFluidAsFactoryGaugeFilterPreview(GuiGraphics graphics, FluidStack fluid,
+            int x, int y) {
+        FluidStack renderFluid = fluid.getAmount() == 0 ? fluid.copyWithAmount(1) : fluid;
+        PoseStack ms = graphics.pose();
+        ms.pushPose();
+        ms.translate(x, y, 100);
+        ms.scale(fluidlogistics$FACTORY_GAUGE_FILTER_PREVIEW_SCALE,
+            fluidlogistics$FACTORY_GAUGE_FILTER_PREVIEW_SCALE,
+            fluidlogistics$FACTORY_GAUGE_FILTER_PREVIEW_SCALE);
+        UIRenderHelper.flipForGuiRender(ms);
+
+        ms.translate(0, 0, 100);
+        ms.translate(8, -8, 0);
+        ms.scale(16, 16, 16);
+        fluidlogistics$applyDefaultBlockGuiTransform(ms);
+        ms.translate(-0.5f, -0.5f, -0.5f);
+        NeoForgeCatnipServices.FLUID_RENDERER.renderFluidBox(renderFluid,
+            0, 0, 0, 1, 1, 1,
+            graphics.bufferSource(), ms, LightTexture.FULL_BRIGHT, false, true);
+        graphics.flush();
+        ms.popPose();
+    }
+
+    @Unique
+    private static void fluidlogistics$applyDefaultBlockGuiTransform(PoseStack ms) {
+        ms.mulPose(Axis.XP.rotationDegrees(30));
+        ms.mulPose(Axis.YP.rotationDegrees(225));
+        ms.scale(fluidlogistics$DEFAULT_BLOCK_GUI_SCALE,
+            fluidlogistics$DEFAULT_BLOCK_GUI_SCALE,
+            fluidlogistics$DEFAULT_BLOCK_GUI_SCALE);
+    }
+
+    @Inject(
+        method = "mouseClicked",
+        at = @At("HEAD"),
+        remap = false,
+        cancellable = true
+    )
+    private void fluidlogistics$handleFluidPromiseLimitClick(double mouseX, double mouseY, int pButton,
+            CallbackInfoReturnable<Boolean> cir) {
+        if (restocker || !fluidlogistics$hasFluidPromiseLimitControl()
+            || fluidlogistics$promiseLimitInput == null || behaviour.targetedByLinks.isEmpty()) {
+            return;
+        }
+        if (pButton != 0) {
+            return;
+        }
+        int inputX = fluidlogistics$promiseLimitInput.getX();
+        int inputY = fluidlogistics$promiseLimitInput.getY();
+        if (mouseX >= inputX && mouseX < inputX + fluidlogistics$promiseLimitInput.getWidth()
+            && mouseY >= inputY && mouseY < inputY + fluidlogistics$promiseLimitInput.getHeight()) {
+            sendRedstoneReset = true;
+            sendIt(null, false);
+            playButtonSound();
+            cir.setReturnValue(true);
+        }
     }
 
     @Redirect(

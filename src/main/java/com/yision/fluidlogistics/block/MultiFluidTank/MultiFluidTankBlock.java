@@ -109,7 +109,7 @@ public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<Multi
 
     @Override
     public InteractionResult onWrenched(BlockState state, UseOnContext context) {
-        withBlockEntityDo(context.getLevel(), context.getClickedPos(), MultiFluidTankBlockEntity::toggleWindows);
+        withBlockEntityDo(context.getLevel(), context.getClickedPos(), MultiFluidTankBlockEntity::cycleWindowStyle);
         return InteractionResult.SUCCESS;
     }
 
@@ -285,6 +285,60 @@ public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<Multi
         @Override
         public String getSerializedName() {
             return Lang.asId(name());
+        }
+    }
+
+    public enum WindowStyle implements StringRepresentable {
+        FULL,
+        SINGLE,
+        NONE;
+
+        private static final java.util.Map<String, WindowStyle> BY_NAME =
+                java.util.Arrays.stream(values())
+                        .collect(java.util.stream.Collectors.toUnmodifiableMap(
+                                ws -> ws.getSerializedName(), ws -> ws));
+
+        public WindowStyle next() {
+            return switch (this) {
+                case FULL -> SINGLE;
+                case SINGLE -> NONE;
+                case NONE -> FULL;
+            };
+        }
+
+        public WindowStyle nextAllowed(int width) {
+            WindowStyle next = next();
+            if (width <= 1 && next == SINGLE)
+                return next.next();
+            return next;
+        }
+
+        public WindowStyle normalizeForWidth(int width) {
+            if (width <= 1 && this == SINGLE)
+                return FULL;
+            return this;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return name().toLowerCase(java.util.Locale.ROOT);
+        }
+
+        public static WindowStyle safeParse(@org.jetbrains.annotations.Nullable String value) {
+            if (value == null)
+                return FULL;
+            return BY_NAME.getOrDefault(value.toLowerCase(java.util.Locale.ROOT), FULL);
+        }
+
+        /**
+         * 多结构合并时采用固定优先级 FULL > SINGLE > NONE。
+         */
+        public static WindowStyle merge(WindowStyle a, WindowStyle b) {
+            if (a == FULL || b == FULL)
+                return FULL;
+            if (a == SINGLE || b == SINGLE)
+                return SINGLE;
+            return NONE;
         }
     }
 
