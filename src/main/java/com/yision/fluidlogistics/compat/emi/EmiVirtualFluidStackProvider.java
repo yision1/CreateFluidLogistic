@@ -34,7 +34,7 @@ public final class EmiVirtualFluidStackProvider {
             if (ghost.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(ghost)) {
                 FluidStack fluid = CompressedTankItem.getFluid(ghost);
                 if (!fluid.isEmpty()) {
-                    return new EmiStackInteraction(ForgeEmiStack.of(fluid), null, true);
+                    return new EmiStackInteraction(ForgeEmiStack.of(fluid), null, false);
                 }
             }
         }
@@ -74,12 +74,12 @@ public final class EmiVirtualFluidStackProvider {
                     && CompressedTankItem.isVirtual(stack)) {
                 FluidStack fluid = CompressedTankItem.getFluid(stack);
                 if (!fluid.isEmpty()) {
-                    return new EmiStackInteraction(ForgeEmiStack.of(fluid), null, true);
+                    return new EmiStackInteraction(ForgeEmiStack.of(fluid), null, false);
                 }
                 return EmiStackInteraction.EMPTY;
             }
             if (!stack.isEmpty()) {
-                return new EmiStackInteraction(EmiStack.of(stack), null, true);
+                return new EmiStackInteraction(EmiStack.of(stack), null, false);
             }
             return EmiStackInteraction.EMPTY;
         }
