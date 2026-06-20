@@ -1,6 +1,7 @@
 {
   "item.fluidlogistics.compressed_storage_tank": "压缩储罐",
   "item.fluidlogistics.compressed_storage_tank.tooltip.summary": "对着流体储罐右键即可_转移流体_并_销毁_压缩储罐",
+  "item.fluidlogistics.phantom_chain": "幻缈锁链",
   "item.fluidlogistics.hand_pointer": "指读棒",
   "item.fluidlogistics.hand_pointer.tooltip.summary": "用于配置机械元件交互点的多功能工具",
   "item.fluidlogistics.hand_pointer.tooltip.condition1": "右键打包机/理包机时",

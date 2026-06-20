@@ -40,8 +40,6 @@ public class FluidLogisticsMixinPlugin implements IMixinConfigPlugin {
         "com.yision.fluidlogistics.mixin.logistics.PackageEntityMixin",
         "com.yision.fluidlogistics.mixin.logistics.RequestPromiseQueueMixin",
 
-        "com.yision.fluidlogistics.mixin.client.ChainConveyorRendererMixin",
-        "com.yision.fluidlogistics.mixin.client.ChainConveyorVisualMixin",
         "com.yision.fluidlogistics.mixin.client.CraftableBigItemStackMixin",
         "com.yision.fluidlogistics.mixin.client.FactoryPanelBehaviourClientMixin",
         "com.yision.fluidlogistics.mixin.client.FactoryPanelScreenMixin",

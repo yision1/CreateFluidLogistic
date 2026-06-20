@@ -1,6 +1,7 @@
 {
   "item.fluidlogistics.compressed_storage_tank": "Compressed Storage Tank",
   "item.fluidlogistics.compressed_storage_tank.tooltip.summary": "Right-click on a fluid tank to _transfer fluid_ and _consume_ the compressed storage tank",
+  "item.fluidlogistics.phantom_chain": "Phantom Chain",
   "item.fluidlogistics.hand_pointer": "Hand Pointer",
   "item.fluidlogistics.hand_pointer.tooltip.summary": "A versatile tool for configuring interaction points on mechanical components",
   "item.fluidlogistics.hand_pointer.tooltip.condition1": "When Right-Clicking a Packager or Re-Packager",
@@ -42,7 +43,7 @@
   "block.fluidlogistics.multi_fluid_tank.tooltip.behaviour1": "Can store up to _8 different types_ of fluids simultaneously",
   "block.fluidlogistics.smart_faucet": "Smart Faucet",
   "block.fluidlogistics.smart_hopper": "Smart Hopper",
-  "block.fluidlogistics.water_containing_copper_casing": "Water-Containing Copper Leaf Casing",
+  "block.fluidlogistics.water_containing_copper_casing": "Encased waterlogged leaves",
   "block.fluidlogistics.water_containing_copper_casing.tooltip.summary": "A simple _infinite water source_.",
   "block.fluidlogistics.waterproof_cardboard_block": "Waterproof Block of Cardboard",
   "create.fluid_packager.no_portable_fluid_interface": "Fluid Packagers cannot connect directly to Portable Fluid Interfaces",
