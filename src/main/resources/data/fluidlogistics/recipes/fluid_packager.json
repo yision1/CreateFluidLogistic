@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:advanced_logistics_network"
+    }
+  ],
+  "category": "misc",
+  "key": {
+    "A": {
+      "item": "fluidlogistics:waterproof_cardboard_block"
+    },
+    "C": {
+      "tag": "forge:ingots/copper"
+    },
+    "G": {
+      "item": "create:framed_glass"
+    },
+    "R": {
+      "tag": "forge:dusts/redstone"
+    }
+  },
+  "pattern": [
+    "GCG",
+    "CAC",
+    "RCR"
+  ],
+  "result": {
+    "item": "fluidlogistics:fluid_packager",
+    "count": 1
+  }
+}

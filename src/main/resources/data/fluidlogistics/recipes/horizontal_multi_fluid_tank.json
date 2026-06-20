@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:horizontal_multi_fluid_tank"
+    }
+  ],
+  "category": "misc",
+  "key": {
+    "B": {
+      "tag": "forge:plates/brass"
+    },
+    "C": {
+      "tag": "forge:barrels/wooden"
+    }
+  },
+  "pattern": [
+    "BCB"
+  ],
+  "result": {
+    "count": 1,
+    "item": "fluidlogistics:horizontal_multi_fluid_tank"
+  }
+}

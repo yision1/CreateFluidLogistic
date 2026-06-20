@@ -1,0 +1,104 @@
+{
+  "variants": {
+    "facing=east,mount_face=down": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 180
+    },
+    "facing=east,mount_face=east": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90,
+      "y": 90
+    },
+    "facing=east,mount_face=north": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90
+    },
+    "facing=east,mount_face=south": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 270
+    },
+    "facing=east,mount_face=up": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block"
+    },
+    "facing=east,mount_face=west": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90,
+      "y": 270
+    },
+    "facing=north,mount_face=down": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 180
+    },
+    "facing=north,mount_face=east": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90,
+      "y": 90
+    },
+    "facing=north,mount_face=north": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90
+    },
+    "facing=north,mount_face=south": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 270
+    },
+    "facing=north,mount_face=up": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block"
+    },
+    "facing=north,mount_face=west": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90,
+      "y": 270
+    },
+    "facing=south,mount_face=down": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 180
+    },
+    "facing=south,mount_face=east": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90,
+      "y": 90
+    },
+    "facing=south,mount_face=north": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90
+    },
+    "facing=south,mount_face=south": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 270
+    },
+    "facing=south,mount_face=up": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block"
+    },
+    "facing=south,mount_face=west": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90,
+      "y": 270
+    },
+    "facing=west,mount_face=down": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 180
+    },
+    "facing=west,mount_face=east": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90,
+      "y": 90
+    },
+    "facing=west,mount_face=north": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90
+    },
+    "facing=west,mount_face=south": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 270
+    },
+    "facing=west,mount_face=up": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block"
+    },
+    "facing=west,mount_face=west": {
+      "model": "fluidlogistics:block/mechanical_fluid_gun/block",
+      "x": 90,
+      "y": 270
+    }
+  }
+}

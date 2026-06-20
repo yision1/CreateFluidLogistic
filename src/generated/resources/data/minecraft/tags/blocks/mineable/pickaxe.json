@@ -1,0 +1,19 @@
+{
+  "values": [
+    "fluidlogistics:fluid_transporter",
+    "fluidlogistics:fluid_packager",
+    "fluidlogistics:fluid_repackager",
+    "fluidlogistics:smart_faucet",
+    "fluidlogistics:faucet",
+    "fluidlogistics:multi_fluid_tank",
+    "fluidlogistics:horizontal_multi_fluid_tank",
+    "fluidlogistics:smart_hopper",
+    "fluidlogistics:multi_fluid_access_port",
+    "fluidlogistics:fluid_pump",
+    "fluidlogistics:infinite_fluid_tank",
+    "fluidlogistics:copper_basin",
+    "fluidlogistics:mechanical_fluid_gun",
+    "fluidlogistics:water_containing_copper_casing",
+    "fluidlogistics:fluid_hatch"
+  ]
+}

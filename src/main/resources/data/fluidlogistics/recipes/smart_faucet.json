@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:smart_faucet"
+    }
+  ],
+  "category": "misc",
+  "pattern": [
+    " P ",
+    " C ",
+    " F "
+  ],
+  "key": {
+    "C": {
+      "tag": "forge:ingots/copper"
+    },
+    "P": {
+      "tag": "forge:plates/brass"
+    },
+    "F": {
+      "item": "create:electron_tube"
+    }
+  },
+  "result": {
+    "item": "fluidlogistics:smart_faucet",
+    "count": 1
+  }
+}

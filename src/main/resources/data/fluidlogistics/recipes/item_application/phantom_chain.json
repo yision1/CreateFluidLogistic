@@ -1,0 +1,17 @@
+{
+  "type": "create:item_application",
+  "keepHeldItem": true,
+  "ingredients": [
+    {
+      "item": "minecraft:chain"
+    },
+    {
+      "item": "minecraft:phantom_membrane"
+    }
+  ],
+  "results": [
+    {
+      "item": "fluidlogistics:phantom_chain"
+    }
+  ]
+}

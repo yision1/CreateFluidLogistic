@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "fluidlogistics:block/copper_basin/block"
+    },
+    "facing=east": {
+      "model": "fluidlogistics:block/copper_basin/block_directional",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "fluidlogistics:block/copper_basin/block_directional",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "fluidlogistics:block/copper_basin/block_directional"
+    },
+    "facing=west": {
+      "model": "fluidlogistics:block/copper_basin/block_directional",
+      "y": 90
+    }
+  }
+}

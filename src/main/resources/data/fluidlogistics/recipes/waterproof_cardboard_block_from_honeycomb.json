@@ -1,0 +1,17 @@
+{
+  "type": "create:item_application",
+  "keepHeldItem": true,
+  "ingredients": [
+    {
+      "item": "create:cardboard_block"
+    },
+    {
+      "item": "minecraft:honeycomb"
+    }
+  ],
+  "results": [
+    {
+      "item": "fluidlogistics:waterproof_cardboard_block"
+    }
+  ]
+}

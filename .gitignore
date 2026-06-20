@@ -1,0 +1,39 @@
+# eclipse
+bin
+*.launch
+.settings
+.metadata
+.classpath
+.project
+eclipse
+
+# idea
+out
+*.ipr
+*.iws
+*.iml
+.idea
+
+# gradle
+build
+.gradle
+
+# minecraft/forge/neoforge
+run
+runs
+run-data
+logs
+crash-reports
+saves
+screenshots
+options.txt
+debug
+
+# os
+.DS_Store
+Thumbs.db
+*.log
+
+# other
+repo
+.vscode

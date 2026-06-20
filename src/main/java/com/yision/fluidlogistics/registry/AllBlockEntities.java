@@ -1,0 +1,135 @@
+package com.yision.fluidlogistics.registry;
+
+import com.simibubi.create.content.kinetics.base.ShaftVisual;
+import com.tterrag.registrate.util.entry.BlockEntityEntry;
+import com.yision.fluidlogistics.block.FluidHatch.FluidHatchBlockEntity;
+import com.yision.fluidlogistics.block.CopperBasin.CopperBasinBlockEntity;
+import com.yision.fluidlogistics.block.CopperBasin.CopperBasinRenderer;
+import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
+import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunRenderer;
+import com.yision.fluidlogistics.block.Faucet.FaucetBlockEntity;
+import com.yision.fluidlogistics.block.Faucet.FaucetRenderer;
+import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerRenderer;
+import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerVisual;
+import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerBlockEntity;
+import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerRenderer;
+import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerVisual;
+import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlockEntity;
+import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterRenderer;
+import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankRenderer;
+import com.yision.fluidlogistics.block.FluidPump.FluidPumpBlockEntity;
+import com.yision.fluidlogistics.block.FluidPump.FluidPumpRenderer;
+import com.yision.fluidlogistics.block.InfiniteFluidTank.InfiniteFluidTankBlockEntity;
+import com.yision.fluidlogistics.block.InfiniteFluidTank.InfiniteFluidTankRenderer;
+import com.yision.fluidlogistics.block.WaterContainingCopperCasing.WaterContainingCopperCasingBlock;
+import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortBlockEntity;
+import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortRenderer;
+import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankRenderer;
+import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetBlockEntity;
+import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetRenderer;
+import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlockEntity;
+import com.yision.fluidlogistics.block.SmartHopper.SmartHopperRenderer;
+
+import static com.yision.fluidlogistics.FluidLogistics.REGISTRATE;
+
+public class AllBlockEntities {
+
+    public static final BlockEntityEntry<FluidTransporterBlockEntity> FLUID_TRANSPORTER = REGISTRATE
+            .blockEntity("fluid_transporter", FluidTransporterBlockEntity::new)
+            .validBlocks(AllBlocks.FLUID_TRANSPORTER)
+            .renderer(() -> FluidTransporterRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<FluidPackagerBlockEntity> FLUID_PACKAGER = REGISTRATE
+            .blockEntity("fluid_packager", FluidPackagerBlockEntity::new)
+            .visual(() -> FluidPackagerVisual::new, true)
+            .validBlocks(AllBlocks.FLUID_PACKAGER)
+            .renderer(() -> FluidPackagerRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<FluidRepackagerBlockEntity> FLUID_REPACKAGER = REGISTRATE
+            .blockEntity("fluid_repackager", FluidRepackagerBlockEntity::new)
+            .visual(() -> FluidRepackagerVisual::new, true)
+            .validBlocks(AllBlocks.FLUID_REPACKAGER)
+            .renderer(() -> FluidRepackagerRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<SmartFaucetBlockEntity> SMART_FAUCET = REGISTRATE
+            .blockEntity("smart_faucet", SmartFaucetBlockEntity::new)
+            .validBlocks(AllBlocks.SMART_FAUCET)
+            .renderer(() -> SmartFaucetRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<FaucetBlockEntity> FAUCET = REGISTRATE
+            .blockEntity("faucet", FaucetBlockEntity::new)
+            .validBlocks(AllBlocks.FAUCET)
+            .renderer(() -> FaucetRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<MultiFluidTankBlockEntity> MULTI_FLUID_TANK = REGISTRATE
+            .blockEntity("multi_fluid_tank", MultiFluidTankBlockEntity::new)
+            .validBlocks(AllBlocks.MULTI_FLUID_TANK)
+            .renderer(() -> MultiFluidTankRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<HorizontalMultiFluidTankBlockEntity> HORIZONTAL_MULTI_FLUID_TANK = REGISTRATE
+            .blockEntity("horizontal_multi_fluid_tank", HorizontalMultiFluidTankBlockEntity::new)
+            .validBlocks(AllBlocks.HORIZONTAL_MULTI_FLUID_TANK)
+            .renderer(() -> HorizontalMultiFluidTankRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<SmartHopperBlockEntity> SMART_HOPPER = REGISTRATE
+            .blockEntity("smart_hopper", SmartHopperBlockEntity::new)
+            .validBlocks(AllBlocks.SMART_HOPPER)
+            .renderer(() -> SmartHopperRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<MultiFluidAccessPortBlockEntity> MULTI_FLUID_ACCESS_PORT = REGISTRATE
+            .blockEntity("multi_fluid_access_port", MultiFluidAccessPortBlockEntity::new)
+            .validBlocks(AllBlocks.MULTI_FLUID_ACCESS_PORT)
+            .renderer(() -> MultiFluidAccessPortRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<FluidPumpBlockEntity> FLUID_PUMP = REGISTRATE
+            .blockEntity("fluid_pump", FluidPumpBlockEntity::new)
+            .visual(() -> ShaftVisual::new)
+            .validBlocks(AllBlocks.FLUID_PUMP)
+            .renderer(() -> FluidPumpRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<InfiniteFluidTankBlockEntity> INFINITE_FLUID_TANK = REGISTRATE
+            .blockEntity("infinite_fluid_tank", InfiniteFluidTankBlockEntity::new)
+            .validBlocks(AllBlocks.INFINITE_FLUID_TANK)
+            .renderer(() -> InfiniteFluidTankRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<CopperBasinBlockEntity> COPPER_BASIN = REGISTRATE
+            .blockEntity("copper_basin", CopperBasinBlockEntity::new)
+            .validBlocks(AllBlocks.COPPER_BASIN)
+            .renderer(() -> CopperBasinRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<MechanicalFluidGunBlockEntity> MECHANICAL_FLUID_GUN = REGISTRATE
+            .blockEntity("mechanical_fluid_gun", MechanicalFluidGunBlockEntity::new)
+            .validBlocks(AllBlocks.MECHANICAL_FLUID_GUN)
+            .renderer(() -> MechanicalFluidGunRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<FluidHatchBlockEntity> FLUID_HATCH = REGISTRATE
+            .blockEntity("fluid_hatch", FluidHatchBlockEntity::new)
+            .validBlocks(AllBlocks.FLUID_HATCH)
+            .renderer(() -> com.simibubi.create.foundation.blockEntity.renderer.SmartBlockEntityRenderer::new)
+            .register();
+
+    public static final BlockEntityEntry<WaterContainingCopperCasingBlock.Entity> WATER_CONTAINING_COPPER_CASING = REGISTRATE
+            .blockEntity("water_containing_copper_casing", WaterContainingCopperCasingBlock.Entity::new)
+            .validBlocks(AllBlocks.WATER_CONTAINING_COPPER_CASING)
+            .renderer(() -> WaterContainingCopperCasingBlock.Renderer::new)
+            .register();
+
+    public static void register() {
+    }
+}

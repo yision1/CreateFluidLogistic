@@ -1,0 +1,57 @@
+{
+  "required": true,
+  "priority": 1100,
+  "package": "com.yision.fluidlogistics.mixin",
+  "plugin": "com.yision.fluidlogistics.mixin.FluidLogisticsMixinPlugin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "fluidlogistics.refmap.json",
+  "minVersion": "0.8",
+  "mixins": [
+    "logistics.LogisticsManagerMixin",
+    "kinetics.BeltInventoryMixin",
+    "kinetics.BeltProcessingBehaviourMixin",
+    "kinetics.ChainConveyorBlockEntityMixin",
+    "kinetics.ChainConveyorBlockMixin",
+    "kinetics.ChainConveyorConnectionPacketMixin",
+    "kinetics.SawBlockEntityMixin",
+    "logistics.InventorySummaryMixin",
+    "logistics.PackagerBlockMixin",
+    "logistics.PackagerBlockEntityMixin",
+    "logistics.AttributeFilterItemStackMixin",
+    "logistics.FactoryPanelBehaviourMixin",
+    "logistics.FactoryPanelRestockThresholdMixin",
+    "logistics.FactoryPanelBlockEntityMixin",
+    "logistics.RequestPromiseQueueMixin",
+    "logistics.PackageEntityMixin",
+    "fluids.FluidPropagatorMixin",
+    "item.PackageItemMixin",
+    "item.ClipboardBlockItemMixin"
+  ],
+  "client": [
+    "accessor.ArmBlockEntityAccessor",
+    "accessor.FrogportChainConveyorOBBAccessor",
+    "accessor.FrogportChainConveyorShapeAccessor",
+    "client.ChainConveyorRendererMixin",
+    "client.ChainConveyorVisualMixin",
+    "kinetics.ChainConveyorConnectionHandlerMixin",
+    "client.CraftableBigItemStackMixin",
+    "client.FactoryPanelBehaviourClientMixin",
+    "client.FactoryPanelConnectionHandlerMixin",
+    "client.FactoryPanelScreenMixin",
+    "client.FactoryPanelSetItemScreenMixin",
+    "client.PackageRendererMixin",
+    "client.PackageVisualMixin",
+    "accessor.RedstoneRequesterScreenAccessor",
+    "client.RedstoneRequesterScreenMixin",
+    "accessor.StockKeeperRequestScreenAccessor",
+    "client.StockKeeperTransferHandlerMixin",
+    "client.StockKeeperRequestScreenMixin",
+    "client.ValueBoxRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixinextras": {
+    "minVersion": "0.4.1"
+  }
+}

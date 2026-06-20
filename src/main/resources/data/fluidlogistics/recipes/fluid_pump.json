@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:fluid_pump"
+    }
+  ],
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "minecraft:copper_block"
+    },
+    "G": {
+      "item": "create:cogwheel"
+    },
+    "S": {
+      "item": "create:shaft"
+    }
+  },
+  "pattern": [
+    " G ",
+    " C ",
+    " S "
+  ],
+  "result": {
+    "item": "fluidlogistics:fluid_pump",
+    "count": 1
+  }
+}

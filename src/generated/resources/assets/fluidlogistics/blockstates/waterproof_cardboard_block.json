@@ -1,0 +1,11 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "fluidlogistics:block/waterproof_cardboard_block",
+      "y": 90
+    },
+    "axis=z": {
+      "model": "fluidlogistics:block/waterproof_cardboard_block"
+    }
+  }
+}

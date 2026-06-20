@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:faucet"
+    }
+  ],
+  "category": "misc",
+  "pattern": [
+    " C ",
+    " P "
+  ],
+  "key": {
+    "C": {
+      "tag": "forge:plates/copper"
+    },
+    "P": {
+      "tag": "forge:ingots/copper"
+    }
+  },
+  "result": {
+    "item": "fluidlogistics:faucet",
+    "count": 1
+  }
+}

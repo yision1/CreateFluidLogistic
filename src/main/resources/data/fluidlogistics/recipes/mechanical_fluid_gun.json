@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:mechanical_fluid_gun"
+    }
+  ],
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "create:copper_casing"
+    },
+    "P": {
+      "item": "create:precision_mechanism"
+    },
+    "S": {
+      "item": "create:spout"
+    }
+  },
+  "pattern": [
+    " S ",
+    " P ",
+    " C "
+  ],
+  "result": {
+    "item": "fluidlogistics:mechanical_fluid_gun",
+    "count": 1
+  }
+}

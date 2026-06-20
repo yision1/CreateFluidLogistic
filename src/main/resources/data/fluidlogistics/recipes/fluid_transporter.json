@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:fluid_transporter"
+    }
+  ],
+  "category": "misc",
+  "pattern": [
+    "PBP",
+    "CEC",
+    "PBP"
+  ],
+  "key": {
+    "B": {
+      "tag": "forge:ingots/brass"
+    },
+    "C": {
+      "item": "minecraft:copper_block"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    },
+    "P": {
+      "item": "create:smart_fluid_pipe"
+    }
+  },
+  "result": {
+    "item": "fluidlogistics:fluid_transporter",
+    "count": 1
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:fluid_hatch"
+    }
+  ],
+  "category": "misc",
+  "ingredients": [
+    {
+      "tag": "forge:ingots/copper"
+    },
+    {
+      "item": "create:item_drain"
+    }
+  ],
+  "result": {
+    "item": "fluidlogistics:fluid_hatch",
+    "count": 1
+  }
+}

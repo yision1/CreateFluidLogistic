@@ -1,0 +1,67 @@
+{
+  "replace": false,
+  "values": [
+    "create:basin",
+    "fluidlogistics:smart_hopper",
+    "fluidlogistics:copper_basin",
+    "fluidlogistics:multi_fluid_access_port",
+    "fluidlogistics:fluid_hatch",
+    "create:belt",
+    "create:depot",
+    "create:blaze_burner",
+    "create:item_drain",
+    "minecraft:cauldron",
+    {
+      "id": "createmetallurgy:casting_basin",
+      "required": false
+    },
+    {
+      "id": "createmetallurgy:casting_table",
+      "required": false
+    },
+    {
+      "id": "createdieselgenerators:burner",
+      "required": false
+    },
+    {
+      "id": "createdieselgenerators:diesel_engine",
+      "required": false
+    },
+    {
+      "id": "createdieselgenerators:large_diesel_engine",
+      "required": false
+    },
+    {
+      "id": "createdieselgenerators:huge_diesel_engine",
+      "required": false
+    },
+    {
+      "id": "createaddition:liquid_blaze_burner",
+      "required": false
+    },
+    {
+      "id": "create_enchantment_industry:blaze_forger",
+      "required": false
+    },
+    {
+      "id": "create_enchantment_industry:blaze_enchanter",
+      "required": false
+    },
+    {
+      "id": "kaleidoscope_tavern:pressing_tub",
+      "required": false
+    },
+    {
+      "id": "northstar:ice_box",
+      "required": false
+    },
+    {
+      "id": "northstar:combustion_engine",
+      "required": false
+    },
+    {
+      "id": "create_central_kitchen:blaze_stove",
+      "required": false
+    }
+  ]
+}

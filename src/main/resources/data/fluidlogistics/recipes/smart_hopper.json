@@ -1,0 +1,41 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:smart_hopper"
+    }
+  ],
+  "category": "misc",
+  "key": {
+    "B": {
+      "tag": "forge:ingots/brass"
+    },
+    "C": {
+      "tag": "forge:ingots/copper"
+    },
+    "E": {
+      "item": "create:electron_tube"
+    },
+    "T": [
+      {
+        "item": "fluidlogistics:multi_fluid_tank"
+      },
+      {
+        "item": "fluidlogistics:horizontal_multi_fluid_tank"
+      }
+    ],
+    "V": {
+      "item": "create:item_vault"
+    }
+  },
+  "pattern": [
+    "BVB",
+    "ETE",
+    " C "
+  ],
+  "result": {
+    "count": 1,
+    "item": "fluidlogistics:smart_hopper"
+  }
+}

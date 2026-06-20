@@ -1,0 +1,15 @@
+{
+  "values": [
+    "create:basin",
+    "fluidlogistics:smart_hopper",
+    "fluidlogistics:copper_basin",
+    {
+      "id": "createmetallurgy:casting_basin",
+      "required": false
+    },
+    {
+      "id": "createmetallurgy:casting_table",
+      "required": false
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "conditions": [
+    {
+      "type": "fluidlogistics:feature_enabled",
+      "feature": "fluidlogistics:advanced_logistics_network"
+    }
+  ],
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "fluidlogistics:fluid_packager"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "item": "fluidlogistics:fluid_repackager"
+  }
+}
