@@ -2,6 +2,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'net.neoforged.moddev.legacyforge' version '2.0.107'
+    id 'com.hypherionmc.modutils.modpublisher' version '2.1.7'
 }
 
 version = mod_version
@@ -200,5 +201,51 @@ idea {
     module {
         downloadSources = true
         downloadJavadoc = true
+    }
+}
+
+static def readChangelog(File changelogFile) {
+    if (!changelogFile.exists()) {
+        throw new GradleException("CHANGELOG.md not found: ${changelogFile.absolutePath}")
+    }
+
+    def changelog = changelogFile.getText('UTF-8').trim()
+    if (changelog.isEmpty()) {
+        throw new GradleException("CHANGELOG.md must not be empty")
+    }
+
+    return changelog
+}
+
+def latestChangelogForPublisher = providers.provider {
+    readChangelog(rootProject.file('CHANGELOG.md'))
+}
+
+publisher {
+    apiKeys {
+        modrinth System.getenv("MODRINTH_API_TOKEN")
+        curseforge System.getenv("CURSEFORGE_API_TOKEN")
+    }
+
+    setDebug(false)
+    setModrinthID("g4AWLVIr")
+    setCurseID("1475079")
+    setVersionType("release")
+    setVersion("${project.mod_version}")
+    setDisplayName("Create：FluidLogistic ${project.mod_version}")
+    setChangelog(latestChangelogForPublisher)
+    setGameVersions("${project.minecraft_version}")
+    setLoaders("forge")
+    setCurseEnvironment("both")
+    setArtifact(jar.archiveFile.get())
+    setJavaVersions([JavaVersion.VERSION_17])
+
+    modrinthDepends {
+        required "create"
+    }
+
+    curseDepends {
+        required "create"
+        optional "create-mobile-packages"
     }
 }
