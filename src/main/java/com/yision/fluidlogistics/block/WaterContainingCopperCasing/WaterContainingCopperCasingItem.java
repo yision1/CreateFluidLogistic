@@ -37,7 +37,7 @@ public class WaterContainingCopperCasingItem extends BlockItem {
 
             ms.pushPose();
             ms.translate(-0.5f, -0.5f, -0.5f);
-            WaterContainingCopperCasingBlock.renderFluid(ms, buffer, light);
+            WaterContainingCopperCasingBlock.Renderer.renderFluid(ms, buffer, light);
             ms.popPose();
         }
     }

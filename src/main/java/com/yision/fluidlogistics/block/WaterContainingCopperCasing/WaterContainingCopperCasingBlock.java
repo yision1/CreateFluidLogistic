@@ -35,9 +35,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 public class WaterContainingCopperCasingBlock extends Block implements IWrenchable, IBE<WaterContainingCopperCasingBlock.Entity> {
-    private static final FluidStack RENDERED_WATER = new FluidStack(Fluids.WATER, 1000);
-    private static final float FLUID_MIN = 1 / 16f;
-    private static final float FLUID_MAX = 15 / 16f;
 
     public WaterContainingCopperCasingBlock(Properties properties) {
         super(properties);
@@ -105,6 +102,10 @@ public class WaterContainingCopperCasingBlock extends Block implements IWrenchab
 
     public static class Renderer extends SafeBlockEntityRenderer<Entity> {
 
+        private static final FluidStack RENDERED_WATER = new FluidStack(Fluids.WATER, 1000);
+        private static final float FLUID_MIN = 1 / 16f;
+        private static final float FLUID_MAX = 15 / 16f;
+
         public Renderer(BlockEntityRendererProvider.Context context) {
         }
 
@@ -113,10 +114,10 @@ public class WaterContainingCopperCasingBlock extends Block implements IWrenchab
             int overlay) {
             renderFluid(ms, buffer, light);
         }
-    }
 
-    static void renderFluid(PoseStack ms, MultiBufferSource buffer, int light) {
-        NeoForgeCatnipServices.FLUID_RENDERER.renderFluidBox(RENDERED_WATER, FLUID_MIN, FLUID_MIN, FLUID_MIN,
-            FLUID_MAX, FLUID_MAX, FLUID_MAX, buffer, ms, light, true, true);
+        public static void renderFluid(PoseStack ms, MultiBufferSource buffer, int light) {
+            NeoForgeCatnipServices.FLUID_RENDERER.renderFluidBox(RENDERED_WATER, FLUID_MIN, FLUID_MIN, FLUID_MIN,
+                FLUID_MAX, FLUID_MAX, FLUID_MAX, buffer, ms, light, true, true);
+        }
     }
 }
