@@ -117,7 +117,6 @@ dependencies {
     compileOnly("plus.dragons.createdragonsplus:create-dragons-plus-${minecraft_version}:1.10.0")
     compileOnly("dev.ryanhcode.sable:sable-common-${minecraft_version}:${sable_version}")
     compileOnly("curse.maven:kaleidoscope-tavern-1475175:${kaleidoscope_tavern_file_id}")
-    localRuntime("curse.maven:kaleidoscope-tavern-1475175:${kaleidoscope_tavern_file_id}")
     testImplementation(platform("org.junit:junit-bom:5.12.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
