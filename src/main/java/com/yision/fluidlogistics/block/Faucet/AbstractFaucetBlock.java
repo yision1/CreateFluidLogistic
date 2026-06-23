@@ -4,6 +4,8 @@ import com.simibubi.create.AllItems;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.kinetics.base.KineticBlockEntity;
 import com.simibubi.create.foundation.block.IBE;
+import com.yision.fluidlogistics.compat.CompatMods;
+import com.yision.fluidlogistics.compat.kaleidoscopetavern.KaleidoscopeTavernCompat;
 import java.util.EnumMap;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
@@ -239,6 +241,11 @@ public abstract class AbstractFaucetBlock<T extends AbstractFaucetBlockEntity> e
     private boolean hasFluidSource(LevelReader level, BlockPos sourcePos, Direction side) {
         BlockState sourceState = level.getBlockState(sourcePos);
         if (isInfiniteWaterSource(sourceState)) {
+            return true;
+        }
+
+        if (CompatMods.kaleidoscopeTavernLoaded()
+            && KaleidoscopeTavernCompat.hasTapBehavior(sourceState)) {
             return true;
         }
 

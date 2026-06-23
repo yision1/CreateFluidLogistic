@@ -25,7 +25,7 @@ public class ChainConveyorBlockMixin {
 			target = "Lnet/minecraft/world/item/ItemStack;is(Lnet/minecraft/world/item/Item;)Z",
 			remap = true
 		),
-		remap = false
+		remap = true
 	)
 	private boolean fluidlogistics$useOnPhantomChain(boolean original,
 													 @Local(argsOnly = true) Player pPlayer,

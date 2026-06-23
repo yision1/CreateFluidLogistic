@@ -16,16 +16,20 @@ This mod expands the logistics system of Create 6.0, adding a fluid logistics sy
 - Hand Pointer
 - Mechanical Fluid Gun
 - Encased waterlogged leaves
+- Phantom Chain
 
 ## Tips
 
-### Factory Gauge/Redstone Requester
+- **Factory Gauge/Redstone Requester** - Hold down **Alt** and **right-click** on an item containing fluid to request the fluid.
 
-- Hold down **Alt** and **right-click** on an item containing fluid to request the fluid.
+- **Clipboard** - Enter a package address in the Clipboard and then **right-click** on packager/repackager to set its address.
 
-### Clipboard
-
-- Enter a package address in the Clipboard and then **right-click** on packager/repackager to set its address.
+## Mod Compatibility
+- **JEI / EMI** — Fluid icon drag support
+- **Jade / Cyber Goggles** — Fluid package information display support
+- **Sable** — Faucet filling across sub-levels support
+- **Mobile Packages / Package Couriers** — Portable Stock Ticker request fluids support
+- **Enchantment Industry** — Faucet filling experience support, Package breakage drop experience support
 
 ## Credits
 

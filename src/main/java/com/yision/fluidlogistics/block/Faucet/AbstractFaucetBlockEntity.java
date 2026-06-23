@@ -14,15 +14,23 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetFilterSlotPositioning;
+import com.yision.fluidlogistics.compat.CompatMods;
+import com.yision.fluidlogistics.compat.kaleidoscopetavern.KaleidoscopeTavernCompat;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.yision.fluidlogistics.network.SmartFaucetDripParticlePacket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.particles.SimpleParticleType;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
@@ -48,6 +56,10 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     private static final int DRIP_INTERVAL = 25;
     private static final int DRIP_AMOUNT = 250;
     private static final int SUCCESS_COOLDOWN = 5;
+    private static final int KALEIDOSCOPE_TAP_TIME = 30;
+    private static final int KALEIDOSCOPE_TAP_PARTICLE_TIME = 5;
+    private static final String TAG_KALEIDOSCOPE_TAP_TICKS = "KaleidoscopeTapTicks";
+    private static final String TAG_KALEIDOSCOPE_TAP_PARTICLE = "KaleidoscopeTapParticle";
     private static final TagKey<Block> FAUCET_FILLABLE = TagKey.create(Registries.BLOCK,
         FluidLogistics.asResource("faucet_fillable"));
     private static final TagKey<Block> LEGACY_SMART_FAUCET_FILLABLE = TagKey.create(Registries.BLOCK,
@@ -80,6 +92,8 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     private int dripCycleIndex;
     private boolean isFillingItem;
     private boolean shouldDrip;
+    private int kaleidoscopeTapTicks;
+    private @Nullable ParticleOptions kaleidoscopeTapParticle;
     private @Nullable Direction sourceDirection;
     private @Nullable BlockPos sourceBlockPos;
     private ProcessingTarget processingTarget = ProcessingTarget.NONE;
@@ -128,6 +142,9 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         }
 
         tickCooldown();
+        if (tickKaleidoscopeTap()) {
+            return;
+        }
         if (tickActiveFill()) {
             return;
         }
@@ -202,6 +219,7 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         if (isFillingItem) {
             cancelItemFilling();
         }
+        clearKaleidoscopeTapState();
         transferCooldown = 0;
         clearDripState();
         notifyUpdate();
@@ -215,6 +233,11 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         BlockPos targetPos = worldPosition.below();
         Direction facing = getBlockState().getValue(AbstractFaucetBlock.FACING);
         BlockPos sourcePos = worldPosition.relative(facing.getOpposite());
+
+        if (tryStartKaleidoscopeTap()) {
+            return;
+        }
+
         IFluidHandler sourceHandler = FaucetFluidSupport.getSourceHandler(level, sourcePos, facing);
 
         if (!hasProcessableTarget(targetPos)) {
@@ -249,6 +272,11 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private boolean hasProcessableTarget(BlockPos targetPos) {
+        if (CompatMods.kaleidoscopeTavernLoaded()
+            && KaleidoscopeTavernCompat.canStart(level, worldPosition, getBlockState(), this::testFluidFilter)) {
+            return true;
+        }
+
         BlockEntity targetEntity = level.getBlockEntity(targetPos);
         BlockState targetState = level.getBlockState(targetPos);
 
@@ -612,7 +640,8 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     }
 
     private void resetVisualState() {
-        boolean needsUpdate = !renderingFluid.isEmpty() || !pendingFluid.isEmpty() || shouldDrip || isFillingItem;
+        boolean needsUpdate = !renderingFluid.isEmpty() || !pendingFluid.isEmpty() || shouldDrip || isFillingItem
+            || kaleidoscopeTapTicks > 0;
         renderingFluid = FluidStack.EMPTY;
         pendingFluid = FluidStack.EMPTY;
         processingItem = ItemStack.EMPTY;
@@ -622,11 +651,17 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         sourceDirection = null;
         sourceBlockPos = null;
         processingTarget = ProcessingTarget.NONE;
+        clearKaleidoscopeTapState();
         clearDripState();
         cachedDripFluids.clear();
         if (needsUpdate) {
             notifyUpdate();
         }
+    }
+
+    private void clearKaleidoscopeTapState() {
+        kaleidoscopeTapTicks = 0;
+        kaleidoscopeTapParticle = null;
     }
 
     private void clearFlowVisuals() {
@@ -653,6 +688,8 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         tag.putInt(TAG_TRANSFER_COOLDOWN, transferCooldown);
         tag.putInt(TAG_DRIP_TICK_COUNTER, dripTickCounter);
         tag.putInt(TAG_DRIP_CYCLE_INDEX, dripCycleIndex);
+        tag.putInt(TAG_KALEIDOSCOPE_TAP_TICKS, kaleidoscopeTapTicks);
+        writeParticleOptions(tag, TAG_KALEIDOSCOPE_TAP_PARTICLE, kaleidoscopeTapParticle);
     }
 
     @Override
@@ -671,6 +708,8 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         transferCooldown = tag.getInt(TAG_TRANSFER_COOLDOWN);
         dripTickCounter = tag.getInt(TAG_DRIP_TICK_COUNTER);
         dripCycleIndex = tag.getInt(TAG_DRIP_CYCLE_INDEX);
+        kaleidoscopeTapTicks = tag.getInt(TAG_KALEIDOSCOPE_TAP_TICKS);
+        kaleidoscopeTapParticle = readParticleOptions(tag, TAG_KALEIDOSCOPE_TAP_PARTICLE);
     }
 
     private boolean isOpen() {
@@ -681,6 +720,57 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         if (transferCooldown > 0) {
             transferCooldown--;
         }
+    }
+
+    private boolean tryStartKaleidoscopeTap() {
+        if (!CompatMods.kaleidoscopeTavernLoaded()) {
+            return false;
+        }
+
+        KaleidoscopeTavernCompat.TapOperation operation = KaleidoscopeTavernCompat.prepare(
+            level, worldPosition, getBlockState(), this::testFluidFilter);
+        if (operation == null) {
+            return false;
+        }
+
+        kaleidoscopeTapTicks = KALEIDOSCOPE_TAP_TIME;
+        kaleidoscopeTapParticle = operation.particle();
+
+        FluidStack mappedFluid = operation.mappedFluid();
+        renderingFluid = mappedFluid.isEmpty() ? FluidStack.EMPTY : FaucetFluidSupport.copyFluidWithAmount(mappedFluid, 250);
+
+        AllSoundEvents.SPOUTING.playOnServer(level, worldPosition, 0.75f, 0.9f + 0.2f * level.random.nextFloat());
+        notifyUpdate();
+        return true;
+    }
+
+    private boolean tickKaleidoscopeTap() {
+        if (kaleidoscopeTapTicks <= 0) {
+            return false;
+        }
+
+        int elapsed = KALEIDOSCOPE_TAP_TIME - kaleidoscopeTapTicks + 1;
+        kaleidoscopeTapTicks--;
+
+        if (elapsed <= KALEIDOSCOPE_TAP_PARTICLE_TIME
+            && kaleidoscopeTapParticle != null
+            && level instanceof ServerLevel serverLevel) {
+            serverLevel.sendParticles(kaleidoscopeTapParticle,
+                worldPosition.getX() + 0.5, worldPosition.getY() + 0.25, worldPosition.getZ() + 0.5,
+                1, 0, 0, 0, 0);
+        }
+
+        if (kaleidoscopeTapTicks > 0) {
+            return true;
+        }
+
+        if (CompatMods.kaleidoscopeTavernLoaded()) {
+            KaleidoscopeTavernCompat.finish(level, worldPosition, getBlockState());
+        }
+        kaleidoscopeTapParticle = null;
+        renderingFluid = FluidStack.EMPTY;
+        notifyUpdate();
+        return true;
     }
 
     private boolean tickActiveFill() {
@@ -936,6 +1026,28 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
 
     private @Nullable BlockPos readBlockPos(CompoundTag tag, String key) {
         return tag.contains(key) ? BlockPos.of(tag.getLong(key)) : null;
+    }
+
+    private void writeParticleOptions(CompoundTag tag, String key, @Nullable ParticleOptions particle) {
+        if (particle == null) {
+            return;
+        }
+        ResourceLocation id = BuiltInRegistries.PARTICLE_TYPE.getKey(particle.getType());
+        if (id != null) {
+            tag.putString(key, id.toString());
+        }
+    }
+
+    private @Nullable ParticleOptions readParticleOptions(CompoundTag tag, String key) {
+        if (!tag.contains(key)) {
+            return null;
+        }
+        ResourceLocation id = ResourceLocation.tryParse(tag.getString(key));
+        if (id == null) {
+            return null;
+        }
+        ParticleType<?> type = BuiltInRegistries.PARTICLE_TYPE.get(id);
+        return type instanceof SimpleParticleType simpleParticleType ? simpleParticleType : null;
     }
 
     private record ItemFillContext(IFluidHandler sourceHandler, Direction sourceDirection, BlockPos sourcePos,
