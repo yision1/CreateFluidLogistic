@@ -144,6 +144,8 @@
   "fluidlogistics.configuration.fluidPumpRange.tooltip": "Maximum distance a Fluid Pump can push or pull fluids on either side",
   "fluidlogistics.configuration.fluidTransporterEnabled": "Fluid Transporter",
   "fluidlogistics.configuration.fluidTransporterEnabled.tooltip": "Whether the Fluid Transporter is enabled",
+  "fluidlogistics.configuration.fluidTransporterGetWaterFromLeaves": "Fluid Transporter Get Water From Leaves",
+  "fluidlogistics.configuration.fluidTransporterGetWaterFromLeaves.tooltip": "Whether to allow Fluid Transporter Get Water From Leaves",
   "fluidlogistics.configuration.handPointerEnabled": "Hand Pointer",
   "fluidlogistics.configuration.handPointerEnabled.tooltip": "Whether the Hand Pointer is enabled",
   "fluidlogistics.configuration.horizontalMultiFluidTankEnabled": "Horizontal Multi-Fluid Tank",

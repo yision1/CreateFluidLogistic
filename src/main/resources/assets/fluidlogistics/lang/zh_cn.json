@@ -144,6 +144,8 @@
   "fluidlogistics.configuration.fluidPumpRange.tooltip": "流体泵在任一侧可推动或抽取流体的最大距离",
   "fluidlogistics.configuration.fluidTransporterEnabled": "流体传输器",
   "fluidlogistics.configuration.fluidTransporterEnabled.tooltip": "是否启用流体传输器",
+  "fluidlogistics.configuration.fluidTransporterGetWaterFromLeaves": "流体传输器从树叶中抽水",
+  "fluidlogistics.configuration.fluidTransporterGetWaterFromLeaves.tooltip": "是否允许流体传输器从树叶中抽水",
   "fluidlogistics.configuration.handPointerEnabled": "指读棒",
   "fluidlogistics.configuration.handPointerEnabled.tooltip": "是否启用指读棒",
   "fluidlogistics.configuration.horizontalMultiFluidTankEnabled": "横向多流体储罐",

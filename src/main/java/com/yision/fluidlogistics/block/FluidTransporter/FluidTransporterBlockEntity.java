@@ -6,9 +6,6 @@ import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringB
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.registry.AllBlocks;
-import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -21,6 +18,10 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidHandler.FluidAction;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.List;
 
 public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
@@ -186,8 +187,10 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
         BlockPos targetPos = worldPosition.relative(facing);
         BlockState targetState = level.getBlockState(targetPos);
-        if (FluidTransporterBlock.isInfiniteWaterSource(targetState)) {
-            return WATERLOGGED_LEAVES_HANDLER;
+        if (FeatureToggle.isEnabled(FeatureToggle.FLUID_TRANSPORTER_GET_WATER)){
+            if (FluidTransporterBlock.isInfiniteWaterSource(targetState)) {
+                return WATERLOGGED_LEAVES_HANDLER;
+            }
         }
 
         return grabCapability(facing);
