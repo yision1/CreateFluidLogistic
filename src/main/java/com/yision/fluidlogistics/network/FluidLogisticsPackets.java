@@ -23,6 +23,7 @@ public enum FluidLogisticsPackets implements BasePacketPayload.PacketTypeProvide
     HAND_POINTER_MAILBOX_STATION_CONNECTION(HandPointerMailboxStationConnectionPacket.class, HandPointerMailboxStationConnectionPacket.STREAM_CODEC),
     HAND_POINTER_LOGISTICS_NETWORK(HandPointerLogisticsNetworkPacket.class, HandPointerLogisticsNetworkPacket.STREAM_CODEC),
     HAND_POINTER_CLEAR_CLIPBOARD_ADDRESS(HandPointerClearClipboardAddressPacket.class, HandPointerClearClipboardAddressPacket.STREAM_CODEC),
+    HAND_POINTER_OPEN_FILTER_MENU(HandPointerOpenFilterMenuPacket.class, HandPointerOpenFilterMenuPacket.STREAM_CODEC),
     HAND_POINTER_PACKAGER_TOGGLE(HandPointerPackagerTogglePacket.class, HandPointerPackagerTogglePacket.STREAM_CODEC),
     FAUCET_DRIP_PARTICLE(FaucetDripParticlePacket.class, FaucetDripParticlePacket.STREAM_CODEC),
     MECHANICAL_FLUID_GUN_TARGET(MechanicalFluidGunPackets.TargetPacket.class, MechanicalFluidGunPackets.TargetPacket.STREAM_CODEC),

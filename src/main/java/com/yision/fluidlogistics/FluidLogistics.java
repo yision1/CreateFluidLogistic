@@ -30,6 +30,7 @@ import com.yision.fluidlogistics.item.CompressedTankTooltipModifier;
 import com.yision.fluidlogistics.item.InfiniteFluidTankItem;
 import com.yision.fluidlogistics.registry.AllDataComponents;
 import com.yision.fluidlogistics.registry.AllItems;
+import com.yision.fluidlogistics.registry.AllMenuTypes;
 import com.yision.fluidlogistics.registry.AllConditionCodecs;
 import com.yision.fluidlogistics.registry.AllFluidAttributeTypes;
 import com.yision.fluidlogistics.registry.FluidLogisticsUnpackingHandlers;
@@ -98,6 +99,7 @@ public class FluidLogistics {
         AllBlocks.register();
         AllBlockEntities.register();
         AllItems.register();
+        AllMenuTypes.register();
         FluidLogisticsArmInteractionPointTypes.ARM_INTERACTION_POINT_TYPES.register(modEventBus);
 
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);

@@ -6,7 +6,7 @@
   "item.fluidlogistics.hand_pointer": "指读棒",
   "item.fluidlogistics.hand_pointer.tooltip.summary": "用于配置机械元件_交互点_的多功能工具",
   "item.fluidlogistics.hand_pointer.tooltip.condition1": "作用目标",
-  "item.fluidlogistics.hand_pointer.tooltip.behaviour1": "打包机/理包机/蛙港/邮箱/动力臂/动力注液枪/存量转信器/弹射置物台/显示链接器/可接入物流网络元件",
+  "item.fluidlogistics.hand_pointer.tooltip.behaviour1": "打包机/理包机/蛙港/邮箱/动力臂/动力注液枪/存量转信器/弹射置物台/显示链接器/可接入物流网络元件/任意过滤器",
   "item.fluidlogistics.rare_fluid_package": "流体包裹",
   "itemGroup.fluidlogistics.fluidlogistics_tab": "机械动力：流体包裹",
   "block.fluidlogistics.copper_basin": "铜工作盆",
@@ -233,5 +233,6 @@
   "fluidlogistics.ponder.smart_hopper.text_4": "智能漏斗不仅可以传输流体，也可以传输物品",
   "fluidlogistics.ponder.smart_hopper.text_5": "当然，智能漏斗可以通过设置过滤来限制允许通过的物品和流体",
   "logistically_linked.protected": "该物流网络受保护",
-  "resourcepack.fluidlogistics.cu_again_for_fluidlogistics": "流体包裹旧版本铜材质补丁"
+  "resourcepack.fluidlogistics.cu_again_for_fluidlogistics": "流体包裹旧版本铜材质补丁",
+  "create.gui.fluidlogistics.hand_pointer_filter.place_item_to_filter": "放置要过滤的物品"
 }

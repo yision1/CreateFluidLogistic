@@ -11,10 +11,12 @@ import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
 import com.yision.fluidlogistics.client.MechanicalFluidGunItemSelectionHandler;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterTargetResolver;
 import com.yision.fluidlogistics.item.HandPointerItem;
 import com.yision.fluidlogistics.network.HandPointerAuthorizeLogisticsNetworkPacket;
 import com.yision.fluidlogistics.network.HandPointerClearClipboardAddressPacket;
 import com.yision.fluidlogistics.network.HandPointerDisplayLinkConfigurationPacket;
+import com.yision.fluidlogistics.network.HandPointerOpenFilterMenuPacket;
 import com.yision.fluidlogistics.network.HandPointerPackagerTogglePacket;
 import com.yision.fluidlogistics.network.MechanicalFluidGunPackets;
 
@@ -254,6 +256,13 @@ public class HandPointerInteractionHandler {
             && player.isShiftKeyDown()
             && LogisticsSelectionHandler.isLogisticsBlockEntity(blockEntity)) {
             HandPointerAuthorizeLogisticsNetworkPacket.send(pos, getTargetedPanelSlot(pos, state, clickLocation));
+            return true;
+        }
+
+        if (!HandPointerModeManager.isInSelectionMode()
+            && !player.isShiftKeyDown()
+            && HandPointerFilterTargetResolver.resolve(level, player, pos, hitResult).isPresent()) {
+            HandPointerOpenFilterMenuPacket.send(pos, hitResult.getDirection(), hitResult.getLocation());
             return true;
         }
 

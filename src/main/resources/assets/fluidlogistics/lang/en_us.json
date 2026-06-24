@@ -6,7 +6,7 @@
   "item.fluidlogistics.hand_pointer": "Hand Pointer",
   "item.fluidlogistics.hand_pointer.tooltip.summary": "Multi-purpose tool for configuring _interaction points_ on mechanical components",
   "item.fluidlogistics.hand_pointer.tooltip.condition1": "Applicable Targets",
-  "item.fluidlogistics.hand_pointer.tooltip.behaviour1": "Packagers / Re-Packagers / Package Frogports / Postboxes / Mechanical Arms / Mechanical Fluid Guns / Threshold Switch / Weighted Ejectors / Display Links / logistics-network components",
+  "item.fluidlogistics.hand_pointer.tooltip.behaviour1": "Packagers / Re-Packagers / Package Frogports / Postboxes / Mechanical Arms / Mechanical Fluid Guns / Threshold Switch / Weighted Ejectors / Display Links / logistics-network components / Any filter",
   "item.fluidlogistics.rare_fluid_package": "Fluid Package",
   "itemGroup.fluidlogistics.fluidlogistics_tab": "Create: Fluid Logistics",
   "block.fluidlogistics.copper_basin": "Copper Basin",
@@ -233,5 +233,6 @@
   "fluidlogistics.ponder.smart_hopper.text_4": "Smart Hoppers can transfer items as well as fluids",
   "fluidlogistics.ponder.smart_hopper.text_5": "Smart Hoppers can also use filters to restrict which items and fluids are allowed through",
   "logistically_linked.protected": "This logistics network is protected",
-  "resourcepack.fluidlogistics.cu_again_for_fluidlogistics": "Legacy Copper Textures for Fluid Logistics"
+  "resourcepack.fluidlogistics.cu_again_for_fluidlogistics": "Legacy Copper Textures for Fluid Logistics",
+  "create.gui.fluidlogistics.hand_pointer_filter.place_item_to_filter": "Place item to filter"
 }
