@@ -3,7 +3,6 @@ package com.yision.fluidlogistics.compat.emi;
 import com.simibubi.create.AllPackets;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemScreen;
 import com.simibubi.create.foundation.gui.menu.GhostItemSubmitPacket;
-import com.yision.fluidlogistics.compat.CompatMods;
 
 import dev.emi.emi.api.EmiDragDropHandler;
 import dev.emi.emi.api.stack.EmiIngredient;
@@ -65,12 +64,6 @@ public class FactoryPanelSetItemEmiDragDropHandler implements EmiDragDropHandler
     }
 
     private static boolean shouldAccept(EmiIngredient ingredient) {
-        if (ingredient.isEmpty()) {
-            return false;
-        }
-        if (EmiIngredientHelper.getFirstFluid(ingredient) != null) {
-            return !CompatMods.jeiLoaded();
-        }
-        return true;
+        return !ingredient.isEmpty();
     }
 }

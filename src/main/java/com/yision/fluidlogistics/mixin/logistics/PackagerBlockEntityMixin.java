@@ -14,6 +14,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
+import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity;
@@ -33,6 +34,7 @@ import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
+import net.minecraftforge.items.ItemStackHandler;
 
 @Mixin(value = PackagerBlockEntity.class, remap = false)
 public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGoggleInformation {
@@ -43,6 +45,14 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
     private String fluidlogistics$clipboardAddress = "";
     @Unique
     private int fluidlogistics$queuedPackageCount;
+
+    @Inject(method = "unwrapBox", at = @At("HEAD"), cancellable = true, remap = false)
+    private void fluidlogistics$rejectCompressedTankPackages(ItemStack box, boolean simulate,
+                                                             CallbackInfoReturnable<Boolean> cir) {
+        if (fluidlogistics$containsCompressedTank(box)) {
+            cir.setReturnValue(false);
+        }
+    }
 
     @Inject(method = "write", at = @At("RETURN"))
     private void fluidlogistics$writeOverrideData(CompoundTag compound, boolean clientPacket, CallbackInfo ci) {
@@ -105,6 +115,22 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
         }
 
         CompressedTankItem.ensureIdentity(stackInSlot);
+    }
+
+    @Unique
+    private static boolean fluidlogistics$containsCompressedTank(ItemStack box) {
+        if (box.isEmpty() || !PackageItem.isPackage(box)) {
+            return false;
+        }
+
+        ItemStackHandler contents = PackageItem.getContents(box);
+        for (int slot = 0; slot < contents.getSlots(); slot++) {
+            if (contents.getStackInSlot(slot).getItem() instanceof CompressedTankItem) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override

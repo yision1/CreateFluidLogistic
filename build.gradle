@@ -47,7 +47,7 @@ legacyForge {
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             systemProperty 'forge.logging.console.level', 'debug'
             systemProperty 'mixin.env.remapRefMap', 'true'
-            systemProperty 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            systemProperty 'mixin.env.refMapRemappingFile', "${projectDir}/build/moddev/artifacts/intermediateToNamed.srg"
             programArgument "-mixin.config=${mod_id}.mixins.json"
         }
 
@@ -236,7 +236,7 @@ publisher {
     setCurseID("1475079")
     setVersionType("release")
     setVersion("${project.mod_version}")
-    setDisplayName("Create：FluidLogistic ${project.mod_version}")
+    setDisplayName("Create: FluidLogistic ${project.mod_version}")
     setChangelog(latestChangelogForPublisher)
     setGameVersions("${project.minecraft_version}")
     setLoaders("forge")

@@ -3,7 +3,6 @@ package com.yision.fluidlogistics.compat.emi;
 import com.simibubi.create.AllPackets;
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
 import com.simibubi.create.foundation.gui.menu.GhostItemSubmitPacket;
-import com.yision.fluidlogistics.compat.CompatMods;
 import com.yision.fluidlogistics.mixin.accessor.RedstoneRequesterScreenAccessor;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
@@ -73,12 +72,6 @@ public class RedstoneRequesterEmiDragDropHandler implements EmiDragDropHandler<R
     }
 
     private static boolean shouldAccept(EmiIngredient ingredient) {
-        if (ingredient.isEmpty()) {
-            return false;
-        }
-        if (EmiIngredientHelper.getFirstFluid(ingredient) != null) {
-            return !CompatMods.jeiLoaded();
-        }
-        return true;
+        return !ingredient.isEmpty();
     }
 }
