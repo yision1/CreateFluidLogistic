@@ -194,6 +194,8 @@ tasks.named('jar', Jar).configure {
     finalizedBy 'reobfJar'
 }
 
+def releaseArtifact = layout.buildDirectory.file("libs/${base.archivesName.get()}-${project.version}.jar")
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.compilerArgs.addAll(['-Xlint:deprecation', '-Xlint:unchecked'])
@@ -239,7 +241,7 @@ publisher {
     setGameVersions("${project.minecraft_version}")
     setLoaders("forge")
     setCurseEnvironment("both")
-    setArtifact(jar.archiveFile.get())
+    setArtifact(releaseArtifact.get().asFile)
     setJavaVersions([JavaVersion.VERSION_17])
 
     modrinthDepends {
@@ -250,4 +252,8 @@ publisher {
         required "create"
         optional "create-mobile-packages"
     }
+}
+
+tasks.named('publishMod') {
+    dependsOn 'reobfJar'
 }
