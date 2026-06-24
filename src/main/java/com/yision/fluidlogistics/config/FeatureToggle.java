@@ -12,6 +12,7 @@ public final class FeatureToggle {
 
     // --- Feature constants ---
     public static final ResourceLocation FLUID_TRANSPORTER = FluidLogistics.asResource("fluid_transporter");
+    public static final ResourceLocation FLUID_TRANSPORTER_GET_WATER = FluidLogistics.asResource("fluid_transporter_get_water_from_leaves");
     public static final ResourceLocation SMART_FAUCET = FluidLogistics.asResource("smart_faucet");
     public static final ResourceLocation FAUCET = FluidLogistics.asResource("faucet");
     public static final ResourceLocation MULTI_FLUID_TANK = FluidLogistics.asResource("multi_fluid_tank");
@@ -38,6 +39,7 @@ public final class FeatureToggle {
     static {
         Map<ResourceLocation, BooleanSupplier> map = new LinkedHashMap<>();
         map.put(FLUID_TRANSPORTER, Config::isFluidTransporterEnabled);
+        map.put(FLUID_TRANSPORTER_GET_WATER,Config::isFluidTransporterGetWaterFromLeaves);
         map.put(SMART_FAUCET, Config::isSmartFaucetEnabled);
         map.put(FAUCET, Config::isFaucetEnabled);
         map.put(MULTI_FLUID_TANK, Config::isMultiFluidTankEnabled);
