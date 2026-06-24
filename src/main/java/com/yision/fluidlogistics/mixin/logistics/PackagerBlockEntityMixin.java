@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
@@ -40,17 +41,22 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
     private boolean fluidlogistics$manualOverrideLocked;
     @Unique
     private String fluidlogistics$clipboardAddress = "";
+    @Unique
+    private int fluidlogistics$queuedPackageCount;
 
     @Inject(method = "write", at = @At("RETURN"))
     private void fluidlogistics$writeOverrideData(CompoundTag compound, boolean clientPacket, CallbackInfo ci) {
         compound.putBoolean("FluidLogisticsManualOverrideLocked", fluidlogistics$manualOverrideLocked);
         compound.putString("FluidLogisticsClipboardAddress", fluidlogistics$clipboardAddress);
+        compound.putInt("FluidLogisticsQueuedPackageCount",
+            fluidlogistics$countQueuedPackages((PackagerBlockEntity) (Object) this));
     }
 
     @Inject(method = "read", at = @At("RETURN"))
     private void fluidlogistics$readOverrideData(CompoundTag compound, boolean clientPacket, CallbackInfo ci) {
         fluidlogistics$manualOverrideLocked = compound.getBoolean("FluidLogisticsManualOverrideLocked");
         fluidlogistics$clipboardAddress = compound.getString("FluidLogisticsClipboardAddress");
+        fluidlogistics$queuedPackageCount = compound.getInt("FluidLogisticsQueuedPackageCount");
     }
 
     @Inject(method = "updateSignAddress", at = @At("RETURN"))
@@ -104,13 +110,42 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
     @Override
     public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
         PackagerBlockEntity packager = (PackagerBlockEntity) (Object) this;
-        String address = fluidlogistics$resolveAddress(packager);
         BlockState state = packager.getBlockState();
         boolean isRepackager = packager instanceof RepackagerBlockEntity;
         boolean isLinkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
+
+        if (isRepackager) {
+            int cachedPackageCount = fluidlogistics$countCachedPackages(packager);
+            if (!fluidlogistics$manualOverrideLocked && cachedPackageCount <= 0) {
+                return false;
+            }
+            PackagerGoggleInfo.addToTooltip(tooltip, "", fluidlogistics$manualOverrideLocked, true,
+                false, cachedPackageCount);
+            return true;
+        }
+
+        String address = fluidlogistics$resolveAddress(packager);
         PackagerGoggleInfo.addToTooltip(tooltip, address, fluidlogistics$manualOverrideLocked, isRepackager,
             isLinkedToNetwork);
         return true;
+    }
+
+    @Unique
+    private int fluidlogistics$countCachedPackages(PackagerBlockEntity packager) {
+        Level level = packager.getLevel();
+        if (level != null && level.isClientSide) {
+            return fluidlogistics$queuedPackageCount;
+        }
+        return fluidlogistics$countQueuedPackages(packager);
+    }
+
+    @Unique
+    private static int fluidlogistics$countQueuedPackages(PackagerBlockEntity packager) {
+        int count = 0;
+        for (BigItemStack entry : packager.queuedExitingPackages) {
+            count += Math.max(0, entry.count);
+        }
+        return count;
     }
 
     @Unique

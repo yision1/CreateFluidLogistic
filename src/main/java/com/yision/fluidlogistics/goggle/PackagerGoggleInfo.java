@@ -10,7 +10,7 @@ import net.minecraft.network.chat.Component;
 public class PackagerGoggleInfo {
 
     public static void addToTooltip(List<Component> tooltip, String address, boolean isManualOverride,
-        boolean isRepackager, boolean isLinkedToNetwork) {
+        boolean isRepackager, boolean isLinkedToNetwork, int cachedPackageCount) {
         if (isLinkedToNetwork) {
             CreateLang.builder()
                 .translate("goggles.packager_title")
@@ -27,15 +27,17 @@ public class PackagerGoggleInfo {
                 .style(ChatFormatting.WHITE)
                 .forGoggles(tooltip);
 
-            if (address != null && !address.isBlank()) {
+            if (isManualOverride) {
                 CreateLang.builder()
-                    .translate("goggles.address_label")
-                    .style(ChatFormatting.GRAY)
+                    .translate("goggles.manual_override")
+                    .style(ChatFormatting.RED)
                     .forGoggles(tooltip, 1);
+            }
 
+            if (cachedPackageCount > 0) {
                 CreateLang.builder()
-                    .text(address)
-                    .style(ChatFormatting.GOLD)
+                    .translate("goggles.cached_packages", cachedPackageCount)
+                    .style(ChatFormatting.AQUA)
                     .forGoggles(tooltip, 1);
             }
         } else {
@@ -62,12 +64,17 @@ public class PackagerGoggleInfo {
             }
         }
 
-        if (!isLinkedToNetwork && isManualOverride) {
+        if (!isLinkedToNetwork && !isRepackager && isManualOverride) {
             CreateLang.builder()
                 .translate("goggles.manual_override")
                 .style(ChatFormatting.RED)
                 .forGoggles(tooltip, 1);
         }
+    }
+
+    public static void addToTooltip(List<Component> tooltip, String address, boolean isManualOverride,
+        boolean isRepackager, boolean isLinkedToNetwork) {
+        addToTooltip(tooltip, address, isManualOverride, isRepackager, isLinkedToNetwork, 0);
     }
 
     public static void addFluidPackagerToTooltip(List<Component> tooltip, String address, boolean isManualOverride,
@@ -123,13 +130,8 @@ public class PackagerGoggleInfo {
 
         if (cachedPackageCount > 0) {
             CreateLang.builder()
-                .translate("goggles.cached_packages")
-                .style(ChatFormatting.GRAY)
-                .forGoggles(tooltip, 1);
-
-            CreateLang.builder()
-                .text(String.valueOf(cachedPackageCount))
-                .style(ChatFormatting.GOLD)
+                .translate("goggles.cached_packages", cachedPackageCount)
+                .style(ChatFormatting.AQUA)
                 .forGoggles(tooltip, 1);
         }
 

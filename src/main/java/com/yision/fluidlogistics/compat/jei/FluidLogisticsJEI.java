@@ -6,6 +6,7 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemScr
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
 import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.client.JeiRuntimeHolder;
+import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterScreen;
 
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
@@ -33,6 +34,8 @@ public class FluidLogisticsJEI implements IModPlugin {
             FactoryPanelSetItemFluidGhostHandler.INSTANCE);
         registration.addGhostIngredientHandler(RedstoneRequesterScreen.class,
             RedstoneRequesterFluidGhostHandler.INSTANCE);
+        registration.addGhostIngredientHandler(HandPointerFilterScreen.class,
+            HandPointerFilterGhostHandler.INSTANCE);
     }
 
     @Override

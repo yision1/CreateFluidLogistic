@@ -20,6 +20,7 @@ import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.FluidLogisticsUnpackingHandlers;
 import com.yision.fluidlogistics.registry.AllBlocks;
 import com.yision.fluidlogistics.registry.AllItems;
+import com.yision.fluidlogistics.registry.AllMenuTypes;
 import com.yision.fluidlogistics.registry.AllFluidAttributeTypes;
 import com.yision.fluidlogistics.registry.AllMountedStorageTypes;
 import com.yision.fluidlogistics.registry.AllFluidLogisticsParticleTypes;
@@ -99,6 +100,7 @@ public class FluidLogistics
         AllBlocks.register();
         AllBlockEntities.register();
         AllItems.register();
+        AllMenuTypes.register();
         AllMountedStorageTypes.register();
         AllFluidLogisticsParticleTypes.register(modEventBus);
         FluidLogisticsArmInteractionPointTypes.ARM_INTERACTION_POINT_TYPES.register(modEventBus);

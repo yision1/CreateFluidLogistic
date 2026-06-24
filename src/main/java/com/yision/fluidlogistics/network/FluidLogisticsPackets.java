@@ -122,6 +122,16 @@ public class FluidLogisticsPackets {
             })
             .add();
 
+        CHANNEL.messageBuilder(HandPointerOpenFilterMenuPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+            .encoder(HandPointerOpenFilterMenuPacket::write)
+            .decoder(HandPointerOpenFilterMenuPacket::new)
+            .consumerNetworkThread((packet, contextSupplier) -> {
+                if (packet.handle(contextSupplier.get())) {
+                    contextSupplier.get().setPacketHandled(true);
+                }
+            })
+            .add();
+
         CHANNEL.messageBuilder(ClipboardSetAddressPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
             .encoder(ClipboardSetAddressPacket::write)
             .decoder(ClipboardSetAddressPacket::new)

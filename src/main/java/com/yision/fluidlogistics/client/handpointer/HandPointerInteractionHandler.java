@@ -8,10 +8,12 @@ import com.simibubi.create.content.redstone.thresholdSwitch.ThresholdSwitchBlock
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
+import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterTargetResolver;
 import com.yision.fluidlogistics.item.HandPointerItem;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.yision.fluidlogistics.network.HandPointerClearClipboardAddressPacket;
 import com.yision.fluidlogistics.network.HandPointerDisplayLinkConfigurationPacket;
+import com.yision.fluidlogistics.network.HandPointerOpenFilterMenuPacket;
 import com.yision.fluidlogistics.network.HandPointerPackagerTogglePacket;
 
 import net.minecraft.client.Minecraft;
@@ -29,6 +31,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.TickEvent;
@@ -225,13 +228,14 @@ public class HandPointerInteractionHandler {
         }
 
         BlockPos pos = event.getPos();
+        BlockHitResult hitResult = event.getHitVec();
         BlockState state = level.getBlockState(pos);
         BlockEntity blockEntity = level.getBlockEntity(pos);
 
         HandPointerPackagerClickRouting.PackagerClickAction packagerClickAction =
             HandPointerPackagerClickRouting.route(HandPointerModeManager.getCurrentMode(), isPackagerFamily(state));
 
-        if (!shouldHandleRightClick(level, pos, state, blockEntity, packagerClickAction)) {
+        if (!shouldHandleRightClick(level, player, pos, hitResult, state, blockEntity, packagerClickAction)) {
             return;
         }
 
@@ -260,6 +264,16 @@ public class HandPointerInteractionHandler {
             event.setCanceled(true);
             event.setCancellationResult(InteractionResult.SUCCESS);
             handleSelectionClick(player, level, pos, state, event.getFace());
+            return;
+        }
+
+        if (!player.isShiftKeyDown()
+            && hitResult != null
+            && HandPointerFilterTargetResolver.resolve(level, player, pos, hitResult).isPresent()) {
+            event.setCanceled(true);
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            FluidLogisticsPackets.getChannel().sendToServer(new HandPointerOpenFilterMenuPacket(
+                pos, hitResult.getDirection(), hitResult.getLocation()));
             return;
         }
 
@@ -336,7 +350,8 @@ public class HandPointerInteractionHandler {
         }
     }
 
-    private static boolean shouldHandleRightClick(Level level, BlockPos pos, BlockState state, BlockEntity blockEntity,
+    private static boolean shouldHandleRightClick(Level level, Player player, BlockPos pos, BlockHitResult hitResult,
+        BlockState state, BlockEntity blockEntity,
         HandPointerPackagerClickRouting.PackagerClickAction packagerClickAction) {
         if (packagerClickAction == HandPointerPackagerClickRouting.PackagerClickAction.EXIT_MODE) {
             return true;
@@ -350,6 +365,10 @@ public class HandPointerInteractionHandler {
             return true;
         }
 
+        if (resolvesFilterSlot(level, player, pos, hitResult)) {
+            return true;
+        }
+
         if (blockEntity instanceof ArmBlockEntity
             || blockEntity instanceof EjectorBlockEntity
             || blockEntity instanceof ThresholdSwitchBlockEntity
@@ -360,6 +379,17 @@ public class HandPointerInteractionHandler {
         }
 
         return blockEntity instanceof MechanicalFluidGunBlockEntity;
+    }
+
+    private static boolean resolvesFilterSlot(Level level, Player player, BlockPos pos, BlockHitResult hitResult) {
+        if (player == null || player.isShiftKeyDown() || hitResult == null) {
+            return false;
+        }
+        if (!hitResult.getBlockPos().equals(pos)) {
+            return false;
+        }
+
+        return HandPointerFilterTargetResolver.resolve(level, player, pos, hitResult).isPresent();
     }
 
     private static void handleSelectionClick(Player player, Level level, BlockPos pos, BlockState state, Direction targetFace) {
