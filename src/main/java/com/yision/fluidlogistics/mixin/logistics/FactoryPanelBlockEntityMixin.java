@@ -41,21 +41,21 @@ public abstract class FactoryPanelBlockEntityMixin {
         if (original) {
             return true;
         }
-        
+
         FactoryPanelBlockEntity self = (FactoryPanelBlockEntity) (Object) this;
-        
+
         if (self.getLevel() == null) {
-            return false;
+            return self.restocker;
         }
-        
+
         BlockState state = self.getBlockState();
         BlockPos connectedPos = self.getBlockPos().relative(
             FactoryPanelBlock.connectedDirection(state).getOpposite());
-        
+
         if (!self.getLevel().isLoaded(connectedPos)) {
-            return false;
+            return self.restocker;
         }
-        
+
         BlockEntity be = self.getLevel().getBlockEntity(connectedPos);
         return be instanceof IFluidPackager;
     }

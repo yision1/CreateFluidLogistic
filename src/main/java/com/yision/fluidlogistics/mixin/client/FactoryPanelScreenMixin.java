@@ -302,7 +302,8 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     @Unique
     private void fluidlogistics$configureFluidAmountInput(FluidAmountScrollInput input, int minValue,
         boolean allowUnlimited) {
-        input.withRange(minValue, FluidGaugeHelper.MAX_FLUID_AMOUNT + 1)
+        int maxBatch = FluidGaugeHelper.getMaxFluidRequestPerBatch();
+        input.withRange(minValue, maxBatch + 1)
             .withShiftStep(1)
             .withStepFunction(context -> {
                 if (allowUnlimited && context.currentValue < 0) {
@@ -310,7 +311,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                 }
 
                 int next = FluidAmountHelper.adjustFluidRequestAmount(context.currentValue, context.forward,
-                    context.shift, context.control, 0, FluidGaugeHelper.MAX_FLUID_AMOUNT);
+                    context.shift, context.control, 0, maxBatch);
                 return Math.max(1, Math.abs(next - context.currentValue));
             });
     }
@@ -482,8 +483,9 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             @Local BigItemStack itemStack) {
         if (FluidGaugeHelper.isVirtualFluidFilter(itemStack.stack)) {
             FactoryPanelScreen self = (FactoryPanelScreen) (Object) this;
+            int maxBatch = FluidGaugeHelper.getMaxFluidRequestPerBatch();
             return FluidAmountHelper.adjustFluidRequestAmount(itemStack.count, value > itemStack.count, self.hasShiftDown(),
-                self.hasControlDown(), 1, FluidGaugeHelper.MAX_FLUID_AMOUNT);
+                self.hasControlDown(), 1, maxBatch);
         }
         return Mth.clamp(value, min, max);
     }

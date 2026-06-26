@@ -11,6 +11,7 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlock;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition;
 import com.yision.fluidlogistics.api.IFluidPackager;
+import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 
 import net.minecraft.core.BlockPos;
@@ -61,6 +62,11 @@ public final class FluidGaugeHelper {
 
     public static int clampRemainingAdditionalStock(int amount) {
         return Math.clamp(amount, DEFAULT_ADDITIONAL_STOCK, MAX_FLUID_AMOUNT);
+    }
+
+    public static int getMaxFluidRequestPerBatch() {
+        long limit = (long) Config.getFluidPerPackage() * 100L;
+        return (int) Math.clamp(limit, 1L, (long) MAX_FLUID_AMOUNT);
     }
 
     public static int getEffectiveRestockThreshold(@Nullable IFluidRestockThreshold thresholdData) {

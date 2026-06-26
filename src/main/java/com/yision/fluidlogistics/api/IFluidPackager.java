@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.content.logistics.packager.IdentifiedInventory;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
+import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.content.logistics.packager.PackagingRequest;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 
@@ -19,7 +20,7 @@ public interface IFluidPackager {
 
     void triggerStockCheck();
 
-    Pair<IFluidPackager, PackagingRequest> processFluidRequest(ItemStack stack, int amount, String address,
+    Pair<PackagerBlockEntity, PackagingRequest> processFluidRequest(ItemStack stack, int amount, String address,
             int linkIndex, MutableBoolean finalLink, int orderId, @Nullable PackageOrderWithCrafts context,
             @Nullable IdentifiedInventory ignoredHandler);
 

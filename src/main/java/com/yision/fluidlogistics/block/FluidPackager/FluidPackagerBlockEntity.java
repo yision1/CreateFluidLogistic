@@ -561,7 +561,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
     }
 
     @Override
-    public net.createmod.catnip.data.Pair<IFluidPackager, PackagingRequest> processFluidRequest(
+    public net.createmod.catnip.data.Pair<PackagerBlockEntity, PackagingRequest> processFluidRequest(
             ItemStack stack, int amount, String address, int linkIndex,
             org.apache.commons.lang3.mutable.MutableBoolean finalLink, int orderId,
             @Nullable PackageOrderWithCrafts context,

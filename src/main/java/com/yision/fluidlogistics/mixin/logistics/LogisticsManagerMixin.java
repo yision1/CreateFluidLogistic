@@ -1,7 +1,6 @@
 package com.yision.fluidlogistics.mixin.logistics;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -46,15 +45,26 @@ public abstract class LogisticsManagerMixin {
         cancellable = true,
         remap = false
     )
-    private static void fluidlogistics$broadcastFluidPackageRequest(UUID freqId, RequestType type, 
+    private static void fluidlogistics$broadcastFluidPackageRequest(UUID freqId, RequestType type,
             PackageOrderWithCrafts order, @Nullable IdentifiedInventory ignoredHandler, String address,
             CallbackInfoReturnable<Boolean> cir) {
-        
+
         if (order.isEmpty() || !fluidlogistics$hasVirtualFluidRequest(order)) {
             return;
         }
 
-        fluidlogistics$processMixedOrder(freqId, order, ignoredHandler, address, type, cir);
+        Multimap<PackagerBlockEntity, PackagingRequest> requests =
+            fluidlogistics$planMixedOrder(freqId, order, ignoredHandler, address);
+
+        for (PackagerBlockEntity packager : requests.keySet()) {
+            if (packager.isTooBusyFor(type)) {
+                cir.setReturnValue(false);
+                return;
+            }
+        }
+
+        LogisticsManager.performPackageRequests(requests);
+        cir.setReturnValue(true);
     }
 
     @Inject(
@@ -66,154 +76,27 @@ public abstract class LogisticsManagerMixin {
     private static void fluidlogistics$findPackagersForFluidRequest(UUID freqId,
             PackageOrderWithCrafts order, @Nullable IdentifiedInventory ignoredHandler, String address,
             CallbackInfoReturnable<Multimap<PackagerBlockEntity, PackagingRequest>> cir) {
-        
+
         if (order.isEmpty() || !fluidlogistics$hasVirtualFluidRequest(order)) {
             return;
         }
 
-        fluidlogistics$processMixedOrderFindPackagers(freqId, order, ignoredHandler, address, cir);
+        cir.setReturnValue(fluidlogistics$planMixedOrder(freqId, order, ignoredHandler, address));
     }
 
     @Unique
-    private static void fluidlogistics$processMixedOrder(UUID freqId, PackageOrderWithCrafts order,
-            @Nullable IdentifiedInventory ignoredHandler, String address, RequestType type,
-            CallbackInfoReturnable<Boolean> cir) {
-        
-        List<BigItemStack> allStacksInOrder = fluidlogistics$getRelevantOrderStacks(order);
-        int unifiedOrderId = ThreadLocalRandom.current().nextInt();
-        PackageOrderWithCrafts context = order;
-        
-        Map<Object, Integer> usedPackagers = new IdentityHashMap<>();
-        
-        Multimap<IFluidPackager, PackagingRequest> fluidRequests = HashMultimap.create();
-        Multimap<PackagerBlockEntity, PackagingRequest> regularRequests = HashMultimap.create();
-        
-        MutableBoolean finalLinkTracker = new MutableBoolean(false);
+    private static Multimap<PackagerBlockEntity, PackagingRequest> fluidlogistics$planMixedOrder(UUID freqId,
+            PackageOrderWithCrafts order, @Nullable IdentifiedInventory ignoredHandler, String address) {
 
-        Iterable<LogisticallyLinkedBehaviour> allAvailableLinks = LogisticallyLinkedBehaviour.getAllPresent(freqId, true);
-        List<LogisticallyLinkedBehaviour> availableLinks = fluidlogistics$collectAndDeduplicateLinks(allAvailableLinks);
-
-        for (int i = 0; i < allStacksInOrder.size(); i++) {
-            BigItemStack entry = allStacksInOrder.get(i);
-            int remainingCount = entry.count;
-            boolean isLastStack = i == allStacksInOrder.size() - 1;
-            
-            boolean isFluidStack = fluidlogistics$isVirtualFluidRequest(entry.stack);
-
-            for (LogisticallyLinkedBehaviour link : availableLinks) {
-                if (isFluidStack) {
-                    IFluidPackager fluidPackager = fluidlogistics$getFluidPackagerFromLink(link);
-                    if (fluidPackager == null) {
-                        continue;
-                    }
-
-                    if (fluidPackager.isTargetingSameInventory(ignoredHandler)) {
-                        continue;
-                    }
-
-                    Integer usedIndex = usedPackagers.get(fluidPackager);
-                    int linkIndex = usedIndex == null ? usedPackagers.size() : usedIndex;
-                    MutableBoolean isFinalLink = new MutableBoolean(false);
-                    if (linkIndex == usedPackagers.size() - 1)
-                        isFinalLink = finalLinkTracker;
-
-                    PackageOrderWithCrafts contextToSend = context;
-                    Pair<IFluidPackager, PackagingRequest> request = fluidPackager.processFluidRequest(
-                        entry.stack, remainingCount, address, linkIndex, isFinalLink, unifiedOrderId, contextToSend, ignoredHandler);
-                    
-                    if (request == null) {
-                        continue;
-                    }
-
-                    fluidRequests.put(request.getFirst(), request.getSecond());
-
-                    int processedCount = request.getSecond().getCount();
-                    if (processedCount > 0 && usedIndex == null) {
-                        context = null;
-                        usedPackagers.put(fluidPackager, linkIndex);
-                        finalLinkTracker = isFinalLink;
-                    }
-
-                    remainingCount -= processedCount;
-                    if (remainingCount > 0)
-                        continue;
-                    if (isLastStack)
-                        finalLinkTracker.setTrue();
-                    break;
-                } else {
-                    PackagerBlockEntity packager = fluidlogistics$getPackagerFromLink(link);
-                    if (packager == null) {
-                        continue;
-                    }
-
-                    Integer usedIndex = usedPackagers.get(packager);
-                    int linkIndex = usedIndex == null ? usedPackagers.size() : usedIndex;
-                    MutableBoolean isFinalLink = new MutableBoolean(false);
-                    if (linkIndex == usedPackagers.size() - 1)
-                        isFinalLink = finalLinkTracker;
-
-                    PackageOrderWithCrafts contextToSend = context;
-                    Pair<PackagerBlockEntity, PackagingRequest> request = link.processRequest(
-                        entry.stack, remainingCount, address, linkIndex, isFinalLink, unifiedOrderId, contextToSend, ignoredHandler);
-                    
-                    if (request == null) {
-                        continue;
-                    }
-
-                    regularRequests.put(request.getFirst(), request.getSecond());
-
-                    int processedCount = request.getSecond().getCount();
-                    if (processedCount > 0 && usedIndex == null) {
-                        context = null;
-                        usedPackagers.put(packager, linkIndex);
-                        finalLinkTracker = isFinalLink;
-                    }
-
-                    remainingCount -= processedCount;
-                    if (remainingCount > 0)
-                        continue;
-                    if (isLastStack)
-                        finalLinkTracker.setTrue();
-                    break;
-                }
-            }
-        }
-
-        for (IFluidPackager packager : fluidRequests.keySet()) {
-            if (packager.isFluidPackagerTooBusy(type)) {
-                cir.setReturnValue(false);
-                return;
-            }
-        }
-
-        for (PackagerBlockEntity packager : regularRequests.keySet()) {
-            if (packager.isTooBusyFor(type)) {
-                cir.setReturnValue(false);
-                return;
-            }
-        }
-
-        fluidlogistics$performFluidPackageRequests(fluidRequests);
-        fluidlogistics$performRegularPackageRequests(regularRequests);
-        
-        cir.setReturnValue(true);
-    }
-
-    @Unique
-    private static void fluidlogistics$processMixedOrderFindPackagers(UUID freqId, PackageOrderWithCrafts order,
-            @Nullable IdentifiedInventory ignoredHandler, String address,
-            CallbackInfoReturnable<Multimap<PackagerBlockEntity, PackagingRequest>> cir) {
-        
         List<BigItemStack> allStacksInOrder = fluidlogistics$getRelevantOrderStacks(order);
         int unifiedOrderId = ThreadLocalRandom.current().nextInt();
         PackageOrderWithCrafts context = order;
         boolean contextUsed = false;
-        
+
         Map<Object, Integer> usedPackagers = new IdentityHashMap<>();
-        
-        Multimap<IFluidPackager, PackagingRequest> fluidRequests = HashMultimap.create();
-        Multimap<PackagerBlockEntity, PackagingRequest> regularRequests = HashMultimap.create();
-        
+
+        Multimap<PackagerBlockEntity, PackagingRequest> unifiedRequests = HashMultimap.create();
+
         MutableBoolean finalLinkTracker = new MutableBoolean(false);
 
         Iterable<LogisticallyLinkedBehaviour> allAvailableLinks = LogisticallyLinkedBehaviour.getAllPresent(freqId, true);
@@ -223,7 +106,7 @@ public abstract class LogisticsManagerMixin {
             BigItemStack entry = allStacksInOrder.get(i);
             int remainingCount = entry.count;
             boolean isLastStack = i == allStacksInOrder.size() - 1;
-            
+
             boolean isFluidStack = fluidlogistics$isVirtualFluidRequest(entry.stack);
 
             for (LogisticallyLinkedBehaviour link : availableLinks) {
@@ -244,14 +127,14 @@ public abstract class LogisticsManagerMixin {
                         isFinalLink = finalLinkTracker;
 
                     PackageOrderWithCrafts contextToSend = !contextUsed ? context : null;
-                    Pair<IFluidPackager, PackagingRequest> request = fluidPackager.processFluidRequest(
+                    Pair<PackagerBlockEntity, PackagingRequest> request = fluidPackager.processFluidRequest(
                         entry.stack, remainingCount, address, linkIndex, isFinalLink, unifiedOrderId, contextToSend, ignoredHandler);
-                    
+
                     if (request == null) {
                         continue;
                     }
 
-                    fluidRequests.put(request.getFirst(), request.getSecond());
+                    unifiedRequests.put(request.getFirst(), request.getSecond());
 
                     int processedCount = request.getSecond().getCount();
                     if (processedCount > 0) {
@@ -268,7 +151,7 @@ public abstract class LogisticsManagerMixin {
                     if (remainingCount > 0) {
                         continue;
                     }
-                    
+
                     if (isLastStack) {
                         finalLinkTracker.setTrue();
                     }
@@ -288,12 +171,12 @@ public abstract class LogisticsManagerMixin {
                     PackageOrderWithCrafts contextToSend = !contextUsed ? context : null;
                     Pair<PackagerBlockEntity, PackagingRequest> request = link.processRequest(
                         entry.stack, remainingCount, address, linkIndex, isFinalLink, unifiedOrderId, contextToSend, ignoredHandler);
-                    
+
                     if (request == null) {
                         continue;
                     }
 
-                    regularRequests.put(request.getFirst(), request.getSecond());
+                    unifiedRequests.put(request.getFirst(), request.getSecond());
 
                     int processedCount = request.getSecond().getCount();
                     if (processedCount > 0) {
@@ -310,7 +193,7 @@ public abstract class LogisticsManagerMixin {
                     if (remainingCount > 0) {
                         continue;
                     }
-                    
+
                     if (isLastStack) {
                         finalLinkTracker.setTrue();
                     }
@@ -319,15 +202,13 @@ public abstract class LogisticsManagerMixin {
             }
         }
 
-        fluidlogistics$performFluidPackageRequests(fluidRequests);
-        
-        cir.setReturnValue(regularRequests);
+        return unifiedRequests;
     }
 
     @Unique
     private static List<LogisticallyLinkedBehaviour> fluidlogistics$collectAndDeduplicateLinks(
             Iterable<LogisticallyLinkedBehaviour> allAvailableLinks) {
-        
+
         Map<InventoryIdentifier, List<LogisticallyLinkedBehaviour>> linksByInventory = new HashMap<>();
         List<LogisticallyLinkedBehaviour> availableLinks = new ArrayList<>();
 
@@ -376,49 +257,6 @@ public abstract class LogisticsManagerMixin {
         return !stack.isEmpty()
             && stack.getItem() instanceof com.yision.fluidlogistics.item.CompressedTankItem
             && com.yision.fluidlogistics.item.CompressedTankItem.isVirtual(stack);
-    }
-
-    @Unique
-    private static void fluidlogistics$performFluidPackageRequests(Multimap<IFluidPackager, PackagingRequest> requests) {
-        Map<IFluidPackager, Collection<PackagingRequest>> asMap = requests.asMap();
-        for (Map.Entry<IFluidPackager, Collection<PackagingRequest>> entry : asMap.entrySet()) {
-            ArrayList<PackagingRequest> queuedRequests = new ArrayList<>(entry.getValue());
-            IFluidPackager packager = entry.getKey();
-
-            if (!queuedRequests.isEmpty()) {
-                packager.flashFluidLink();
-            }
-            for (int i = 0; i < 100; i++) {
-                if (queuedRequests.isEmpty()) {
-                    break;
-                }
-                packager.attemptToSendFluidRequest(queuedRequests);
-            }
-
-            packager.triggerStockCheck();
-        }
-    }
-
-    @Unique
-    private static void fluidlogistics$performRegularPackageRequests(Multimap<PackagerBlockEntity, PackagingRequest> requests) {
-        Map<PackagerBlockEntity, Collection<PackagingRequest>> asMap = requests.asMap();
-        for (Map.Entry<PackagerBlockEntity, Collection<PackagingRequest>> entry : asMap.entrySet()) {
-            ArrayList<PackagingRequest> queuedRequests = new ArrayList<>(entry.getValue());
-            PackagerBlockEntity packager = entry.getKey();
-
-            if (!queuedRequests.isEmpty()) {
-                packager.flashLink();
-            }
-            for (int i = 0; i < 100; i++) {
-                if (queuedRequests.isEmpty()) {
-                    break;
-                }
-                packager.attemptToSend(queuedRequests);
-            }
-
-            packager.triggerStockCheck();
-            packager.notifyUpdate();
-        }
     }
 
     @Unique

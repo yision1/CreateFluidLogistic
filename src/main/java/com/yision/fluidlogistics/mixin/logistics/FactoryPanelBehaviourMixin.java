@@ -274,6 +274,7 @@ public abstract class FactoryPanelBehaviourMixin {
         }
         
         int amountToOrder = Math.min(shortage, availableOnNetwork);
+        amountToOrder = Math.min(amountToOrder, FluidGaugeHelper.getMaxFluidRequestPerBatch());
         if (self instanceof IFluidPromiseLimit promiseLimitData && promiseLimitData.fluidlogistics$hasPromiseLimit()) {
             amountToOrder = Math.min(amountToOrder, promiseLimitData.fluidlogistics$getPromiseLimit() - promised);
         }
