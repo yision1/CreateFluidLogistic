@@ -26,6 +26,7 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelScreen;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.client.FluidAmountScrollInput;
+import com.yision.fluidlogistics.client.FluidTooltipHelper;
 import com.yision.fluidlogistics.client.FluidLogisticsGuiTextures;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.network.FactoryPanelSetFluidAdditionalStockPacket;
@@ -43,6 +44,7 @@ import net.createmod.catnip.gui.element.RenderElement;
 import net.createmod.catnip.platform.CatnipServices;
 import net.createmod.catnip.platform.NeoForgeCatnipServices;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.network.chat.Component;
@@ -181,6 +183,8 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                     .style(ChatFormatting.ITALIC)
                     .component());
             }
+            FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluidlogistics$cachedFluid,
+                    Minecraft.getInstance().options.advancedItemTooltips);
             graphics.renderComponentTooltip(font, newTooltips, mouseX, mouseY);
             return;
         }
@@ -572,7 +576,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                     .style(ChatFormatting.ITALIC)
                     .component();
 
-            graphics.renderComponentTooltip(font, List.of(c1, c2, c3, c4, c5), mouseX, mouseY);
+            List<Component> newTooltips = new ArrayList<>(List.of(c1, c2, c3, c4, c5));
+            FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluid,
+                    Minecraft.getInstance().options.advancedItemTooltips);
+            graphics.renderComponentTooltip(font, newTooltips, mouseX, mouseY);
             return;
         }
         graphics.renderComponentTooltip(font, tooltips, mouseX, mouseY);
@@ -598,7 +605,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             if (promised > 0) {
                 String fluidName = fluid.getHoverName().getString();
                 String amountText = FluidAmountHelper.formatPrecise(promised);
-                List<Component> newTooltips = List.of(
+                List<Component> newTooltips = new ArrayList<>(List.of(
                     CreateLang.translate("gui.factory_panel.promised_items")
                         .color(ScrollInput.HEADER_RGB)
                         .component(),
@@ -608,7 +615,9 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                         .style(ChatFormatting.DARK_GRAY)
                         .style(ChatFormatting.ITALIC)
                         .component()
-                );
+                ));
+                FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluid,
+                        Minecraft.getInstance().options.advancedItemTooltips);
                 graphics.renderComponentTooltip(font, newTooltips, mouseX, mouseY);
                 return;
             }

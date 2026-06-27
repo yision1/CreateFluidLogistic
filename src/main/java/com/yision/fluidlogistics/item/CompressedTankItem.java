@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 
 import com.simibubi.create.content.fluids.tank.FluidTankBlock;
 import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
+import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.datacomponent.FluidTankContent;
 import com.yision.fluidlogistics.render.CompressedTankItemRenderer;
@@ -13,7 +14,9 @@ import com.yision.fluidlogistics.registry.AllDataComponents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -82,6 +85,20 @@ public class CompressedTankItem extends Item {
         int capacity = getCapacity();
         tooltipComponents.add(Component.literal(fluid.getAmount() + " / " + capacity + " mB")
                 .withStyle(ChatFormatting.GRAY));
+    }
+
+    @Override
+    public String getCreatorModId(ItemStack stack) {
+        if (isVirtual(stack)) {
+            FluidStack fluid = getFluid(stack);
+            if (!fluid.isEmpty()) {
+                ResourceLocation fluidId = BuiltInRegistries.FLUID.getKey(fluid.getFluid());
+                if (fluidId != null) {
+                    return fluidId.getNamespace();
+                }
+            }
+        }
+        return FluidLogistics.MODID;
     }
 
     @Override

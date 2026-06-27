@@ -22,12 +22,14 @@ import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.gui.menu.GhostItemSubmitPacket;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
 import com.yision.fluidlogistics.client.RedstoneRequesterAmountsAccess;
+import com.yision.fluidlogistics.client.FluidTooltipHelper;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
 import net.createmod.catnip.data.Pair;
 import net.createmod.catnip.platform.CatnipServices;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -173,6 +175,8 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
                             .style(ChatFormatting.DARK_GRAY)
                             .style(ChatFormatting.ITALIC)
                             .component());
+                    FluidTooltipHelper.addAdvancedComponentLines(tooltip, fluid,
+                            Minecraft.getInstance().options.advancedItemTooltips);
                     cir.setReturnValue(tooltip);
                 }
             }

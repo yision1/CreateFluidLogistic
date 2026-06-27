@@ -6,7 +6,6 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemScr
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.client.JeiRuntimeHolder;
 import com.yision.fluidlogistics.compat.CompatMods;
 import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterScreen;
 
@@ -14,7 +13,6 @@ import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeTransferRegistration;
-import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.resources.ResourceLocation;
 
@@ -43,10 +41,5 @@ public class FluidLogisticsJEI implements IModPlugin {
         }
         registration.addGhostIngredientHandler(HandPointerFilterScreen.class, HandPointerFilterGhostHandler.INSTANCE);
         registration.addGuiContainerHandler(StockKeeperRequestScreen.class, new StockKeeperRequestFluidGuiHandler());
-    }
-
-    @Override
-    public void onRuntimeAvailable(IJeiRuntime runtime) {
-        JeiRuntimeHolder.setRuntime(runtime);
     }
 }
