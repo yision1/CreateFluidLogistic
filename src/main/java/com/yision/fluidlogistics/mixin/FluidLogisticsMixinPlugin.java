@@ -30,6 +30,7 @@ public class FluidLogisticsMixinPlugin implements IMixinConfigPlugin {
         "com.yision.fluidlogistics.mixin.accessor.StockTickerBlockEntityAccessor",
         "com.yision.fluidlogistics.mixin.item.PackageItemMixin",
         "com.yision.fluidlogistics.mixin.logistics.AttributeFilterItemStackMixin",
+        "com.yision.fluidlogistics.mixin.logistics.FilterItemStackVirtualFluidMixin",
         "com.yision.fluidlogistics.mixin.logistics.FactoryPanelBehaviourLegacyLinkCleanupMixin",
         "com.yision.fluidlogistics.mixin.logistics.FactoryPanelBehaviourMixin",
         "com.yision.fluidlogistics.mixin.logistics.FactoryPanelRestockThresholdMixin",

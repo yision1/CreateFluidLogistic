@@ -1,8 +1,11 @@
 package com.yision.fluidlogistics.compat.emi;
 
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemScreen;
+import com.simibubi.create.content.logistics.filter.AttributeFilterScreen;
+import com.simibubi.create.content.logistics.filter.FilterScreen;
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
+import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterScreen;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 
 import dev.emi.emi.api.EmiStackProvider;
@@ -34,7 +37,7 @@ public final class EmiVirtualFluidStackProvider {
             if (ghost.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(ghost)) {
                 FluidStack fluid = CompressedTankItem.getFluid(ghost);
                 if (!fluid.isEmpty()) {
-                    return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, false);
+                    return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, true);
                 }
             }
         }
@@ -50,11 +53,38 @@ public final class EmiVirtualFluidStackProvider {
         }
     }
 
+    public static class Filter implements EmiStackProvider<FilterScreen> {
+        public static final Filter INSTANCE = new Filter();
+
+        @Override
+        public EmiStackInteraction getStackAt(FilterScreen screen, int x, int y) {
+            return forGhostSlotScreen(screen, x, y);
+        }
+    }
+
+    public static class AttributeFilter implements EmiStackProvider<AttributeFilterScreen> {
+        public static final AttributeFilter INSTANCE = new AttributeFilter();
+
+        @Override
+        public EmiStackInteraction getStackAt(AttributeFilterScreen screen, int x, int y) {
+            return forGhostSlotScreen(screen, x, y);
+        }
+    }
+
     public static class RedstoneRequester implements EmiStackProvider<RedstoneRequesterScreen> {
         public static final RedstoneRequester INSTANCE = new RedstoneRequester();
 
         @Override
         public EmiStackInteraction getStackAt(RedstoneRequesterScreen screen, int x, int y) {
+            return forGhostSlotScreen(screen, x, y);
+        }
+    }
+
+    public static class HandPointerFilter implements EmiStackProvider<HandPointerFilterScreen> {
+        public static final HandPointerFilter INSTANCE = new HandPointerFilter();
+
+        @Override
+        public EmiStackInteraction getStackAt(HandPointerFilterScreen screen, int x, int y) {
             return forGhostSlotScreen(screen, x, y);
         }
     }
@@ -75,7 +105,7 @@ public final class EmiVirtualFluidStackProvider {
                     && CompressedTankItem.isVirtual(stack)) {
                 FluidStack fluid = CompressedTankItem.getFluid(stack);
                 if (!fluid.isEmpty()) {
-                    return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, false);
+                    return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, true);
                 }
                 return EmiStackInteraction.EMPTY;
             }
@@ -83,7 +113,7 @@ public final class EmiVirtualFluidStackProvider {
                 return new EmiStackInteraction(EmiStack.of(itemStack), null, true);
             }
             if (ingredient instanceof FluidStack fluidStack && !fluidStack.isEmpty()) {
-                return new EmiStackInteraction(NeoForgeEmiStack.of(fluidStack), null, false);
+                return new EmiStackInteraction(NeoForgeEmiStack.of(fluidStack), null, true);
             }
             return EmiStackInteraction.EMPTY;
         }

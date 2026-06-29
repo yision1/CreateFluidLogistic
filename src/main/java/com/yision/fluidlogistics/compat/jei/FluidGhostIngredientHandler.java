@@ -2,42 +2,45 @@ package com.yision.fluidlogistics.compat.jei;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
+import com.simibubi.create.foundation.gui.menu.GhostItemMenu;
 import com.yision.fluidlogistics.compat.ghost.GhostSlotSubmitter;
 import com.yision.fluidlogistics.compat.ghost.GhostSlotTargets;
 import com.yision.fluidlogistics.compat.ghost.VirtualFluidGhostStacks;
-import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterScreen;
 
-import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
 import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.neoforge.NeoForgeTypes;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.renderer.Rect2i;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class HandPointerFilterGhostHandler
-        implements IGhostIngredientHandler<HandPointerFilterScreen> {
+public class FluidGhostIngredientHandler<T extends AbstractSimiContainerScreen<? extends GhostItemMenu<?>>>
+        implements IGhostIngredientHandler<T> {
 
-    public static final HandPointerFilterGhostHandler INSTANCE = new HandPointerFilterGhostHandler();
+    private final BiConsumer<T, Integer> afterSubmit;
 
-    private HandPointerFilterGhostHandler() {
+    public FluidGhostIngredientHandler() {
+        this((gui, slotIndex) -> {});
+    }
+
+    public FluidGhostIngredientHandler(BiConsumer<T, Integer> afterSubmit) {
+        this.afterSubmit = afterSubmit;
     }
 
     @Override
-    public <I> List<Target<I>> getTargetsTyped(HandPointerFilterScreen gui, ITypedIngredient<I> ingredient,
-            boolean doStart) {
+    public <I> List<Target<I>> getTargetsTyped(T gui, ITypedIngredient<I> ingredient, boolean doStart) {
         List<Target<I>> targets = new LinkedList<>();
 
-        if (ingredient.getType() == VanillaTypes.ITEM_STACK
-                || ingredient.getType() == NeoForgeTypes.FLUID_STACK) {
+        if (ingredient.getType() == NeoForgeTypes.FLUID_STACK) {
             for (GhostSlotTargets.GhostSlotTarget target : GhostSlotTargets.collect(gui)) {
-                targets.add(new HandPointerFilterGhostTarget<>(target.area(), target.slotIndex(), gui));
+                targets.add(new FluidGhostTarget<>(target.area(), target.slotIndex(), gui, afterSubmit));
             }
         }
 
@@ -53,16 +56,18 @@ public class HandPointerFilterGhostHandler
         return true;
     }
 
-    private static class HandPointerFilterGhostTarget<I> implements Target<I> {
+    private static class FluidGhostTarget<I, T extends AbstractSimiContainerScreen<? extends GhostItemMenu<?>>> implements Target<I> {
 
         private final Rect2i area;
-        private final HandPointerFilterScreen gui;
+        private final T gui;
         private final int slotIndex;
+        private final BiConsumer<T, Integer> afterSubmit;
 
-        public HandPointerFilterGhostTarget(Rect2i area, int slotIndex, HandPointerFilterScreen gui) {
+        FluidGhostTarget(Rect2i area, int slotIndex, T gui, BiConsumer<T, Integer> afterSubmit) {
             this.area = area;
             this.slotIndex = slotIndex;
             this.gui = gui;
+            this.afterSubmit = afterSubmit;
         }
 
         @Override
@@ -72,19 +77,13 @@ public class HandPointerFilterGhostHandler
 
         @Override
         public void accept(I ingredient) {
-            ItemStack stack = null;
-
-            if (ingredient instanceof FluidStack fluidStack) {
-                stack = VirtualFluidGhostStacks.fromFluid(fluidStack);
-            } else if (ingredient instanceof ItemStack itemStack) {
-                stack = itemStack.copyWithCount(1);
-            }
-
-            if (stack == null) {
+            if (!(ingredient instanceof FluidStack fluidStack)) {
                 return;
             }
 
+            var stack = VirtualFluidGhostStacks.fromFluid(fluidStack);
             GhostSlotSubmitter.submit(gui, slotIndex, stack);
+            afterSubmit.accept(gui, slotIndex);
         }
     }
 }

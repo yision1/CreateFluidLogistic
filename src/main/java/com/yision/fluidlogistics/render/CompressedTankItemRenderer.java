@@ -21,7 +21,8 @@ public class CompressedTankItemRenderer extends CustomRenderedItemModelRenderer 
             ItemDisplayContext displayContext, PoseStack ms, MultiBufferSource buffer, int light, int overlay) {
         FluidStack fluid = VirtualFluidDisplayHelper.getDisplayFluid(stack);
         if (!fluid.isEmpty() && shouldRenderFluidIcon(displayContext)) {
-            FluidSlotRenderer.renderFluidItemIcon(fluid, ms, buffer, light);
+            float halfSize = displayContext == ItemDisplayContext.FIXED ? 0.375f : 0.5f;
+            FluidSlotRenderer.renderFluidItemIcon(fluid, ms, buffer, light, halfSize);
             return;
         }
 

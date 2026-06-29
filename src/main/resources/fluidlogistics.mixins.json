@@ -15,6 +15,7 @@
         "kinetics.ChainConveyorConnectionPacketMixin",
         "kinetics.SawBlockEntityMixin",
         "logistics.AttributeFilterItemStackMixin",
+        "logistics.FilterItemStackVirtualFluidMixin",
         "logistics.FactoryPanelBehaviourLegacyLinkCleanupMixin",
         "logistics.FactoryPanelBehaviourMixin",
         "logistics.FactoryPanelRestockThresholdMixin",
@@ -43,7 +44,6 @@
         "client.RedstoneRequesterScreenMixin",
         "client.StockKeeperTransferHandlerMixin",
         "client.StockKeeperRequestScreenMixin",
-        "client.ValueBoxRendererMixin",
         "item.PackageItemMixin"
     ],
     "injectors": {
