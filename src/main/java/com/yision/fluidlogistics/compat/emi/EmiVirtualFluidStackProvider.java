@@ -37,7 +37,7 @@ public final class EmiVirtualFluidStackProvider {
             if (ghost.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(ghost)) {
                 FluidStack fluid = CompressedTankItem.getFluid(ghost);
                 if (!fluid.isEmpty()) {
-                    return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, true);
+                    return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, false);
                 }
             }
         }
@@ -105,15 +105,15 @@ public final class EmiVirtualFluidStackProvider {
                     && CompressedTankItem.isVirtual(stack)) {
                 FluidStack fluid = CompressedTankItem.getFluid(stack);
                 if (!fluid.isEmpty()) {
-                    return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, true);
+                    return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, false);
                 }
                 return EmiStackInteraction.EMPTY;
             }
             if (ingredient instanceof ItemStack itemStack && !itemStack.isEmpty()) {
-                return new EmiStackInteraction(EmiStack.of(itemStack), null, true);
+                return new EmiStackInteraction(EmiStack.of(itemStack), null, false);
             }
             if (ingredient instanceof FluidStack fluidStack && !fluidStack.isEmpty()) {
-                return new EmiStackInteraction(NeoForgeEmiStack.of(fluidStack), null, true);
+                return new EmiStackInteraction(NeoForgeEmiStack.of(fluidStack), null, false);
             }
             return EmiStackInteraction.EMPTY;
         }

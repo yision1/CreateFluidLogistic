@@ -4,12 +4,12 @@ import java.util.Optional;
 
 import org.jetbrains.annotations.NotNull;
 
-import com.simibubi.create.compat.jei.CreateJEI;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import com.yision.fluidlogistics.item.CompressedTankItem;
 
 import mezz.jei.api.gui.handlers.IGuiContainerHandler;
 import mezz.jei.api.runtime.IClickableIngredient;
+import mezz.jei.api.runtime.IJeiRuntime;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 public class StockKeeperRequestFluidGuiHandler implements IGuiContainerHandler<StockKeeperRequestScreen> {
@@ -17,7 +17,8 @@ public class StockKeeperRequestFluidGuiHandler implements IGuiContainerHandler<S
     @Override
     public Optional<IClickableIngredient<?>> getClickableIngredientUnderMouse(StockKeeperRequestScreen containerScreen,
             double mouseX, double mouseY) {
-        if (CreateJEI.runtime == null) {
+        IJeiRuntime runtime = FluidLogisticsJEI.getRuntime();
+        if (runtime == null) {
             return Optional.empty();
         }
 
@@ -28,10 +29,13 @@ public class StockKeeperRequestFluidGuiHandler implements IGuiContainerHandler<S
                             && stack.getItem() instanceof CompressedTankItem
                             && CompressedTankItem.isVirtual(stack)) {
                         FluidStack fluid = CompressedTankItem.getFluid(stack);
+                        if (fluid.isEmpty()) {
+                            return Optional.empty();
+                        }
                         ingredient = fluid.copy();
                     }
 
-                    return CreateJEI.runtime.getIngredientManager()
+                    return runtime.getIngredientManager()
                             .createClickableIngredient(ingredient, pair.getSecond(), true);
                 });
     }
