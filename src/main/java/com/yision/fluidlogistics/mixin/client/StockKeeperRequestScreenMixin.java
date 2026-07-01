@@ -161,7 +161,7 @@ public abstract class StockKeeperRequestScreenMixin {
         if (fluidlogistics$isNoHoveredSlot(hoveredSlot)) {
             return;
         }
-        if (hoveredSlot.getFirst() >= 0 && !Screen.hasShiftDown() && !Screen.hasControlDown() && getMaxScroll() != 0) {
+        if (hoveredSlot.getFirst() >= 0 && !Screen.hasShiftDown() && getMaxScroll() != 0) {
             return;
         }
         if (hoveredSlot.getFirst() == -2) {
@@ -205,7 +205,7 @@ public abstract class StockKeeperRequestScreenMixin {
         }
 
         IFluidCraftableBigItemStack data = (IFluidCraftableBigItemStack) cbis;
-        int delta = fluidlogistics$getRecipeStepAmount(data);
+        int delta = fluidlogistics$getFluidRecipeStepAmount();
         if (button == 1) {
             delta = -delta;
         }
@@ -234,7 +234,7 @@ public abstract class StockKeeperRequestScreenMixin {
         }
 
         IFluidCraftableBigItemStack data = (IFluidCraftableBigItemStack) cbis;
-        int delta = fluidlogistics$getRecipeStepAmount(data) * steps;
+        int delta = fluidlogistics$getFluidRecipeStepAmount() * steps;
         if (scrollY < 0) {
             delta = -delta;
         }
@@ -487,7 +487,7 @@ public abstract class StockKeeperRequestScreenMixin {
             newAmount = FluidAmountHelper.adjustFluidRequestAmount(current, forward, Screen.hasShiftDown(),
                     Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
         } else {
-            newAmount = FluidAmountHelper.adjustStockTickerFluidRequestAmount(current, forward, Screen.hasShiftDown(),
+            newAmount = FluidAmountHelper.adjustStockKeeperFluidRequestAmount(current, forward, Screen.hasShiftDown(),
                     Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
         }
         if (newAmount <= 0) {
@@ -499,15 +499,8 @@ public abstract class StockKeeperRequestScreenMixin {
     }
 
     @Unique
-    private int fluidlogistics$getRecipeStepAmount(IFluidCraftableBigItemStack data) {
-        int outputCount = Math.max(1, data.fluidlogistics$getCustomOutputCount());
-        if (Screen.hasShiftDown()) {
-            return Math.max(outputCount, data.fluidlogistics$getCustomTransferLimit());
-        }
-        if (Screen.hasControlDown()) {
-            return outputCount * 10;
-        }
-        return outputCount;
+    private int fluidlogistics$getFluidRecipeStepAmount() {
+        return FluidAmountHelper.getStockKeeperFluidRequestStep(Screen.hasShiftDown(), Screen.hasControlDown());
     }
 
     @Unique

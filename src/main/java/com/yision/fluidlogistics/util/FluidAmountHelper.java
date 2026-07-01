@@ -13,6 +13,10 @@ public final class FluidAmountHelper {
     public static final int DEFAULT_FLUID_REQUEST_AMOUNT = 1;
     public static final String INACTIVE_AMOUNT_LABEL = "---";
 
+    public static final int STOCK_KEEPER_FLUID_STEP = MB_PER_BUCKET;
+    public static final int STOCK_KEEPER_FLUID_CTRL_STEP = 10 * MB_PER_BUCKET;
+    public static final int STOCK_KEEPER_FLUID_SHIFT_STEP = 20 * MB_PER_BUCKET;
+
     private FluidAmountHelper() {}
 
     public static String format(int amount) {
@@ -92,7 +96,7 @@ public final class FluidAmountHelper {
     public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
             int minAmount, int maxAmount, int steps) {
         int delta = getFluidRequestStep(shift, control) * (forward? 1:-1);
-        return adjustFluidRequestAmount(currentAmount, delta, minAmount, maxAmount,steps);
+        return adjustByDelta(currentAmount, delta, minAmount, maxAmount,steps);
     }
 
     public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
@@ -100,13 +104,23 @@ public final class FluidAmountHelper {
         return adjustFluidRequestAmount(currentAmount, forward, shift, control, minAmount, maxAmount,1);
     }
 
-    public static int adjustStockTickerFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
-            int minAmount, int maxAmount, int steps){
-        int delta = getStockTickerFluidRequestStep(shift, control) * (forward? 1:-1);
-        return adjustFluidRequestAmount(currentAmount, delta, minAmount, maxAmount,steps);
+    public static int getStockKeeperFluidRequestStep(boolean shift, boolean control) {
+        if (shift) {
+            return STOCK_KEEPER_FLUID_SHIFT_STEP;
+        }
+        if (control) {
+            return STOCK_KEEPER_FLUID_CTRL_STEP;
+        }
+        return STOCK_KEEPER_FLUID_STEP;
     }
 
-    private static int adjustFluidRequestAmount(int currentAmount, int delta, int minAmount, int maxAmount, int steps) {
+    public static int adjustStockKeeperFluidRequestAmount(int currentAmount, boolean forward, boolean shift,
+            boolean control, int minAmount, int maxAmount, int steps) {
+        int delta = getStockKeeperFluidRequestStep(shift, control) * (forward ? 1 : -1);
+        return adjustByDelta(currentAmount, delta, minAmount, maxAmount, steps);
+    }
+
+    private static int adjustByDelta(int currentAmount, int delta, int minAmount, int maxAmount, int steps) {
         int safeSteps = Math.max(0, steps);
         int newAmount;
 
@@ -127,12 +141,6 @@ public final class FluidAmountHelper {
         }
         if (shift) {
             return MB_PER_TENTH_BUCKET;
-        }
-        return MB_PER_BUCKET;
-    }
-    private static int getStockTickerFluidRequestStep(boolean shift, boolean control) {
-        if (control) {
-            return 10*MB_PER_BUCKET;
         }
         return MB_PER_BUCKET;
     }
