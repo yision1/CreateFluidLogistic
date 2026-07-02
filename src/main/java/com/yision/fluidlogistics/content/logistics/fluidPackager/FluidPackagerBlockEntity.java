@@ -447,7 +447,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
             tanksCreated++;
         }
 
-        ItemStack fluidPackage = AllItems.getRandomFluidPackage();
+        ItemStack fluidPackage = AllItems.createFluidPackage();
         fluidPackage.set(com.simibubi.create.AllDataComponents.PACKAGE_CONTENTS,
             com.simibubi.create.foundation.item.ItemHelper.containerContentsFromHandler(packageContents));
         return fluidPackage;

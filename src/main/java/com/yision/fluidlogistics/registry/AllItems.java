@@ -1,7 +1,5 @@
 package com.yision.fluidlogistics.registry;
 
-import java.util.Random;
-
 import com.simibubi.create.AllTags.AllItemTags;
 import com.simibubi.create.foundation.data.AssetLookup;
 import com.tterrag.registrate.providers.ProviderType;
@@ -16,6 +14,10 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.Tags.Items;
+import net.neoforged.neoforge.registries.IRegistryExtension;
+import net.neoforged.neoforge.registries.RegisterEvent;
+
+import java.util.concurrent.ThreadLocalRandom;
 
 import static com.yision.fluidlogistics.FluidLogistics.REGISTRATE;
 
@@ -29,16 +31,34 @@ public class AllItems {
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();
 
-    public static final ItemEntry<FluidPackageItem> RARE_FLUID_PACKAGE = REGISTRATE
-            .item("rare_fluid_package", FluidPackageItem::new)
+    public static final ItemEntry<FluidPackageItem> FLUID_PACKAGE = REGISTRATE
+            .item("fluid_package", FluidPackageItem::new)
             .properties(p -> p.stacksTo(1))
             .tag(AllItemTags.PACKAGES.tag)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();
 
-    public static final ItemEntry<FluidPackageItem> FLUID_PACKAGE_2 = REGISTRATE
-            .item("rare_fluid_package_1", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_STYLE_2))
+    public static final ItemEntry<FluidPackageItem> FLUID_PACKAGE_EXPOSED = REGISTRATE
+            .item("fluid_package_exposed", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_EXPOSED_STYLE))
+            .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
+            .properties(p -> p.stacksTo(1))
+            .tag(AllItemTags.PACKAGES.tag)
+            .model(AssetLookup.existingItemModel())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .register();
+
+    public static final ItemEntry<FluidPackageItem> FLUID_PACKAGE_OXIDIZED = REGISTRATE
+            .item("fluid_package_oxidized", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_OXIDIZED_STYLE))
+            .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
+            .properties(p -> p.stacksTo(1))
+            .tag(AllItemTags.PACKAGES.tag)
+            .model(AssetLookup.existingItemModel())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .register();
+
+    public static final ItemEntry<FluidPackageItem> FLUID_PACKAGE_WEATHERED = REGISTRATE
+            .item("fluid_package_weathered", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_WEATHERED_STYLE))
             .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
             .properties(p -> p.stacksTo(1))
             .tag(AllItemTags.PACKAGES.tag)
@@ -60,12 +80,31 @@ public class AllItems {
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();
 
-    private static final Random FLUID_PACKAGE_PICKER = new Random();
+    public static ItemStack createFluidPackage() {
+        Item fluidPackage = switch (ThreadLocalRandom.current().nextInt(4)) {
+            case 1 -> FLUID_PACKAGE_EXPOSED.get();
+            case 2 -> FLUID_PACKAGE_OXIDIZED.get();
+            case 3 -> FLUID_PACKAGE_WEATHERED.get();
+            default -> FLUID_PACKAGE.get();
+        };
+        return new ItemStack(fluidPackage);
+    }
 
-    public static ItemStack getRandomFluidPackage() {
-        return new ItemStack(FLUID_PACKAGE_PICKER.nextBoolean()
-                ? RARE_FLUID_PACKAGE.get()
-                : FLUID_PACKAGE_2.get());
+    @SuppressWarnings("unchecked")
+    public static void registerAliases(RegisterEvent event) {
+        var registry = event.getRegistry(Registries.ITEM);
+        if (registry == null) {
+            return;
+        }
+
+        ((IRegistryExtension<Item>) registry).addAlias(
+            FluidLogistics.asResource("rare_fluid_package"),
+            FluidLogistics.asResource("fluid_package")
+        );
+        ((IRegistryExtension<Item>) registry).addAlias(
+            FluidLogistics.asResource("rare_fluid_package_1"),
+            FluidLogistics.asResource("fluid_package")
+        );
     }
 
     public static void register() {

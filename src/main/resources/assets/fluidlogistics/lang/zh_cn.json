@@ -7,7 +7,7 @@
   "item.fluidlogistics.hand_pointer.tooltip.summary": "用于配置机械元件_交互点_的多功能工具",
   "item.fluidlogistics.hand_pointer.tooltip.condition1": "作用目标",
   "item.fluidlogistics.hand_pointer.tooltip.behaviour1": "打包机/理包机/蛙港/邮箱/动力臂/动力注液枪/存量转信器/弹射置物台/显示链接器/可接入物流网络元件/任意过滤器",
-  "item.fluidlogistics.rare_fluid_package": "流体包裹",
+  "item.fluidlogistics.fluid_package": "流体包裹",
   "itemGroup.fluidlogistics.fluidlogistics_tab": "机械动力：流体包裹",
   "block.fluidlogistics.copper_basin": "铜工作盆",
   "block.fluidlogistics.copper_basin.tooltip.summary": "总容量为_40B_的工作盆",

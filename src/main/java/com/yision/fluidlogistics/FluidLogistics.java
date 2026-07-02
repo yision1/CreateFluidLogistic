@@ -27,6 +27,7 @@ import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankFluidHandler;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankTooltipModifier;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageFluidHandler;
 import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidTankItem;
 import com.yision.fluidlogistics.registry.AllDataComponents;
 import com.yision.fluidlogistics.registry.AllItems;
@@ -107,6 +108,7 @@ public class FluidLogistics {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(this::hideDisabledItems);
+        modEventBus.addListener(AllItems::registerAliases);
 
         NeoForge.EVENT_BUS.register(this);
         LOGGER.info("FluidLogistics initialized!");
@@ -150,6 +152,17 @@ public class FluidLogistics {
                     return new CompressedTankFluidHandler(stack);
                 },
                 AllItems.COMPRESSED_STORAGE_TANK.get());
+        event.registerItem(Capabilities.FluidHandler.ITEM,
+                (stack, context) -> {
+                    if (!Config.isAdvancedLogisticsNetworkEnabled()) {
+                        return null;
+                    }
+                    return new FluidPackageFluidHandler(stack);
+                },
+                AllItems.FLUID_PACKAGE.get(),
+                AllItems.FLUID_PACKAGE_EXPOSED.get(),
+                AllItems.FLUID_PACKAGE_OXIDIZED.get(),
+                AllItems.FLUID_PACKAGE_WEATHERED.get());
 
     }
 
@@ -200,8 +213,7 @@ public class FluidLogistics {
             new FeatureItem(FeatureToggle.FLUID_PACKAGER, AllBlocks.FLUID_PACKAGER),
             new FeatureItem(FeatureToggle.FLUID_REPACKAGER, AllBlocks.FLUID_REPACKAGER),
             new FeatureItem(FeatureToggle.COMPRESSED_STORAGE_TANK, AllItems.COMPRESSED_STORAGE_TANK),
-            new FeatureItem(FeatureToggle.RARE_FLUID_PACKAGE, AllItems.RARE_FLUID_PACKAGE),
-            new FeatureItem(FeatureToggle.RARE_FLUID_PACKAGE, AllItems.FLUID_PACKAGE_2),
+            new FeatureItem(FeatureToggle.FLUID_PACKAGE, AllItems.FLUID_PACKAGE),
             new FeatureItem(FeatureToggle.FLUID_HATCH, AllBlocks.FLUID_HATCH),
     };
 
@@ -215,7 +227,7 @@ public class FluidLogistics {
     }
 
     private static ItemStack createWaterFluidPackage(int amount) {
-        ItemStack packageStack = new ItemStack(AllItems.RARE_FLUID_PACKAGE.get());
+        ItemStack packageStack = new ItemStack(AllItems.FLUID_PACKAGE.get());
         ItemStackHandler contents = new ItemStackHandler(PackageItem.SLOTS);
         ItemStack tankStack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
         CompressedTankItem.setFluid(tankStack, new FluidStack(Fluids.WATER, amount));

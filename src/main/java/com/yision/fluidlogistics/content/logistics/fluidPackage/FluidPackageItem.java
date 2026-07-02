@@ -7,18 +7,32 @@ import com.simibubi.create.content.logistics.box.PackageStyles;
 import com.simibubi.create.content.logistics.box.PackageStyles.PackageStyle;
 import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
 
-import net.minecraft.world.item.Item;
+import net.minecraft.stats.Stats;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.UseOnContext;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 public class FluidPackageItem extends PackageItem {
 
-    public static final PackageStyle FLUID_STYLE = new PackageStyle("rare_fluid", 12, 10, 21f, true);
-    public static final PackageStyle FLUID_STYLE_2 = new PackageStyle("rare_fluid_package_1", 12, 10, 21f, true);
+    public static final PackageStyle FLUID_STYLE =
+        new PackageStyle("fluid", 12, 12, 23f, true);
+
+    public static final PackageStyle FLUID_EXPOSED_STYLE =
+        new PackageStyle("fluid_exposed", 12, 12, 23f, true);
+
+    public static final PackageStyle FLUID_OXIDIZED_STYLE =
+        new PackageStyle("fluid_oxidized", 12, 12, 23f, true);
+
+    public static final PackageStyle FLUID_WEATHERED_STYLE =
+        new PackageStyle("fluid_weathered", 12, 12, 23f, true);
 
     public FluidPackageItem(Properties properties) {
         this(properties, FLUID_STYLE);
@@ -28,6 +42,7 @@ public class FluidPackageItem extends PackageItem {
         super(properties, style);
         PackageStyles.ALL_BOXES.remove(this);
         PackageStyles.RARE_BOXES.remove(this);
+        PackageStyles.STANDARD_BOXES.remove(this);
     }
 
     public static boolean isFluidPackage(ItemStack stack) {
@@ -35,8 +50,37 @@ public class FluidPackageItem extends PackageItem {
     }
 
     @Override
+    public InteractionResult useOn(UseOnContext context) {
+        Player player = context.getPlayer();
+        if (player == null || !player.isSecondaryUseActive()) {
+            return InteractionResult.PASS;
+        }
+        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
+            return InteractionResult.PASS;
+        }
+
+        ItemStack stack = context.getItemInHand();
+        FluidStack toPlace = FluidPackageContentHelper.peekDrainOneBucket(stack);
+        if (toPlace.isEmpty()) {
+            return InteractionResult.PASS;
+        }
+
+        if (context.getLevel().isClientSide()) {
+            return InteractionResult.SUCCESS;
+        }
+
+        if (!FluidPackagePlacementHelper.tryPlaceOneBucket(context, toPlace)) {
+            return InteractionResult.PASS;
+        }
+
+        FluidPackageContentHelper.drainOneBucket(stack, false);
+        player.awardStat(Stats.ITEM_USED.get(this));
+        return InteractionResult.SUCCESS;
+    }
+
+    @Override
     public String getDescriptionId() {
-        return "item." + FluidLogistics.MODID + ".rare_fluid_package";
+        return "item." + FluidLogistics.MODID + ".fluid_package";
     }
 
     @Override

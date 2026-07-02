@@ -14,6 +14,7 @@ import com.yision.fluidlogistics.util.VirtualFluidDisplayHelper;
 
 import net.createmod.catnip.platform.NeoForgeCatnipServices;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
@@ -24,13 +25,15 @@ import net.neoforged.neoforge.items.ItemStackHandler;
 @OnlyIn(Dist.CLIENT)
 public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
 
-    public static final float PACKAGE_VISUAL_WIDTH = 12f / 16f;
-    public static final float PACKAGE_VISUAL_HEIGHT = 10f / 16f;
+    private static final float FLUID_INSET = 1f / 128f;
 
-    private static final float PACKAGE_MIN = 2f / 16f;
-    private static final float PACKAGE_MAX_XZ = 14f / 16f;
-    private static final float PACKAGE_MAX_Y = 10f / 16f;
-    private static final float SHRINK = 1f / 128f;
+    public static final float FLUID_MIN_XZ = 3f / 16f + FLUID_INSET;
+    public static final float FLUID_MAX_XZ = 13f / 16f - FLUID_INSET;
+    public static final float FLUID_MIN_Y = 1f / 16f + FLUID_INSET;
+    public static final float FLUID_MAX_Y = 11f / 16f - FLUID_INSET;
+
+    public static final float FLUID_WIDTH = FLUID_MAX_XZ - FLUID_MIN_XZ;
+    public static final float FLUID_HEIGHT = FLUID_MAX_Y - FLUID_MIN_Y;
 
     public static boolean entityRendering = false;
 
@@ -78,39 +81,38 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
         }
 
         FluidStack primaryFluid = fluids.get(0);
-        float fillLevel = Math.min(fluidLevel / Config.getFluidPerPackage(), 1.0f);
 
-        float fluidHeight = PACKAGE_MAX_Y * fillLevel;
-        if (fluidHeight <= 0) return;
+        float fillFactor = Mth.clamp(fluidLevel / Config.getFluidPerPackage(), 0f, 1f);
+        float renderedHeight = FLUID_HEIGHT * fillFactor;
+        if (renderedHeight <= 0) return;
+
+        float yMin;
+        float yMax;
+        if (primaryFluid.getFluid().getFluidType().isLighterThanAir()) {
+            yMax = FLUID_MAX_Y;
+            yMin = yMax - renderedHeight;
+        } else {
+            yMin = FLUID_MIN_Y;
+            yMax = yMin + renderedHeight;
+        }
+
+        if (yMax <= yMin) return;
 
         float xMin;
         float xMax;
         float zMin;
         float zMax;
         if (mode == CoordinateMode.ITEM_MODEL) {
-            xMin = PACKAGE_MIN + SHRINK;
-            xMax = PACKAGE_MAX_XZ - SHRINK;
-            zMin = PACKAGE_MIN + SHRINK;
-            zMax = PACKAGE_MAX_XZ - SHRINK;
+            xMin = FLUID_MIN_XZ;
+            xMax = FLUID_MAX_XZ;
+            zMin = FLUID_MIN_XZ;
+            zMax = FLUID_MAX_XZ;
         } else {
-            xMin = -PACKAGE_VISUAL_WIDTH / 2 + SHRINK;
-            xMax = PACKAGE_VISUAL_WIDTH / 2 - SHRINK;
-            zMin = -PACKAGE_VISUAL_WIDTH / 2 + SHRINK;
-            zMax = PACKAGE_VISUAL_WIDTH / 2 - SHRINK;
+            xMin = FLUID_MIN_XZ - 0.5f;
+            xMax = FLUID_MAX_XZ - 0.5f;
+            zMin = FLUID_MIN_XZ - 0.5f;
+            zMax = FLUID_MAX_XZ - 0.5f;
         }
-        float yMin = SHRINK;
-        float yMax = PACKAGE_MAX_Y - SHRINK;
-
-        boolean isLighterThanAir = primaryFluid.getFluid().getFluidType().isLighterThanAir();
-        if (isLighterThanAir) {
-            float yOffset = PACKAGE_MAX_Y - fluidHeight;
-            yMin += yOffset;
-        }
-
-        float calculatedYMax = yMin + fluidHeight - SHRINK * 2;
-        yMax = Math.min(yMax, Math.max(yMin + SHRINK, calculatedYMax));
-
-        if (yMax <= yMin) return;
 
         if (mode == CoordinateMode.ITEM_MODEL) {
             ms.pushPose();

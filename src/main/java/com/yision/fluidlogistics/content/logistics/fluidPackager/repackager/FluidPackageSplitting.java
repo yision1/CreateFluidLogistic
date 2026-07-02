@@ -134,7 +134,7 @@ public final class FluidPackageSplitting {
 				tanksCreated++;
 			}
 
-			ItemStack fluidPackage = AllItems.getRandomFluidPackage();
+			ItemStack fluidPackage = AllItems.createFluidPackage();
 			fluidPackage.set(AllDataComponents.PACKAGE_CONTENTS,
 				ItemHelper.containerContentsFromHandler(packageContents));
 			packages.add(fluidPackage);
