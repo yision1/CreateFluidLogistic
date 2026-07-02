@@ -28,7 +28,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBehavio
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.api.IFluidPackager;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.util.FluidGaugeHelper;
 import com.yision.fluidlogistics.util.IFluidPromiseLimit;
 import com.yision.fluidlogistics.util.IFluidRestockThreshold;

@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.block.Faucet.AbstractFaucetBlockEntity;
+import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlockEntity;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;

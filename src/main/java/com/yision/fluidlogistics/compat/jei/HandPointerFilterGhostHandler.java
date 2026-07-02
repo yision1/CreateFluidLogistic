@@ -8,7 +8,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import com.yision.fluidlogistics.compat.ghost.GhostSlotSubmitter;
 import com.yision.fluidlogistics.compat.ghost.GhostSlotTargets;
 import com.yision.fluidlogistics.compat.ghost.VirtualFluidGhostStacks;
-import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterScreen;
+import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterScreen;
 
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.handlers.IGhostIngredientHandler;

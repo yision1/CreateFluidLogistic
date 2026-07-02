@@ -2,9 +2,9 @@ package com.yision.fluidlogistics;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.client.handpointer.FrogportSelectionHandler;
-import com.yision.fluidlogistics.client.handpointer.HandPointerModeManager;
-import com.yision.fluidlogistics.client.handpointer.HandPointerInteractionHandler;
+import com.yision.fluidlogistics.content.equipment.handPointer.client.FrogportSelectionHandler;
+import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerModeManager;
+import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerInteractionHandler;
 import net.createmod.catnip.render.DefaultSuperRenderTypeBuffer;
 import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import com.yision.fluidlogistics.ponder.FluidLogisticsPonderPlugin;

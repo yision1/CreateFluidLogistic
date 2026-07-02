@@ -10,8 +10,8 @@ import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.contraptions.Contraption;
 import com.simibubi.create.content.contraptions.MountedStorageManager;
 import com.simibubi.create.api.contraption.storage.fluid.MountedFluidStorage;
-import com.yision.fluidlogistics.block.MultiFluidTank.storage.MultiFluidTankMountedStorage;
-import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.storage.HorizontalMultiFluidTankMountedStorage;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.storage.MultiFluidTankMountedStorage;
+import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.storage.HorizontalMultiFluidTankMountedStorage;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;

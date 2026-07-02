@@ -15,10 +15,10 @@ import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorPackage;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorRenderer;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.client.phantomchain.PhantomChainVisibility;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.phantomChain.PhantomChainVisibility;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.item.FluidPackageItem;
-import com.yision.fluidlogistics.render.FluidPackageItemRenderer;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
 import com.yision.fluidlogistics.util.PhantomChainConveyorAccess;
 
 import net.createmod.catnip.math.AngleHelper;

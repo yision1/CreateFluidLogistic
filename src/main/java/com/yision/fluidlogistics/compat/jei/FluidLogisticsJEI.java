@@ -9,7 +9,7 @@ import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScree
 import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.client.RedstoneRequesterAmountsAccess;
 import com.yision.fluidlogistics.compat.CompatMods;
-import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterScreen;
+import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterScreen;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
 import mezz.jei.api.IModPlugin;

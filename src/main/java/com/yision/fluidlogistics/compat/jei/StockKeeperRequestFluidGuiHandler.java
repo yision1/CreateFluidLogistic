@@ -5,7 +5,7 @@ import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
 
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import mezz.jei.api.gui.handlers.IGuiContainerHandler;
 import mezz.jei.api.runtime.IClickableIngredient;

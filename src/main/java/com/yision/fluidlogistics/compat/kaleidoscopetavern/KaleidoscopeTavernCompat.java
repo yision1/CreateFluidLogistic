@@ -2,7 +2,7 @@ package com.yision.fluidlogistics.compat.kaleidoscopetavern;
 
 import com.github.ysbbbbbb.kaleidoscopetavern.api.blockentity.ITapBehavior;
 import com.github.ysbbbbbb.kaleidoscopetavern.game.tap.TapBehaviorManager;
-import com.yision.fluidlogistics.block.Faucet.AbstractFaucetBlock;
+import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlock;
 import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

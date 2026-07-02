@@ -2,7 +2,7 @@ package com.yision.fluidlogistics.compat.emi;
 
 import org.jetbrains.annotations.Nullable;
 
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.registry.AllItems;
 
 import dev.emi.emi.api.stack.EmiIngredient;

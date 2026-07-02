@@ -6,7 +6,7 @@ import com.simibubi.create.content.logistics.filter.FilterScreen;
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import com.yision.fluidlogistics.client.RedstoneRequesterAmountsAccess;
-import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterScreen;
+import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterScreen;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
 import dev.emi.emi.api.EmiDragDropHandler;

@@ -1,6 +1,6 @@
 package com.yision.fluidlogistics.compat.ghost;
 
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.registry.AllItems;
 
 import net.minecraft.world.item.ItemStack;

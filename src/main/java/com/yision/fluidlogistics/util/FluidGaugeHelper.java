@@ -12,7 +12,7 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntit
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition;
 import com.yision.fluidlogistics.api.IFluidPackager;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;

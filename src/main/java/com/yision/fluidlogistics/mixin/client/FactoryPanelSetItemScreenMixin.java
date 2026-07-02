@@ -9,7 +9,7 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemMen
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemScreen;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.gui.menu.GhostItemSubmitPacket;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import net.createmod.catnip.data.Pair;
 import net.createmod.catnip.platform.CatnipServices;

@@ -3,7 +3,7 @@ package com.yision.fluidlogistics.client;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;

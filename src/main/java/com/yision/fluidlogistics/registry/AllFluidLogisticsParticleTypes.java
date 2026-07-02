@@ -1,7 +1,7 @@
 package com.yision.fluidlogistics.registry;
 
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.particle.MechanicalFluidGunStreamParticleData;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.particle.MechanicalFluidGunStreamParticleData;
 
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.Registries;

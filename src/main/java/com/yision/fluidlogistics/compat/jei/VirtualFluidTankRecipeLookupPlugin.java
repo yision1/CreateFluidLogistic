@@ -7,7 +7,7 @@ import java.util.function.Supplier;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.neoforge.NeoForgeTypes;

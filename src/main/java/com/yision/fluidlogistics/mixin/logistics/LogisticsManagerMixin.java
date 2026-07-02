@@ -255,8 +255,8 @@ public abstract class LogisticsManagerMixin {
     @Unique
     private static boolean fluidlogistics$isVirtualFluidRequest(ItemStack stack) {
         return !stack.isEmpty()
-            && stack.getItem() instanceof com.yision.fluidlogistics.item.CompressedTankItem
-            && com.yision.fluidlogistics.item.CompressedTankItem.isVirtual(stack);
+            && stack.getItem() instanceof com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem
+            && com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem.isVirtual(stack);
     }
 
     @Unique

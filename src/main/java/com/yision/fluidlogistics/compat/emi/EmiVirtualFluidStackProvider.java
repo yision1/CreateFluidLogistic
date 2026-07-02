@@ -5,8 +5,8 @@ import com.simibubi.create.content.logistics.filter.AttributeFilterScreen;
 import com.simibubi.create.content.logistics.filter.FilterScreen;
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
-import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterScreen;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterScreen;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import dev.emi.emi.api.EmiStackProvider;
 import dev.emi.emi.api.neoforge.NeoForgeEmiStack;

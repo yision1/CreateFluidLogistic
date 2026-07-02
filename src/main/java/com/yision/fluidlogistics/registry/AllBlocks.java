@@ -23,42 +23,42 @@ import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootItem;
 import net.minecraft.world.level.storage.loot.functions.CopyComponentsFunction;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlock;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerGenerator;
-import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerBlock;
-import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerGenerator;
-import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlock;
-import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterGenerator;
-import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlock;
-import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankModel;
-import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortBlock;
-import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortGenerator;
-import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlock;
-import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankGenerator;
-import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankModel;
-import com.yision.fluidlogistics.block.Faucet.FaucetBlock;
-import com.yision.fluidlogistics.block.Faucet.FaucetGenerator;
-import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetBlock;
-import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlock;
-import com.yision.fluidlogistics.block.SmartHopper.SmartHopperGenerator;
-import com.yision.fluidlogistics.block.FluidPump.FluidPumpBlock;
-import com.yision.fluidlogistics.block.FluidPump.FluidPumpGenerator;
-import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlock;
-import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunGenerator;
-import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunItem;
-import com.yision.fluidlogistics.block.InfiniteFluidTank.InfiniteFluidTankBlock;
-import com.yision.fluidlogistics.block.WaterContainingCopperCasing.WaterContainingCopperCasingBlock;
-import com.yision.fluidlogistics.block.CopperBasin.CopperBasinBlock;
-import com.yision.fluidlogistics.block.WaterproofCardboardBlock;
-import com.yision.fluidlogistics.block.FluidHatch.FluidHatchBlock;
-import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankGenerator;
+import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlock;
+import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerGenerator;
+import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidRepackagerBlock;
+import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidRepackagerGenerator;
+import com.yision.fluidlogistics.content.logistics.fluidTransporter.FluidTransporterBlock;
+import com.yision.fluidlogistics.content.logistics.fluidTransporter.FluidTransporterGenerator;
+import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.HorizontalMultiFluidTankBlock;
+import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.HorizontalMultiFluidTankModel;
+import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortBlock;
+import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortGenerator;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankBlock;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankGenerator;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankModel;
+import com.yision.fluidlogistics.content.fluids.faucet.FaucetBlock;
+import com.yision.fluidlogistics.content.fluids.faucet.FaucetGenerator;
+import com.yision.fluidlogistics.content.fluids.faucet.SmartFaucetBlock;
+import com.yision.fluidlogistics.content.logistics.smartHopper.SmartHopperBlock;
+import com.yision.fluidlogistics.content.logistics.smartHopper.SmartHopperGenerator;
+import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpBlock;
+import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpGenerator;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlock;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunGenerator;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunItem;
+import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidTankBlock;
+import com.yision.fluidlogistics.content.fluids.waterContainingCopperCasing.WaterContainingCopperCasingBlock;
+import com.yision.fluidlogistics.content.processing.copperBasin.CopperBasinBlock;
+import com.yision.fluidlogistics.content.materials.WaterproofCardboardBlock;
+import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchBlock;
+import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.HorizontalMultiFluidTankGenerator;
 import com.simibubi.create.content.processing.basin.BasinGenerator;
 import com.simibubi.create.content.processing.basin.BasinMovementBehaviour;
 import com.simibubi.create.api.behaviour.movement.MovementBehaviour;
-import com.yision.fluidlogistics.item.HorizontalMultiFluidTankItem;
-import com.yision.fluidlogistics.item.InfiniteFluidTankItem;
-import com.yision.fluidlogistics.item.MultiFluidTankItem;
-import com.yision.fluidlogistics.block.WaterContainingCopperCasing.WaterContainingCopperCasingItem;
+import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.HorizontalMultiFluidTankItem;
+import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidTankItem;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankItem;
+import com.yision.fluidlogistics.content.fluids.waterContainingCopperCasing.WaterContainingCopperCasingItem;
 
 import static com.simibubi.create.api.contraption.storage.fluid.MountedFluidStorageType.mountedFluidStorage;
 import static com.simibubi.create.foundation.data.TagGen.axeOnly;
@@ -163,8 +163,11 @@ public class AllBlocks {
                     .sound(SoundType.CHISELED_BOOKSHELF))
             .transform(axeOnly())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
-            .blockstate(BlockStateGen.horizontalAxisBlockProvider(false))
+            .blockstate((ctx, prov) -> BlockStateGen.horizontalAxisBlock(ctx, prov,
+                    $ -> prov.models().getExistingFile(prov.modLoc("block/waterproof_cardboard_block/block"))))
             .item()
+            .model((ctx, prov) -> prov.withExistingParent(ctx.getName(),
+                    prov.modLoc("block/waterproof_cardboard_block/block")))
             .build()
             .register();
 
@@ -251,7 +254,7 @@ public class AllBlocks {
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
             .blockstate((ctx, prov) -> prov.simpleBlock(ctx.get(),
-                prov.models().getExistingFile(prov.modLoc("block/infinite_fluid_tank"))))
+                prov.models().getExistingFile(prov.modLoc("block/infinite_fluid_tank/block"))))
             .loot((loot, block) -> loot.add(block, LootTable.lootTable()
                 .withPool(loot.applyExplosionCondition(block, LootPool.lootPool()
                     .setRolls(ConstantValue.exactly(1.0F))
@@ -260,7 +263,7 @@ public class AllBlocks {
                             .include(DataComponents.BLOCK_ENTITY_DATA)))))))
             .item(InfiniteFluidTankItem::new)
             .properties(p -> p.rarity(Rarity.EPIC))
-            .model((ctx, prov) -> prov.withExistingParent(ctx.getName(), prov.modLoc("block/infinite_fluid_tank")))
+            .model((ctx, prov) -> prov.withExistingParent(ctx.getName(), prov.modLoc("block/infinite_fluid_tank/block")))
             .build()
             .register();
 
@@ -273,10 +276,10 @@ public class AllBlocks {
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
             .blockstate((ctx, prov) -> prov.simpleBlock(ctx.get(),
-                prov.models().getExistingFile(prov.modLoc("block/water_containing_copper_casing"))))
+                prov.models().getExistingFile(prov.modLoc("block/water_containing_copper_casing/block"))))
             .item(WaterContainingCopperCasingItem::new)
             .model((ctx, prov) -> prov.withExistingParent(ctx.getName(),
-                prov.modLoc("block/water_containing_copper_casing")))
+                prov.modLoc("block/water_containing_copper_casing/block")))
             .build()
             .register();
 

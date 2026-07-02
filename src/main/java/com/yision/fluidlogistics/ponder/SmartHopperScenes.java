@@ -2,8 +2,8 @@ package com.yision.fluidlogistics.ponder;
 
 import com.simibubi.create.content.fluids.tank.FluidTankBlockEntity;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
-import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlock;
-import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlockEntity;
+import com.yision.fluidlogistics.content.logistics.smartHopper.SmartHopperBlock;
+import com.yision.fluidlogistics.content.logistics.smartHopper.SmartHopperBlockEntity;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.PonderPalette;
 import net.createmod.ponder.api.element.ElementLink;

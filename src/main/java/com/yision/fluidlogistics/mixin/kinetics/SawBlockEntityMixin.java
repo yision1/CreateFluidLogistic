@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.simibubi.create.content.kinetics.saw.SawBlockEntity;
 import com.simibubi.create.content.processing.recipe.ProcessingInventory;
-import com.yision.fluidlogistics.item.FluidPackageItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 
 @Mixin(SawBlockEntity.class)
 public abstract class SawBlockEntityMixin {

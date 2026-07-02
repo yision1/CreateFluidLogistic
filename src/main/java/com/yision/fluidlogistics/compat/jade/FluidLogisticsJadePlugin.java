@@ -2,9 +2,9 @@ package com.yision.fluidlogistics.compat.jade;
 
 import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.logistics.box.PackageEntity;
-import com.yision.fluidlogistics.block.Faucet.AbstractFaucetBlockEntity;
-import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
-import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortBlockEntity;
+import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlockEntity;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
+import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortBlockEntity;
 
 import net.minecraft.world.level.block.Block;
 import snownee.jade.api.IWailaClientRegistration;
