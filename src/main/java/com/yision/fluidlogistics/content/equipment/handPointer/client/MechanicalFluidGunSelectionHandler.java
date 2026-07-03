@@ -82,8 +82,13 @@ public class MechanicalFluidGunSelectionHandler {
 	}
 
 	public static SubmitResult submit(Level level) {
-		if (selectedGunPos == null || targets.isEmpty()) {
+		if (selectedGunPos == null) {
 			return new SubmitResult(false, 0, 0);
+		}
+
+		if (targets.isEmpty()) {
+			PacketDistributor.sendToServer(MechanicalFluidGunPackets.TargetPacket.clearTarget(selectedGunPos));
+			return new SubmitResult(true, 0, 0);
 		}
 
 		List<MechanicalFluidGunPackets.TargetPacket.TargetEntry> inRange = new ArrayList<>();

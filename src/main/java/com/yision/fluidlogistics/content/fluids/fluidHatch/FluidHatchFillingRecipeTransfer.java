@@ -25,8 +25,10 @@ import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 public class FluidHatchFillingRecipeTransfer {
     public static boolean canItemBeFilled(Level level, ItemStack stack) {
         SingleRecipeInput input = new SingleRecipeInput(stack);
-        if (SequencedAssemblyRecipe.getRecipe(level, input, AllRecipeTypes.FILLING.getType(), FillingRecipe.class).isPresent())
+        if (SequencedAssemblyRecipe.getRecipe(level, input, AllRecipeTypes.FILLING.getType(), FillingRecipe.class)
+                .isPresent()) {
             return true;
+        }
         return AllRecipeTypes.FILLING.find(input, level).isPresent();
     }
 
@@ -39,10 +41,9 @@ public class FluidHatchFillingRecipeTransfer {
                 .orElseGet(OptionalInt::empty);
     }
 
-    public static Optional<ItemStack> fillItem(Level level, int requiredAmount, ItemStack stack, FluidStack availableFluid) {
-        FluidStack toFill = availableFluid.copy();
-        toFill.setAmount(requiredAmount);
-
+    public static Optional<ItemStack> fillItem(Level level, int requiredAmount, ItemStack stack,
+            FluidStack availableFluid) {
+        FluidStack toFill = availableFluid.copyWithAmount(requiredAmount);
         return findRecipe(level, stack, toFill)
                 .map(RecipeHolder::value)
                 .map(recipe -> {
@@ -53,26 +54,28 @@ public class FluidHatchFillingRecipeTransfer {
                 });
     }
 
-    private static Optional<RecipeHolder<FillingRecipe>> findRecipe(Level level, ItemStack stack, FluidStack availableFluid) {
+    private static Optional<RecipeHolder<FillingRecipe>> findRecipe(Level level, ItemStack stack,
+            FluidStack availableFluid) {
         SingleRecipeInput input = new SingleRecipeInput(stack);
-        var sequencedRecipe = SequencedAssemblyRecipe.getRecipe(level,
-                input,
-                AllRecipeTypes.FILLING.getType(),
-                FillingRecipe.class,
+        Optional<RecipeHolder<FillingRecipe>> sequencedRecipe = SequencedAssemblyRecipe.getRecipe(level,
+                input, AllRecipeTypes.FILLING.getType(), FillingRecipe.class,
                 matchItemAndFluid(level, input, availableFluid));
-        if (sequencedRecipe.isPresent())
+        if (sequencedRecipe.isPresent()) {
             return sequencedRecipe;
+        }
 
         for (RecipeHolder<Recipe<SingleRecipeInput>> recipe : level.getRecipeManager()
                 .getRecipesFor(AllRecipeTypes.FILLING.getType(), input, level)) {
             FillingRecipe fillingRecipe = (FillingRecipe) recipe.value();
-            if (fillingRecipe.getRequiredFluid().ingredient().test(availableFluid))
+            if (fillingRecipe.getRequiredFluid().ingredient().test(availableFluid)) {
                 return Optional.of(new RecipeHolder<>(recipe.id(), fillingRecipe));
+            }
         }
         return Optional.empty();
     }
 
-    private static Predicate<RecipeHolder<FillingRecipe>> matchItemAndFluid(Level level, SingleRecipeInput input, FluidStack availableFluid) {
+    private static Predicate<RecipeHolder<FillingRecipe>> matchItemAndFluid(Level level,
+            SingleRecipeInput input, FluidStack availableFluid) {
         return recipe -> recipe.value().matches(input, level)
                 && recipe.value().getRequiredFluid().ingredient().test(availableFluid);
     }

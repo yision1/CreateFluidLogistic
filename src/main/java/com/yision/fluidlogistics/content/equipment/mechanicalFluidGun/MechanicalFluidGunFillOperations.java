@@ -42,7 +42,7 @@ class MechanicalFluidGunFillOperations {
 			return null;
 		}
 		BlockState targetState = level.getBlockState(pos);
-		IFluidHandler hatchHandler = FluidHatchFluidHandlerForwarder.get(level, pos, targetState, face);
+		IFluidHandler hatchHandler = FluidHatchFluidHandlerForwarder.getForMechanicalFluidGun(level, pos, targetState, face);
 		if (hatchHandler != null) {
 			return hatchHandler;
 		}

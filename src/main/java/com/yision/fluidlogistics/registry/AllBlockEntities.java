@@ -1,6 +1,7 @@
 package com.yision.fluidlogistics.registry;
 
 import com.simibubi.create.content.kinetics.base.ShaftVisual;
+import com.simibubi.create.foundation.blockEntity.renderer.SmartBlockEntityRenderer;
 import com.tterrag.registrate.util.entry.BlockEntityEntry;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerRenderer;
@@ -127,7 +128,7 @@ public class AllBlockEntities {
     public static final BlockEntityEntry<FluidHatchBlockEntity> FLUID_HATCH = REGISTRATE
             .blockEntity("fluid_hatch", FluidHatchBlockEntity::new)
             .validBlocks(AllBlocks.FLUID_HATCH)
-            .renderer(() -> com.simibubi.create.foundation.blockEntity.renderer.SmartBlockEntityRenderer::new)
+            .renderer(() -> SmartBlockEntityRenderer::new)
             .register();
 
     public static void register() {

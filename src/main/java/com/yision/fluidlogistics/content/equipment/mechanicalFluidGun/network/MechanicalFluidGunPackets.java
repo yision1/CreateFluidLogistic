@@ -115,9 +115,7 @@ public final class MechanicalFluidGunPackets {
                 if (!MechanicalFluidGunBlock.isSelectableTarget(level, gunPos, target.pos)) continue;
                 validatedTargets.add(MechanicalFluidGunTargetConfig.fromAbsolute(gunPos, target.pos, target.face));
             }
-            if (!validatedTargets.isEmpty()) {
-                gunBe.setTargets(validatedTargets);
-            }
+            gunBe.setTargets(validatedTargets);
         }
 
         @Override

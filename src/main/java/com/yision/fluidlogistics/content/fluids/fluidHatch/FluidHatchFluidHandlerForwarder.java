@@ -1,29 +1,25 @@
 package com.yision.fluidlogistics.content.fluids.fluidHatch;
 
-import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.registry.AllBlocks;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import org.jetbrains.annotations.Nullable;
 
 public final class FluidHatchFluidHandlerForwarder {
-    private static final ResourceLocation DRAGONS_PLUS_FLUID_HATCH =
-            ResourceLocation.fromNamespaceAndPath("create_dragons_plus", "fluid_hatch");
+    private static final int MECHANICAL_FLUID_GUN_OPEN_TICKS = 45;
 
     private FluidHatchFluidHandlerForwarder() {}
 
-    public static @Nullable IFluidHandler get(Level level, BlockPos pos, BlockState state, @Nullable Direction side) {
+    public static @Nullable IFluidHandler getForMechanicalFluidGun(Level level, BlockPos pos, BlockState state,
+            @Nullable Direction side) {
         if (!isSupportedHatch(state) || !canExpose(state, side)) {
             return null;
         }
@@ -38,10 +34,8 @@ public final class FluidHatchFluidHandlerForwarder {
     }
 
     private static boolean isSupportedHatch(BlockState state) {
-        if (state.is(AllBlocks.FLUID_HATCH.get())) {
-            return FeatureToggle.isEnabled(FeatureToggle.FLUID_HATCH);
-        }
-        return DRAGONS_PLUS_FLUID_HATCH.equals(BuiltInRegistries.BLOCK.getKey(state.getBlock()));
+        return state.is(AllBlocks.FLUID_HATCH.get())
+                && FeatureToggle.isEnabled(FeatureToggle.FLUID_HATCH);
     }
 
     private static boolean canExpose(BlockState state, @Nullable Direction side) {
@@ -50,24 +44,18 @@ public final class FluidHatchFluidHandlerForwarder {
     }
 
     private static @Nullable IFluidHandler getTargetHandler(Level level, BlockPos pos) {
-        BlockState state = level.getBlockState(pos);
-        if (!state.hasProperty(HorizontalDirectionalBlock.FACING)) {
-            return null;
-        }
-        Direction facing = state.getValue(HorizontalDirectionalBlock.FACING);
-        BlockPos tankPos = pos.relative(facing);
-        if (!level.isLoaded(tankPos)) {
-            return null;
-        }
-        return level.getCapability(Capabilities.FluidHandler.BLOCK, tankPos, null);
+        return FluidHatchTarget.getTargetHandler(level, pos, level.getBlockState(pos));
     }
 
     private static boolean testFilter(Level level, BlockPos pos, FluidStack stack) {
         if (stack.isEmpty()) {
             return true;
         }
-        FilteringBehaviour filter = BlockEntityBehaviour.get(level, pos, FilteringBehaviour.TYPE);
-        return filter == null || filter.test(stack);
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity instanceof FluidHatchBlockEntity hatchBlockEntity) {
+            return hatchBlockEntity.testFluid(stack);
+        }
+        return true;
     }
 
     private static FluidStack visibleFluid(Level level, BlockPos pos, IFluidHandler target, int tank) {
@@ -124,31 +112,25 @@ public final class FluidHatchFluidHandlerForwarder {
             if (target == null || resource.isEmpty() || !testFilter(level, pos, resource)) {
                 return 0;
             }
-            return target.fill(resource, action);
+            int filled = target.fill(resource, action);
+            if (filled > 0 && action.execute()) {
+                pulseOpen(level, pos);
+            }
+            return filled;
         }
 
         @Override
         public FluidStack drain(FluidStack resource, FluidAction action) {
-            IFluidHandler target = getTargetHandler(level, pos);
-            if (target == null || resource.isEmpty() || !testFilter(level, pos, resource)) {
-                return FluidStack.EMPTY;
-            }
-            return target.drain(resource, action);
+            return FluidStack.EMPTY;
         }
 
         @Override
         public FluidStack drain(int maxDrain, FluidAction action) {
-            IFluidHandler target = getTargetHandler(level, pos);
-            if (target == null || maxDrain <= 0) {
-                return FluidStack.EMPTY;
-            }
-            for (int tank = 0; tank < target.getTanks(); tank++) {
-                FluidStack visible = visibleFluid(level, pos, target, tank);
-                if (!visible.isEmpty()) {
-                    return target.drain(visible.copyWithAmount(maxDrain), action);
-                }
-            }
             return FluidStack.EMPTY;
         }
+    }
+
+    private static void pulseOpen(Level level, BlockPos pos) {
+        FluidHatchBlock.pulseOpen(level, pos, MECHANICAL_FLUID_GUN_OPEN_TICKS);
     }
 }

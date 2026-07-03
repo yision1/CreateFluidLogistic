@@ -24,35 +24,36 @@ public class FluidHatchItemFilling {
     }
 
     public static OptionalInt getRequiredAmountForExtraHandler(ItemStack stack, FluidStack availableFluid) {
-        for (var handler : EXTRA_HANDLERS) {
-            var requiredAmount = handler.getRequiredAmountForItem(stack, availableFluid);
-            if (requiredAmount.isPresent())
+        for (Handler handler : EXTRA_HANDLERS) {
+            OptionalInt requiredAmount = handler.getRequiredAmountForItem(stack, availableFluid);
+            if (requiredAmount.isPresent()) {
                 return requiredAmount;
+            }
         }
         return OptionalInt.empty();
     }
 
     public static int getRequiredAmountForItem(Level level, ItemStack stack, FluidStack availableFluid) {
-        var requiredAmount = getRequiredAmountForExtraHandler(stack, availableFluid);
-        if (requiredAmount.isPresent())
-            return requiredAmount.getAsInt();
-        return GenericItemFilling.getRequiredAmountForItem(level, stack, availableFluid);
+        OptionalInt requiredAmount = getRequiredAmountForExtraHandler(stack, availableFluid);
+        return requiredAmount.isPresent()
+                ? requiredAmount.getAsInt()
+                : GenericItemFilling.getRequiredAmountForItem(level, stack, availableFluid);
     }
 
-    public static Optional<ItemStack> fillItemWithExtraHandler(int requiredAmount, ItemStack stack, FluidStack availableFluid) {
-        for (var handler : EXTRA_HANDLERS) {
-            var result = handler.fillItem(requiredAmount, stack, availableFluid);
-            if (result.isPresent())
+    public static Optional<ItemStack> fillItemWithExtraHandler(int requiredAmount, ItemStack stack,
+            FluidStack availableFluid) {
+        for (Handler handler : EXTRA_HANDLERS) {
+            Optional<ItemStack> result = handler.fillItem(requiredAmount, stack, availableFluid);
+            if (result.isPresent()) {
                 return result;
+            }
         }
         return Optional.empty();
     }
 
     public static ItemStack fillItem(Level level, int requiredAmount, ItemStack stack, FluidStack availableFluid) {
-        var result = fillItemWithExtraHandler(requiredAmount, stack, availableFluid);
-        if (result.isPresent())
-            return result.get();
-        return GenericItemFilling.fillItem(level, requiredAmount, stack, availableFluid);
+        return fillItemWithExtraHandler(requiredAmount, stack, availableFluid)
+                .orElseGet(() -> GenericItemFilling.fillItem(level, requiredAmount, stack, availableFluid));
     }
 
     public interface Handler {

@@ -9,14 +9,11 @@ import com.tterrag.registrate.providers.ProviderType;
 import com.tterrag.registrate.util.entry.BlockEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.core.Direction;
-import net.neoforged.neoforge.client.model.generators.ConfiguredModel;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -321,22 +318,10 @@ public class AllBlocks {
             .transform(pickaxeOnly())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .addLayer(() -> RenderType::cutoutMipped)
-            .blockstate((ctx, prov) -> {
-                var model = prov.models().getExistingFile(prov.modLoc("block/fluid_hatch"));
-                prov.getVariantBuilder(ctx.get()).forAllStates(state -> {
-                    Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
-                    int y = switch (facing) {
-                        case NORTH -> 0;
-                        case SOUTH -> 180;
-                        case EAST -> 90;
-                        case WEST -> 270;
-                        default -> 0;
-                    };
-                    return new ConfiguredModel[]{new ConfiguredModel(model, 0, y, false)};
-                });
-            })
+            .blockstate((c, p) -> p.horizontalBlock(c.get(),
+                s -> AssetLookup.partialBaseModel(c, p, s.getValue(FluidHatchBlock.OPEN) ? "open" : "closed")))
             .item()
-            .model((ctx, prov) -> prov.withExistingParent(ctx.getName(), prov.modLoc("block/fluid_hatch")))
+            .model((ctx, prov) -> prov.withExistingParent(ctx.getName(), prov.modLoc("block/fluid_hatch/block_closed")))
             .build()
             .register();
 
