@@ -12,6 +12,7 @@ public class Config {
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
     private static final boolean FLUID_TRANSPORTER_ENABLED_DEFAULT = true;
+    private static final boolean FLUID_TRANSPORTER_GET_WATER_FROM_LEAVES_DEFAULT = true;
     private static final boolean SMART_FAUCET_ENABLED_DEFAULT = true;
     private static final boolean FAUCET_ENABLED_DEFAULT = true;
     private static final boolean MULTI_FLUID_TANK_ENABLED_DEFAULT = true;
@@ -41,6 +42,11 @@ public class Config {
             .comment("Enables fluid transporter")
             .translation("fluidlogistics.configuration.fluidTransporterEnabled")
             .define("fluidTransporterEnabled", FLUID_TRANSPORTER_ENABLED_DEFAULT);
+
+    public static final ForgeConfigSpec.BooleanValue FLUID_TRANSPORTER_GET_WATER_FROM_LEAVES = BUILDER
+            .comment("Can extract water from waterlogged leaves")
+            .translation("fluidlogistics.configuration.fluidTransporterGetWaterFromLeaves")
+            .define("fluidTransporterGetWaterFromLeaves", FLUID_TRANSPORTER_GET_WATER_FROM_LEAVES_DEFAULT);
 
     public static final ForgeConfigSpec.BooleanValue SMART_FAUCET_ENABLED = BUILDER
             .comment("Enables smart faucet")
@@ -140,6 +146,7 @@ public class Config {
     public static final ForgeConfigSpec SPEC = BUILDER.build();
 
     private static boolean fluidTransporterEnabled = FLUID_TRANSPORTER_ENABLED_DEFAULT;
+    private static boolean fluidTransporterGetWaterFromLeaves = FLUID_TRANSPORTER_GET_WATER_FROM_LEAVES_DEFAULT;
     private static boolean smartFaucetEnabled = SMART_FAUCET_ENABLED_DEFAULT;
     private static boolean faucetEnabled = FAUCET_ENABLED_DEFAULT;
     private static boolean multiFluidTankEnabled = MULTI_FLUID_TANK_ENABLED_DEFAULT;
@@ -161,6 +168,7 @@ public class Config {
     @SubscribeEvent
     static void onLoad(final ModConfigEvent event) {
         fluidTransporterEnabled = FLUID_TRANSPORTER_ENABLED.get();
+        fluidTransporterGetWaterFromLeaves = FLUID_TRANSPORTER_GET_WATER_FROM_LEAVES.get();
         smartFaucetEnabled = SMART_FAUCET_ENABLED.get();
         faucetEnabled = FAUCET_ENABLED.get();
         multiFluidTankEnabled = MULTI_FLUID_TANK_ENABLED.get();
@@ -181,6 +189,7 @@ public class Config {
     }
 
     public static boolean isFluidTransporterEnabled() { return fluidTransporterEnabled; }
+    public static boolean isFluidTransporterGetWaterFromLeaves() { return fluidTransporterGetWaterFromLeaves; }
     public static boolean isSmartFaucetEnabled() { return smartFaucetEnabled; }
     public static boolean isFaucetEnabled() { return faucetEnabled; }
     public static boolean isMultiFluidTankEnabled() { return multiFluidTankEnabled; }
