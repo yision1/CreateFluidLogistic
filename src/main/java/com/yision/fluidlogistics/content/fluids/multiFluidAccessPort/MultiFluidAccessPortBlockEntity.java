@@ -2,6 +2,7 @@ package com.yision.fluidlogistics.content.fluids.multiFluidAccessPort;
 
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.contraptions.actors.psi.PortableFluidInterfaceBlockEntity;
+import com.simibubi.create.content.fluids.tank.CreativeFluidTankBlockEntity;
 import com.simibubi.create.content.redstone.DirectedDirectionalBlock;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BehaviourType;
@@ -22,6 +23,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -30,6 +32,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.AttachFace;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -51,6 +54,11 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
     private Map<Direction, FilteringBehaviour> filters;
     private boolean powered;
 
+    @Nullable
+    private BlockCapabilityCache<IFluidHandler, @Nullable Direction> connectedFluidCache;
+    @Nullable
+    private Direction cachedTargetDirection;
+
     public MultiFluidAccessPortBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
         sideCapabilities = new EnumMap<>(Direction.class);
@@ -60,6 +68,22 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
     public void initialize() {
         super.initialize();
         updateConnectedStorage();
+    }
+
+    @Override
+    public void lazyTick() {
+        super.lazyTick();
+        if (level == null || level.isClientSide) {
+            return;
+        }
+        updateConnectedStorage();
+    }
+
+    @Override
+    public void invalidate() {
+        connectedFluidCache = null;
+        cachedTargetDirection = null;
+        super.invalidate();
     }
 
     @Override
@@ -110,12 +134,7 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
 
     public static void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, AllBlockEntities.MULTI_FLUID_ACCESS_PORT.get(),
-            (be, side) -> {
-                if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.MULTI_FLUID_ACCESS_PORT)) {
-                    return null;
-                }
-                return be.getFluidCapability(side);
-            });
+            (be, side) -> be.getFluidCapability(side));
     }
 
     public IFluidHandler getFluidCapability(Direction side) {
@@ -140,14 +159,29 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
             List.of(getLeftOutputDirection(), getRightOutputDirection(), getBackOutputDirection()), hasAnyFilter());
     }
 
-    private IFluidHandler getConnectedFluidHandlerForDisplay() {
+    @Nullable
+    private IFluidHandler getCachedConnectedFluidHandler() {
         if (level == null) {
             return null;
         }
         Direction targetDirection = DirectedDirectionalBlock.getTargetDirection(getBlockState());
         BlockPos targetPos = worldPosition.relative(targetDirection);
-        IFluidHandler handler =
-            level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, targetDirection.getOpposite());
+        if (!(level instanceof ServerLevel serverLevel)) {
+            return level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, targetDirection.getOpposite());
+        }
+        if (connectedFluidCache == null || cachedTargetDirection != targetDirection) {
+            connectedFluidCache = BlockCapabilityCache.create(
+                Capabilities.FluidHandler.BLOCK, serverLevel, targetPos, targetDirection.getOpposite());
+            cachedTargetDirection = targetDirection;
+        }
+        return connectedFluidCache.getCapability();
+    }
+
+    private IFluidHandler getConnectedFluidHandlerForDisplay() {
+        if (level == null) {
+            return null;
+        }
+        IFluidHandler handler = getCachedConnectedFluidHandler();
         if (handler instanceof WrappedPortFluidHandler) {
             return null;
         }
@@ -209,10 +243,7 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
         if (level == null || powered) {
             return null;
         }
-        Direction targetDirection = DirectedDirectionalBlock.getTargetDirection(getBlockState());
-        BlockPos targetPos = worldPosition.relative(targetDirection);
-        IFluidHandler handler =
-            level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, targetDirection.getOpposite());
+        IFluidHandler handler = getCachedConnectedFluidHandler();
         if (handler instanceof WrappedPortFluidHandler) {
             return null;
         }
@@ -226,6 +257,15 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
         Direction targetDirection = DirectedDirectionalBlock.getTargetDirection(getBlockState());
         BlockPos targetPos = worldPosition.relative(targetDirection);
         return level.getBlockEntity(targetPos) instanceof PortableFluidInterfaceBlockEntity;
+    }
+
+    boolean isConnectedTankCreative() {
+        if (level == null) {
+            return false;
+        }
+        Direction targetDirection = DirectedDirectionalBlock.getTargetDirection(getBlockState());
+        BlockPos targetPos = worldPosition.relative(targetDirection);
+        return level.getBlockEntity(targetPos) instanceof CreativeFluidTankBlockEntity;
     }
 
     @Override
@@ -373,6 +413,10 @@ public class MultiFluidAccessPortBlockEntity extends SmartBlockEntity implements
         }
         FilteringBehaviour behaviour = filters.get(side);
         return behaviour == null ? ItemStack.EMPTY : behaviour.getFilter();
+    }
+
+    FilteringBehaviour getFilter(Direction side) {
+        return filters == null ? null : filters.get(side);
     }
 
     private boolean testFilter(Direction side, FluidStack stack) {

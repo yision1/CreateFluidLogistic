@@ -1,14 +1,12 @@
 package com.yision.fluidlogistics.content.fluids.multiFluidAccessPort;
 
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
-import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
-import com.simibubi.create.content.fluids.transfer.GenericItemFilling;
 import com.simibubi.create.content.redstone.DirectedDirectionalBlock;
 import com.simibubi.create.foundation.block.IBE;
+import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.fluid.FluidHelper;
-import com.yision.fluidlogistics.config.FeatureToggle;
+import com.yision.fluidlogistics.content.fluids.itemTransfer.HatchStyleItemTransfer;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
-import net.createmod.catnip.data.Pair;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
@@ -50,9 +48,6 @@ public class MultiFluidAccessPortBlock extends DirectedDirectionalBlock
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        if (!FeatureToggle.isEnabled(FeatureToggle.MULTI_FLUID_ACCESS_PORT)) {
-            return null;
-        }
         BlockState state = defaultBlockState();
         Direction preferredFacing = null;
 
@@ -114,25 +109,56 @@ public class MultiFluidAccessPortBlock extends DirectedDirectionalBlock
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
-        FluidStack previousFluid = handler.getFluidInTank(0).copy();
-        FluidHelper.FluidExchange exchange = tryEmpty(level, player, hand, stack, handler);
-        if (exchange == null) {
-            exchange = tryFill(level, player, hand, stack, handler);
+        if (level.isClientSide()) {
+            return HatchStyleItemTransfer.canItemBeEmptied(level, stack)
+                || HatchStyleItemTransfer.canItemBeFilled(level, stack)
+                    ? ItemInteractionResult.SUCCESS
+                    : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
-        if (exchange == null) {
-            if (GenericItemEmptying.canItemBeEmptied(level, stack) || GenericItemFilling.canItemBeFilled(level, stack)) {
-                return ItemInteractionResult.SUCCESS;
-            }
+        MultiFluidAccessPortBlockEntity be = getBlockEntity(level, pos);
+        if (be == null) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
-        if (!level.isClientSide) {
-            withBlockEntityDo(level, pos, MultiFluidAccessPortBlockEntity::updateConnectedStorage);
+        FilteringBehaviour filter = be.getFilter(side);
+        if (filter == null) {
+            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+        }
+
+        boolean tankIsCreative = be.isConnectedTankCreative();
+        Runnable onChanged = be::updateConnectedStorage;
+
+        FluidStack previousFluid = handler.getFluidInTank(0).copy();
+
+        FluidHelper.FluidExchange exchange;
+        if (player.isSecondaryUseActive()) {
+            if (!HatchStyleItemTransfer.tryFillItem(level, player, hand, stack, handler, filter, tankIsCreative, onChanged).isEmpty()) {
+                exchange = FluidHelper.FluidExchange.TANK_TO_ITEM;
+            } else if (!HatchStyleItemTransfer.tryEmptyItem(level, player, hand, stack, handler, filter, tankIsCreative, onChanged).isEmpty()) {
+                exchange = FluidHelper.FluidExchange.ITEM_TO_TANK;
+            } else {
+                exchange = null;
+            }
+        } else {
+            if (!HatchStyleItemTransfer.tryEmptyItem(level, player, hand, stack, handler, filter, tankIsCreative, onChanged).isEmpty()) {
+                exchange = FluidHelper.FluidExchange.ITEM_TO_TANK;
+            } else if (!HatchStyleItemTransfer.tryFillItem(level, player, hand, stack, handler, filter, tankIsCreative, onChanged).isEmpty()) {
+                exchange = FluidHelper.FluidExchange.TANK_TO_ITEM;
+            } else {
+                exchange = null;
+            }
+        }
+
+        if (exchange == null) {
+            return HatchStyleItemTransfer.canItemBeEmptied(level, stack)
+                || HatchStyleItemTransfer.canItemBeFilled(level, stack)
+                    ? ItemInteractionResult.SUCCESS
+                    : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
 
         FluidStack currentFluid = handler.getFluidInTank(0);
-        if (!level.isClientSide && !FluidStack.isSameFluidSameComponents(previousFluid, currentFluid)) {
+        if (!FluidStack.isSameFluidSameComponents(previousFluid, currentFluid)) {
             float pitch = Mth.clamp(1 - (currentFluid.getAmount() / 16000f), 0, 1);
             pitch = pitch / 1.5f + .5f + (level.random.nextFloat() - .5f) / 4f;
             level.playSound(null, pos,
@@ -142,104 +168,6 @@ public class MultiFluidAccessPortBlock extends DirectedDirectionalBlock
         }
 
         return ItemInteractionResult.SUCCESS;
-    }
-
-    private FluidHelper.FluidExchange tryEmpty(Level level, Player player, InteractionHand hand, ItemStack heldItem,
-        IFluidHandler handler) {
-        if (!GenericItemEmptying.canItemBeEmptied(level, heldItem)) {
-            return null;
-        }
-
-        Pair<FluidStack, ItemStack> simulatedEmptying = GenericItemEmptying.emptyItem(level, heldItem, true);
-        FluidStack simulatedFluid = simulatedEmptying.getFirst();
-        if (simulatedFluid.isEmpty()) {
-            return null;
-        }
-
-        int simulatedFill = handler.fill(simulatedFluid.copy(), IFluidHandler.FluidAction.SIMULATE);
-        if (simulatedFill != simulatedFluid.getAmount()) {
-            return null;
-        }
-
-        if (level.isClientSide) {
-            return FluidHelper.FluidExchange.ITEM_TO_TANK;
-        }
-
-        ItemStack copyOfHeld = heldItem.copy();
-        Pair<FluidStack, ItemStack> actualEmptying = GenericItemEmptying.emptyItem(level, copyOfHeld, false);
-        FluidStack actualFluid = actualEmptying.getFirst();
-        if (!isSameAmountFluid(actualFluid, simulatedFluid)) {
-            return null;
-        }
-
-        int actualFill = handler.fill(actualFluid.copy(), IFluidHandler.FluidAction.EXECUTE);
-        if (actualFill != actualFluid.getAmount()) {
-            return null;
-        }
-
-        if (!player.isCreative()) {
-            if (copyOfHeld.isEmpty()) {
-                player.setItemInHand(hand, actualEmptying.getSecond());
-            } else {
-                player.setItemInHand(hand, copyOfHeld);
-                player.getInventory().placeItemBackInInventory(actualEmptying.getSecond());
-            }
-        }
-
-        return FluidHelper.FluidExchange.ITEM_TO_TANK;
-    }
-
-    private FluidHelper.FluidExchange tryFill(Level level, Player player, InteractionHand hand, ItemStack heldItem,
-        IFluidHandler handler) {
-        if (!GenericItemFilling.canItemBeFilled(level, heldItem)) {
-            return null;
-        }
-
-        for (int tank = 0; tank < handler.getTanks(); tank++) {
-            FluidStack fluid = handler.getFluidInTank(tank);
-            if (fluid.isEmpty()) {
-                continue;
-            }
-            int requiredAmount = GenericItemFilling.getRequiredAmountForItem(level, heldItem, fluid.copy());
-            if (requiredAmount == -1) {
-                continue;
-            }
-
-            FluidStack requestedDrain = fluid.copyWithAmount(requiredAmount);
-            FluidStack simulatedDrain = handler.drain(requestedDrain, IFluidHandler.FluidAction.SIMULATE);
-            if (!isSameAmountFluid(simulatedDrain, requestedDrain)) {
-                continue;
-            }
-
-            if (level.isClientSide) {
-                return FluidHelper.FluidExchange.TANK_TO_ITEM;
-            }
-
-            ItemStack workingStack = heldItem.copy();
-            ItemStack out = GenericItemFilling.fillItem(level, requiredAmount, workingStack, simulatedDrain.copy());
-            if (out.isEmpty()) {
-                continue;
-            }
-
-            FluidStack actualDrain = handler.drain(simulatedDrain.copy(), IFluidHandler.FluidAction.EXECUTE);
-            if (!isSameAmountFluid(actualDrain, simulatedDrain)) {
-                continue;
-            }
-
-            if (!player.isCreative()) {
-                player.setItemInHand(hand, workingStack);
-                player.getInventory().placeItemBackInInventory(out);
-            }
-            return FluidHelper.FluidExchange.TANK_TO_ITEM;
-        }
-
-        return null;
-    }
-
-    private static boolean isSameAmountFluid(FluidStack actual, FluidStack expected) {
-        return !actual.isEmpty()
-            && actual.getAmount() == expected.getAmount()
-            && FluidStack.isSameFluidSameComponents(actual, expected);
     }
 
     @Override
