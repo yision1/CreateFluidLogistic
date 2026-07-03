@@ -18,8 +18,9 @@ public final class SableSublevelTargetHelper {
     }
 
     public static Target resolveBlockEntity(Level level, BlockPos probePos) {
-        if (!CompatMods.sableLoaded()) {
-            return new Target(probePos, level.getBlockEntity(probePos));
+        BlockEntity directBlockEntity = level.getBlockEntity(probePos);
+        if (directBlockEntity != null || !CompatMods.sableLoaded()) {
+            return Target.of(probePos, directBlockEntity);
         }
         return SableLoadedTargetResolver.resolveBlockEntity(level, probePos);
     }

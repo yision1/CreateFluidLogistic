@@ -17,7 +17,7 @@ import com.yision.fluidlogistics.content.fluids.faucet.SmartFaucetFilterSlotPosi
 import com.yision.fluidlogistics.compat.CompatMods;
 import com.yision.fluidlogistics.compat.kaleidoscopetavern.KaleidoscopeTavernCompat;
 import com.yision.fluidlogistics.compat.sable.SableSublevelTargetHelper;
-import com.yision.fluidlogistics.config.FeatureToggle;
+import com.yision.fluidlogistics.content.fluids.infiniteWater.InfiniteWaterSource;
 import com.yision.fluidlogistics.content.fluids.faucet.network.FaucetDripParticlePacket;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,8 +104,6 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         super(type, pos, state);
     }
 
-    protected abstract net.minecraft.resources.ResourceLocation getFeatureKey();
-
     protected boolean supportsFluidFilter() {
         return false;
     }
@@ -135,10 +133,6 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
     @Override
     public void tick() {
         super.tick();
-
-        if (!FeatureToggle.isEnabled(getFeatureKey())) {
-            return;
-        }
 
         if (level == null || level.isClientSide) {
             return;
@@ -194,7 +188,7 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         Direction sourceSide = getBlockState().getValue(AbstractFaucetBlock.FACING).getOpposite();
         BlockPos sourcePos = worldPosition.relative(sourceSide);
         BlockState sourceState = level.getBlockState(sourcePos);
-        if (AbstractFaucetBlock.isInfiniteWaterSource(sourceState)) {
+        if (InfiniteWaterSource.isWaterSourceBlock(sourceState)) {
             return false;
         }
 
@@ -210,7 +204,7 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
 
         Direction facing = getBlockState().getValue(AbstractFaucetBlock.FACING);
         BlockPos sourcePos = worldPosition.relative(facing.getOpposite());
-        if (AbstractFaucetBlock.isInfiniteWaterSource(level.getBlockState(sourcePos))) {
+        if (InfiniteWaterSource.isWaterSourceBlock(level.getBlockState(sourcePos))) {
             return null;
         }
 
@@ -308,28 +302,50 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return true;
         }
 
+        BlockState directState = level.getBlockState(targetPos);
+        if (isCauldronTarget(directState)) {
+            return true;
+        }
+
+        BlockEntity directEntity = level.getBlockEntity(targetPos);
+        if (directEntity != null) {
+            return hasProcessableBlockEntityTarget(directEntity, directState);
+        }
+
         var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, targetPos);
         BlockEntity targetEntity = resolved.blockEntity();
         BlockState targetState = level.getBlockState(resolved.resolvedPos());
+        return hasProcessableBlockEntityTarget(targetEntity, targetState);
+    }
 
+    private boolean hasProcessableBlockEntityTarget(@Nullable BlockEntity targetEntity, BlockState targetState) {
         if (targetEntity != null && FaucetTargetSupport.isDepot(targetEntity)) {
             ItemStack itemOnDepot = FaucetTargetSupport.getItemOnDepot(targetEntity);
             return !itemOnDepot.isEmpty() && FaucetFilling.canItemBeFilled(level, itemOnDepot);
-        }
-
-        if (targetState.is(Blocks.CAULDRON) || targetState.is(Blocks.WATER_CAULDRON)) {
-            return true;
         }
 
         return targetEntity != null && targetState.is(FAUCET_FILLABLE);
     }
 
     private boolean tryProcess(IFluidHandler sourceHandler, BlockPos targetPos, Direction sourceDir, BlockPos sourcePos) {
-        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, targetPos);
-        BlockEntity targetEntity = resolved.blockEntity();
-        BlockPos resolvedPos = resolved.resolvedPos();
-        BlockState targetState = level.getBlockState(resolvedPos);
+        BlockState directState = level.getBlockState(targetPos);
+        if (isCauldronTarget(directState)) {
+            return tryProcessTarget(sourceHandler, targetPos, level.getBlockEntity(targetPos), directState, sourceDir, sourcePos);
+        }
 
+        BlockEntity directEntity = level.getBlockEntity(targetPos);
+        if (directEntity != null) {
+            return tryProcessTarget(sourceHandler, targetPos, directEntity, directState, sourceDir, sourcePos);
+        }
+
+        var resolved = SableSublevelTargetHelper.resolveBlockEntity(level, targetPos);
+        BlockPos resolvedPos = resolved.resolvedPos();
+        return tryProcessTarget(sourceHandler, resolvedPos, resolved.blockEntity(), level.getBlockState(resolvedPos),
+            sourceDir, sourcePos);
+    }
+
+    private boolean tryProcessTarget(IFluidHandler sourceHandler, BlockPos resolvedPos,
+        @Nullable BlockEntity targetEntity, BlockState targetState, Direction sourceDir, BlockPos sourcePos) {
         if (targetEntity != null && FaucetTargetSupport.isDepot(targetEntity)) {
             ItemStack itemOnDepot = FaucetTargetSupport.getItemOnDepot(targetEntity);
             if (!itemOnDepot.isEmpty() && FaucetFilling.canItemBeFilled(level, itemOnDepot)) {
@@ -342,7 +358,7 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return false;
         }
 
-        if (targetState.is(Blocks.CAULDRON) || targetState.is(Blocks.WATER_CAULDRON)) {
+        if (isCauldronTarget(targetState)) {
             FluidStack fillableFluid = FaucetFluidSupport.findFillableFluidForCauldron(sourceHandler,
                 this::testFluidFilter, targetState);
             if (fillableFluid.isEmpty()) {
@@ -374,6 +390,10 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
         renderingFluid = transferred.copy();
         notifyUpdate();
         return true;
+    }
+
+    private static boolean isCauldronTarget(BlockState targetState) {
+        return targetState.is(Blocks.CAULDRON) || targetState.is(Blocks.WATER_CAULDRON);
     }
 
     private boolean startItemFilling(IFluidHandler sourceHandler, ItemStack item, Direction sourceDir, BlockPos sourcePos,
@@ -620,7 +640,9 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return false;
         }
 
-        if (AbstractFaucetBlock.isInfiniteWaterSource(level.getBlockState(sourceBlockPos)) && pendingFluid.getFluid() == Fluids.WATER) {
+        if (InfiniteWaterSource.isActiveSourceFor(InfiniteWaterSource.Consumer.FAUCET,
+                level.getBlockState(sourceBlockPos))
+            && pendingFluid.getFluid() == Fluids.WATER) {
             return true;
         }
 

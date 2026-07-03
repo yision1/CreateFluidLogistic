@@ -2,11 +2,14 @@ package com.yision.fluidlogistics.compat.kaleidoscopetavern;
 
 import com.github.ysbbbbbb.kaleidoscopetavern.api.blockentity.ITapBehavior;
 import com.github.ysbbbbbb.kaleidoscopetavern.game.tap.TapBehaviorManager;
+import com.yision.fluidlogistics.compat.CompatMods;
 import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlock;
 import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -15,15 +18,42 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.Nullable;
 
 public final class KaleidoscopeTavernCompat {
+    private static final ResourceLocation KT_BARREL =
+        ResourceLocation.fromNamespaceAndPath(CompatMods.KALEIDOSCOPE_TAVERN, "barrel");
 
     private KaleidoscopeTavernCompat() {
     }
 
     public static boolean hasTapBehavior(BlockState sourceState) {
-        return TapBehaviorManager.contains(sourceState.getBlock());
+        if (!isKnownTapSource(sourceState)) {
+            return false;
+        }
+        return TapBehaviorManager.contains(sourceState);
     }
 
     public static @Nullable TapOperation prepare(
+        Level level,
+        BlockPos faucetPos,
+        BlockState faucetState,
+        Predicate<FluidStack> fluidFilter
+    ) {
+        return prepareInternal(level, faucetPos, faucetState, fluidFilter);
+    }
+
+    public static boolean canStart(
+        Level level,
+        BlockPos faucetPos,
+        BlockState faucetState,
+        Predicate<FluidStack> fluidFilter
+    ) {
+        return canStartInternal(level, faucetPos, faucetState, fluidFilter);
+    }
+
+    public static void finish(Level level, BlockPos faucetPos, BlockState faucetState) {
+        finishInternal(level, faucetPos, faucetState);
+    }
+
+    private static @Nullable TapOperation prepareInternal(
         Level level,
         BlockPos faucetPos,
         BlockState faucetState,
@@ -52,7 +82,7 @@ public final class KaleidoscopeTavernCompat {
         return new TapOperation(particle, mappedFluid);
     }
 
-    public static boolean canStart(
+    private static boolean canStartInternal(
         Level level,
         BlockPos faucetPos,
         BlockState faucetState,
@@ -74,7 +104,7 @@ public final class KaleidoscopeTavernCompat {
         return mapFluidForFilter(sourceState, fluidFilter) != null;
     }
 
-    public static void finish(Level level, BlockPos faucetPos, BlockState faucetState) {
+    private static void finishInternal(Level level, BlockPos faucetPos, BlockState faucetState) {
         Direction facing = faucetState.getValue(AbstractFaucetBlock.FACING);
         BlockPos sourcePos = faucetPos.relative(facing.getOpposite());
         BlockPos destinationPos = faucetPos.below();
@@ -92,7 +122,10 @@ public final class KaleidoscopeTavernCompat {
     }
 
     private static @Nullable ITapBehavior getBehavior(BlockState sourceState) {
-        return TapBehaviorManager.get(sourceState.getBlock());
+        if (!isKnownTapSource(sourceState)) {
+            return null;
+        }
+        return TapBehaviorManager.get(sourceState);
     }
 
     private static @Nullable FluidStack mapFluidForFilter(BlockState sourceState, Predicate<FluidStack> fluidFilter) {
@@ -106,6 +139,17 @@ public final class KaleidoscopeTavernCompat {
             return FluidStack.EMPTY;
         }
         return fluidFilter.test(mapped) ? mapped : null;
+    }
+
+    private static boolean isKnownTapSource(BlockState state) {
+        return state.is(Blocks.WATER_CAULDRON)
+            || state.is(Blocks.LAVA_CAULDRON)
+            || state.is(Blocks.BEE_NEST)
+            || state.is(Blocks.BEEHIVE)
+            || state.is(Blocks.DRAGON_HEAD)
+            || state.is(Blocks.DRAGON_WALL_HEAD)
+            || state.is(Blocks.MELON)
+            || KT_BARREL.equals(BuiltInRegistries.BLOCK.getKey(state.getBlock()));
     }
 
     public record TapOperation(@Nullable ParticleOptions particle, FluidStack mappedFluid) {
