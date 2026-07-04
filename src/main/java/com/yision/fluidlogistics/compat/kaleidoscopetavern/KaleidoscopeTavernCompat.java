@@ -20,7 +20,7 @@ public final class KaleidoscopeTavernCompat {
     }
 
     public static boolean hasTapBehavior(BlockState sourceState) {
-        return TapBehaviorManager.contains(sourceState.getBlock());
+        return TapBehaviorManager.contains(sourceState);
     }
 
     public static @Nullable TapOperation prepare(
@@ -92,7 +92,7 @@ public final class KaleidoscopeTavernCompat {
     }
 
     private static @Nullable ITapBehavior getBehavior(BlockState sourceState) {
-        return TapBehaviorManager.get(sourceState.getBlock());
+        return TapBehaviorManager.get(sourceState);
     }
 
     private static @Nullable FluidStack mapFluidForFilter(BlockState sourceState, Predicate<FluidStack> fluidFilter) {
