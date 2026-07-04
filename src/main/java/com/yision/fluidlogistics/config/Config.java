@@ -31,6 +31,11 @@ public class Config {
     private static final int FLUID_PUMP_RANGE_DEFAULT = 24;
     private static final int FLUID_PUMP_RANGE_MIN = 1;
     private static final int FLUID_PUMP_RANGE_MAX = Integer.MAX_VALUE;
+    private static final int HAND_POINTER_MAX_ARMS_DEFAULT = 5;
+    private static final int HAND_POINTER_MAX_FROGPORTS_DEFAULT = 5;
+    private static final int HAND_POINTER_MAX_MAILBOXES_DEFAULT = 5;
+    private static final int HAND_POINTER_SELECTION_LIMIT_MIN = 1;
+    private static final int HAND_POINTER_SELECTION_LIMIT_MAX = 64;
 
     private static final boolean FLUID_TRANSPORTER_INFINITE_WATER_ENABLED_DEFAULT = true;
     private static final boolean FAUCET_INFINITE_WATER_ENABLED_DEFAULT = true;
@@ -46,77 +51,77 @@ public class Config {
     }
 
     public static final ModConfigSpec.BooleanValue FLUID_TRANSPORTER_ENABLED = BUILDER
-            .comment("Enables fluid transporter")
+            .comment("Controls whether Fluid Transporter appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.fluid_transporter")
             .define("fluidTransporterEnabled", FLUID_TRANSPORTER_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue SMART_FAUCET_ENABLED = BUILDER
-            .comment("Enables smart faucet")
+            .comment("Controls whether Smart Faucet appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.smart_faucet")
             .define("smartFaucetEnabled", SMART_FAUCET_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue FAUCET_ENABLED = BUILDER
-            .comment("Enables faucet")
+            .comment("Controls whether Faucet appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.faucet")
             .define("faucetEnabled", FAUCET_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue MULTI_FLUID_TANK_ENABLED = BUILDER
-            .comment("Enables multi-fluid tank")
+            .comment("Controls whether Multi-Fluid Tank appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.multi_fluid_tank")
             .define("multiFluidTankEnabled", MULTI_FLUID_TANK_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue HORIZONTAL_MULTI_FLUID_TANK_ENABLED = BUILDER
-            .comment("Enables horizontal multi-fluid tank")
+            .comment("Controls whether Horizontal Multi-Fluid Tank appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.horizontal_multi_fluid_tank")
             .define("horizontalMultiFluidTankEnabled", HORIZONTAL_MULTI_FLUID_TANK_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue MULTI_FLUID_ACCESS_PORT_ENABLED = BUILDER
-            .comment("Enables multi-fluid access port")
+            .comment("Controls whether Multi-Fluid Access Port appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.multi_fluid_access_port")
             .define("multiFluidAccessPortEnabled", MULTI_FLUID_ACCESS_PORT_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue SMART_HOPPER_ENABLED = BUILDER
-            .comment("Enables smart hopper")
+            .comment("Controls whether Smart Hopper appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.smart_hopper")
             .define("smartHopperEnabled", SMART_HOPPER_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue FLUID_PUMP_ENABLED = BUILDER
-            .comment("Enables fluid pump")
+            .comment("Controls whether Fluid Pump appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.fluid_pump")
             .define("fluidPumpEnabled", FLUID_PUMP_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue INFINITE_FLUID_TANK_ENABLED = BUILDER
-            .comment("Enables infinite fluid tank")
+            .comment("Controls whether Infinite Fluid Tank appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.infinite_fluid_tank")
             .define("infiniteFluidTankEnabled", INFINITE_FLUID_TANK_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue WATER_CONTAINING_COPPER_CASING_ENABLED = BUILDER
-            .comment("Enables water containing copper casing")
+            .comment("Controls whether Water-Containing Copper Leaf Casing appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.water_containing_copper_casing")
             .define("waterContainingCopperCasingEnabled", WATER_CONTAINING_COPPER_CASING_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue COPPER_BASIN_ENABLED = BUILDER
-            .comment("Enables copper basin")
+            .comment("Controls whether Copper Basin appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.copper_basin")
             .define("copperBasinEnabled", COPPER_BASIN_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue MECHANICAL_FLUID_GUN_ENABLED = BUILDER
-            .comment("Enables mechanical fluid gun")
+            .comment("Controls whether Mechanical Fluid Gun appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.mechanical_fluid_gun")
             .define("mechanicalFluidGunEnabled", MECHANICAL_FLUID_GUN_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue HAND_POINTER_ENABLED = BUILDER
-            .comment("Enables hand pointer")
+            .comment("Controls whether Hand Pointer appears in creative tabs; mechanics remain active")
             .translation("item.fluidlogistics.hand_pointer")
             .define("handPointerEnabled", HAND_POINTER_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue ADVANCED_LOGISTICS_NETWORK_ENABLED = BUILDER
-            .comment("After disabling, packages cannot be used to transport fluids")
+            .comment("Controls whether Fluid Package System entries appear in creative tabs; mechanics remain active")
             .translation("fluidlogistics.configuration.advancedLogisticsNetworkEnabled")
             .define("advancedLogisticsNetworkEnabled", ADVANCED_LOGISTICS_NETWORK_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue FLUID_HATCH_ENABLED = BUILDER
-            .comment("Enables fluid hatch")
+            .comment("Controls whether Fluid Hatch appears in creative tabs; mechanics remain active")
             .translation("block.fluidlogistics.fluid_hatch")
             .define("fluidHatchEnabled", FLUID_HATCH_ENABLED_DEFAULT);
 
@@ -141,6 +146,30 @@ public class Config {
                     FLUID_PUMP_RANGE_DEFAULT,
                     FLUID_PUMP_RANGE_MIN,
                     FLUID_PUMP_RANGE_MAX);
+
+    public static final ModConfigSpec.IntValue HAND_POINTER_MAX_ARMS = BUILDER
+            .comment("Maximum number of Mechanical Arms configurable in one Hand Pointer session")
+            .translation("fluidlogistics.configuration.handPointerMaxArms")
+            .defineInRange("handPointerMaxArms",
+                    HAND_POINTER_MAX_ARMS_DEFAULT,
+                    HAND_POINTER_SELECTION_LIMIT_MIN,
+                    HAND_POINTER_SELECTION_LIMIT_MAX);
+
+    public static final ModConfigSpec.IntValue HAND_POINTER_MAX_FROGPORTS = BUILDER
+            .comment("Maximum number of Package Frogports configurable in one Hand Pointer session")
+            .translation("fluidlogistics.configuration.handPointerMaxFrogports")
+            .defineInRange("handPointerMaxFrogports",
+                    HAND_POINTER_MAX_FROGPORTS_DEFAULT,
+                    HAND_POINTER_SELECTION_LIMIT_MIN,
+                    HAND_POINTER_SELECTION_LIMIT_MAX);
+
+    public static final ModConfigSpec.IntValue HAND_POINTER_MAX_MAILBOXES = BUILDER
+            .comment("Maximum number of Postboxes configurable in one Hand Pointer session")
+            .translation("fluidlogistics.configuration.handPointerMaxMailboxes")
+            .defineInRange("handPointerMaxMailboxes",
+                    HAND_POINTER_MAX_MAILBOXES_DEFAULT,
+                    HAND_POINTER_SELECTION_LIMIT_MIN,
+                    HAND_POINTER_SELECTION_LIMIT_MAX);
 
     public static final ModConfigSpec.BooleanValue FLUID_TRANSPORTER_INFINITE_WATER_ENABLED = BUILDER
             .comment("Allow the fluid transporter to extract infinite water from waterlogged leaves")
@@ -193,6 +222,9 @@ public class Config {
     private static boolean fluidHatchEnabled = FLUID_HATCH_ENABLED_DEFAULT;
     private static int fluidPackageCapacity = FLUID_PACKAGE_CAPACITY_DEFAULT;
     private static int fluidPumpRange = FLUID_PUMP_RANGE_DEFAULT;
+    private static int handPointerMaxArms = HAND_POINTER_MAX_ARMS_DEFAULT;
+    private static int handPointerMaxFrogports = HAND_POINTER_MAX_FROGPORTS_DEFAULT;
+    private static int handPointerMaxMailboxes = HAND_POINTER_MAX_MAILBOXES_DEFAULT;
     private static boolean fluidTransporterInfiniteWaterEnabled = FLUID_TRANSPORTER_INFINITE_WATER_ENABLED_DEFAULT;
     private static boolean faucetInfiniteWaterEnabled = FAUCET_INFINITE_WATER_ENABLED_DEFAULT;
     private static boolean smartHopperInfiniteWaterEnabled = SMART_HOPPER_INFINITE_WATER_ENABLED_DEFAULT;
@@ -218,6 +250,9 @@ public class Config {
         fluidHatchEnabled = FLUID_HATCH_ENABLED.get();
         fluidPackageCapacity = FLUID_PACKAGE_CAPACITY.get();
         fluidPumpRange = FLUID_PUMP_RANGE.get();
+        handPointerMaxArms = HAND_POINTER_MAX_ARMS.get();
+        handPointerMaxFrogports = HAND_POINTER_MAX_FROGPORTS.get();
+        handPointerMaxMailboxes = HAND_POINTER_MAX_MAILBOXES.get();
         fluidTransporterInfiniteWaterEnabled = FLUID_TRANSPORTER_INFINITE_WATER_ENABLED.get();
         faucetInfiniteWaterEnabled = FAUCET_INFINITE_WATER_ENABLED.get();
         smartHopperInfiniteWaterEnabled = SMART_HOPPER_INFINITE_WATER_ENABLED.get();
@@ -242,6 +277,9 @@ public class Config {
     public static boolean isFluidHatchEnabled() { return fluidHatchEnabled; }
 
     public static int getFluidPumpRange() { return fluidPumpRange; }
+    public static int getHandPointerMaxArms() { return handPointerMaxArms; }
+    public static int getHandPointerMaxFrogports() { return handPointerMaxFrogports; }
+    public static int getHandPointerMaxMailboxes() { return handPointerMaxMailboxes; }
 
     public static int getFluidPerPackage() {
         return Math.max(FLUID_PACKAGE_CAPACITY_MIN, fluidPackageCapacity);

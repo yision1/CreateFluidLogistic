@@ -19,6 +19,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Item.TooltipContext;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 
 public class HandPointerItem extends Item {
@@ -55,6 +57,17 @@ public class HandPointerItem extends Item {
         ItemStack heldStack = player.getItemInHand(usedHand);
         if (!Config.isHandPointerEnabled()) {
             return InteractionResultHolder.pass(heldStack);
+        }
+        if (player.isShiftKeyDown() && hasAuthorizedNetworks(heldStack)) {
+            if (level.isClientSide) {
+                level.playSound(player, player.blockPosition(), SoundEvents.ITEM_FRAME_REMOVE_ITEM,
+                    SoundSource.BLOCKS, 0.75f, 1.0f);
+            } else {
+                heldStack.remove(AllDataComponents.HAND_POINTER_AUTHORIZED_NETWORKS);
+                player.displayClientMessage(
+                    CreateLang.translateDirect("fluidlogistics.hand_pointer.authorization_cleared"), true);
+            }
+            return InteractionResultHolder.sidedSuccess(heldStack, level.isClientSide);
         }
         return InteractionResultHolder.success(heldStack);
     }

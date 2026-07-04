@@ -2,6 +2,7 @@ package com.yision.fluidlogistics.content.equipment.handPointer.network;
 
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.UUID;
 
 import com.simibubi.create.Create;
@@ -11,11 +12,9 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntit
 import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour;
 import com.simibubi.create.content.logistics.packagerLink.LogisticsNetwork;
 import com.simibubi.create.content.logistics.packagerLink.LogisticsManager;
-import com.simibubi.create.content.logistics.packagerLink.PackagerLinkBlockEntity;
-import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterBlockEntity;
-import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerItem;
+import com.yision.fluidlogistics.content.equipment.handPointer.logistics.LogisticsLinkResolver;
 
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.minecraft.core.BlockPos;
@@ -36,7 +35,9 @@ public record HandPointerLogisticsNetworkPacket(
     Action action,
     BlockPos sourcePos,
     UUID targetNetworkId,
-    FactoryPanelBlock.PanelSlot panelSlot
+    FactoryPanelBlock.PanelSlot panelSlot,
+    boolean allSlots,
+    int handPointerSlot
 ) implements ServerboundPacketPayload {
 
     public enum Action {
@@ -45,6 +46,17 @@ public record HandPointerLogisticsNetworkPacket(
     }
     
     private static final int STATUS_INVALID_COLOR = 0xFF6171;
+    private static final int STATUS_CONNECTABLE_COLOR = 0x9EF173;
+
+    public HandPointerLogisticsNetworkPacket(Action action, BlockPos sourcePos, UUID targetNetworkId,
+                                             FactoryPanelBlock.PanelSlot panelSlot) {
+        this(action, sourcePos, targetNetworkId, panelSlot, false, -1);
+    }
+
+    public HandPointerLogisticsNetworkPacket(Action action, BlockPos sourcePos, UUID targetNetworkId,
+                                             FactoryPanelBlock.PanelSlot panelSlot, boolean allSlots) {
+        this(action, sourcePos, targetNetworkId, panelSlot, allSlots, -1);
+    }
 
     public static final StreamCodec<RegistryFriendlyByteBuf, HandPointerLogisticsNetworkPacket> STREAM_CODEC =
         StreamCodec.of(
@@ -58,6 +70,8 @@ public record HandPointerLogisticsNetworkPacket(
                     UUIDUtil.STREAM_CODEC.encode(buf, packet.targetNetworkId);
                 }
                 FactoryPanelBlock.PanelSlot.STREAM_CODEC.encode(buf, packet.panelSlot);
+                buf.writeBoolean(packet.allSlots);
+                ByteBufCodecs.VAR_INT.encode(buf, packet.handPointerSlot);
             },
             buf -> {
                 int actionOrdinal = ByteBufCodecs.VAR_INT.decode(buf);
@@ -65,183 +79,130 @@ public record HandPointerLogisticsNetworkPacket(
                 BlockPos pos = BlockPos.STREAM_CODEC.decode(buf);
                 UUID target = buf.readBoolean() ? UUIDUtil.STREAM_CODEC.decode(buf) : null;
                 FactoryPanelBlock.PanelSlot slot = FactoryPanelBlock.PanelSlot.STREAM_CODEC.decode(buf);
-                return new HandPointerLogisticsNetworkPacket(action, pos, target, slot);
+                boolean allSlots = buf.readBoolean();
+                int handPointerSlot = ByteBufCodecs.VAR_INT.decode(buf);
+                return new HandPointerLogisticsNetworkPacket(action, pos, target, slot, allSlots, handPointerSlot);
             }
         );
 
     @Override
     public void handle(ServerPlayer player) {
         Level level = player.level();
-        if (!HandPointerInteractionGuard.canUseHandPointer(player, sourcePos)) {
+        ItemStack handPointerStack = getHandPointerStack(player);
+        if (!HandPointerInteractionGuard.canUseHandPointer(player, sourcePos, handPointerStack)) {
             return;
         }
 
-        BlockEntity be = level.getBlockEntity(sourcePos);
-        if (be instanceof PackagerLinkBlockEntity link) {
-            handlePackagerLink(player, level, sourcePos, link);
-        } else if (be instanceof FactoryPanelBlockEntity panel) {
-            handleFactoryPanel(player, level, sourcePos, panel);
-        } else if (be instanceof StockTickerBlockEntity ticker) {
-            handleStockTicker(player, level, sourcePos, ticker);
-        } else if (be instanceof RedstoneRequesterBlockEntity requester) {
-            handleRedstoneRequester(player, level, sourcePos, requester);
-        }
-    }
-
-    private void handlePackagerLink(ServerPlayer player, Level level, BlockPos pos, PackagerLinkBlockEntity link) {
-        LogisticallyLinkedBehaviour behaviour = link.behaviour;
-        switch (action) {
-            case CONNECT -> {
-                UUID oldNetwork = behaviour.freqId;
-                if (!mayMoveBetweenNetworksOrWarn(player, oldNetwork, targetNetworkId)) {
-                    return;
-                }
-
-                moveGlobalBehaviourToNetwork(level, pos, behaviour, targetNetworkId, null);
-
-                invalidateSummary(oldNetwork);
-                invalidateSummary(targetNetworkId);
-                markDirtyAndNotify(link);
-            }
-            case DISCONNECT -> {
-                if (!mayAdministrateOrWarn(player, behaviour.freqId)) {
-                    return;
-                }
-
-                UUID oldNetwork = behaviour.freqId;
-
-                UUID newNetwork = disconnectedNetworkId(player, pos);
-                moveGlobalBehaviourToNetwork(level, pos, behaviour, newNetwork, player.getUUID());
-
-                invalidateSummary(oldNetwork);
-                invalidateSummary(newNetwork);
-                markDirtyAndNotify(link);
-            }
-        }
-    }
-
-    private void handleFactoryPanel(ServerPlayer player, Level level, BlockPos pos, FactoryPanelBlockEntity panel) {
-        purgeLegacyRegisteredPosFromAllNetworks(level, pos);
-
-        if (panel.panels == null || panel.panels.isEmpty()) {
+        if (level.getBlockEntity(sourcePos) instanceof FactoryPanelBlockEntity panel) {
+            handleFactoryPanel(player, level, sourcePos, panel, handPointerStack);
             return;
         }
 
-        FactoryPanelBehaviour fp = panel.panels.get(panelSlot);
-        if (fp == null || !fp.isActive()) {
-            fp = panel.panels.values().stream().findFirst().orElse(null);
-            if (fp == null) {
-                return;
-            }
+        LogisticsLinkResolver.resolve(level, sourcePos, panelSlot)
+            .ifPresent(resolved -> handleLinkedBehaviour(player, level, sourcePos, resolved, handPointerStack));
+    }
+
+    private ItemStack getHandPointerStack(ServerPlayer player) {
+        if (handPointerSlot >= 0 && handPointerSlot < 9
+            && handPointerSlot < player.getInventory().getContainerSize()) {
+            return player.getInventory().getItem(handPointerSlot);
+        }
+        return player.getMainHandItem();
+    }
+
+    private void handleFactoryPanel(ServerPlayer player, Level level, BlockPos pos, FactoryPanelBlockEntity panel,
+                                    ItemStack handPointerStack) {
+        purgeLegacyRegisteredPosFromAllNetworks(level, pos);
+
+        List<FactoryPanelBehaviour> panels = getTargetPanels(panel);
+        if (panels.isEmpty()) {
+            displayStatus(player, "create.fluidlogistics.hand_pointer.logistics.no_panel_at_slot", STATUS_INVALID_COLOR);
+            return;
         }
 
         switch (action) {
             case CONNECT -> {
-                UUID oldNetwork = fp.network;
-                if (!mayMoveBetweenNetworksOrWarn(player, oldNetwork, targetNetworkId)) {
+                if (targetNetworkId == null) {
                     return;
                 }
-
-                fp.network = targetNetworkId;
-
-                invalidateSummary(oldNetwork);
-                invalidateSummary(targetNetworkId);
+                for (FactoryPanelBehaviour fp : panels) {
+                    if (!mayMoveBetweenNetworksOrWarn(player, fp.network, targetNetworkId, handPointerStack)) {
+                        return;
+                    }
+                }
+                for (FactoryPanelBehaviour fp : panels) {
+                    moveFactoryPanelToNetwork(fp, targetNetworkId);
+                }
                 markDirtyAndNotify(panel);
+                displayResultStatus(player);
             }
             case DISCONNECT -> {
-                UUID oldNetwork = fp.network;
-                if (!mayAdministrateOrWarn(player, oldNetwork)) {
-                    return;
+                for (FactoryPanelBehaviour fp : panels) {
+                    if (!mayAdministrateOrWarn(player, fp.network, handPointerStack)) {
+                        return;
+                    }
                 }
-
-                UUID newNetwork = disconnectedNetworkId(player, pos, fp.getPanelPosition().slot());
-                fp.network = newNetwork;
-
-                invalidateSummary(oldNetwork);
-                invalidateSummary(newNetwork);
+                for (FactoryPanelBehaviour fp : panels) {
+                    moveFactoryPanelToNetwork(fp,
+                        disconnectedNetworkId(player.getUUID(), pos, fp.getPanelPosition().slot()));
+                }
                 markDirtyAndNotify(panel);
+                displayResultStatus(player);
             }
         }
     }
 
-    private void handleRedstoneRequester(ServerPlayer player, Level level, BlockPos pos, RedstoneRequesterBlockEntity requester) {
-        LogisticallyLinkedBehaviour behaviour = requester.behaviour;
-        purgeLegacyRegisteredPosFromAllNetworks(level, pos);
-
-        switch (action) {
-            case CONNECT -> {
-                UUID oldNetwork = behaviour.freqId;
-                if (!mayMoveBetweenNetworksOrWarn(player, oldNetwork, targetNetworkId)) {
-                    return;
-                }
-
-                moveLocalBehaviourToNetwork(behaviour, targetNetworkId);
-
-                invalidateSummary(oldNetwork);
-                invalidateSummary(targetNetworkId);
-                markDirtyAndNotify(requester);
-            }
-            case DISCONNECT -> {
-                UUID oldNetwork = behaviour.freqId;
-                if (!mayAdministrateOrWarn(player, oldNetwork)) {
-                    return;
-                }
-
-                UUID newNetwork = disconnectedNetworkId(player, pos);
-                moveLocalBehaviourToNetwork(behaviour, newNetwork);
-
-                invalidateSummary(oldNetwork);
-                invalidateSummary(newNetwork);
-                markDirtyAndNotify(requester);
-            }
+    private void handleLinkedBehaviour(ServerPlayer player, Level level, BlockPos pos,
+                                       LogisticsLinkResolver.ResolvedLink resolved, ItemStack handPointerStack) {
+        LogisticallyLinkedBehaviour behaviour = resolved.behaviour();
+        if (behaviour == null) {
+            return;
         }
-    }
-
-    private void handleStockTicker(ServerPlayer player, Level level, BlockPos pos, StockTickerBlockEntity ticker) {
-        LogisticallyLinkedBehaviour behaviour = ticker.behaviour;
-        purgeLegacyRegisteredPosFromAllNetworks(level, pos);
+        if (!resolved.global()) {
+            purgeLegacyRegisteredPosFromAllNetworks(level, pos);
+        }
 
         switch (action) {
             case CONNECT -> {
                 UUID oldNetwork = behaviour.freqId;
-                if (!mayMoveBetweenNetworksOrWarn(player, oldNetwork, targetNetworkId)) {
+                if (!mayMoveBetweenNetworksOrWarn(player, oldNetwork, targetNetworkId, handPointerStack)) {
                     return;
                 }
 
-                moveLocalBehaviourToNetwork(behaviour, targetNetworkId);
-
+                moveBehaviourToNetwork(level, pos, behaviour, targetNetworkId, resolved.global(), null);
                 invalidateSummary(oldNetwork);
                 invalidateSummary(targetNetworkId);
-                markDirtyAndNotify(ticker);
+                markDirtyAndNotify(behaviour.blockEntity);
+                displayResultStatus(player);
             }
             case DISCONNECT -> {
                 UUID oldNetwork = behaviour.freqId;
-                if (!mayAdministrateOrWarn(player, oldNetwork)) {
+                if (!mayAdministrateOrWarn(player, oldNetwork, handPointerStack)) {
                     return;
                 }
 
                 UUID newNetwork = disconnectedNetworkId(player, pos);
-                moveLocalBehaviourToNetwork(behaviour, newNetwork);
-
+                moveBehaviourToNetwork(level, pos, behaviour, newNetwork, resolved.global(), player.getUUID());
                 invalidateSummary(oldNetwork);
                 invalidateSummary(newNetwork);
-                markDirtyAndNotify(ticker);
+                markDirtyAndNotify(behaviour.blockEntity);
+                displayResultStatus(player);
             }
         }
     }
 
     private static UUID disconnectedNetworkId(ServerPlayer player, BlockPos pos) {
-        return disconnectedNetworkId(player, pos, null);
+        return disconnectedNetworkId(player.getUUID(), pos, null);
     }
 
-    private static UUID disconnectedNetworkId(ServerPlayer player, BlockPos pos, FactoryPanelBlock.PanelSlot slot) {
+    public static UUID disconnectedNetworkId(UUID playerId, BlockPos pos, FactoryPanelBlock.PanelSlot slot) {
         String slotSuffix = slot == null ? "" : "_" + slot.name();
-        String seed = "fluidlogistics:disconnected_" + player.getUUID() + "_" + pos + slotSuffix;
+        String seed = "fluidlogistics:disconnected_" + playerId + "_" + pos + slotSuffix;
         return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static boolean mayAdministrateOrWarn(ServerPlayer player, UUID networkId) {
-        if (mayAdministrate(player, networkId)) {
+    private static boolean mayAdministrateOrWarn(ServerPlayer player, UUID networkId, ItemStack handPointerStack) {
+        if (mayAdministrate(player, networkId, handPointerStack)) {
             return true;
         }
         player.displayClientMessage(
@@ -252,26 +213,26 @@ public record HandPointerLogisticsNetworkPacket(
         return false;
     }
 
-    private static boolean mayMoveBetweenNetworksOrWarn(ServerPlayer player, UUID sourceNetworkId, UUID targetNetworkId) {
+    private static boolean mayMoveBetweenNetworksOrWarn(ServerPlayer player, UUID sourceNetworkId, UUID targetNetworkId,
+                                                       ItemStack handPointerStack) {
         if (targetNetworkId == null) {
             return false;
         }
-        if (!mayAdministrateOrWarn(player, sourceNetworkId)) {
+        if (!mayAdministrateOrWarn(player, sourceNetworkId, handPointerStack)) {
             return false;
         }
         if (sourceNetworkId.equals(targetNetworkId)) {
             return true;
         }
-        return mayAdministrateOrWarn(player, targetNetworkId);
+        return mayAdministrateOrWarn(player, targetNetworkId, handPointerStack);
     }
 
-    private static boolean mayAdministrate(ServerPlayer player, UUID networkId) {
+    private static boolean mayAdministrate(ServerPlayer player, UUID networkId, ItemStack handPointerStack) {
         if (Create.LOGISTICS.mayAdministrate(networkId, player)) {
             return true;
         }
 
-        ItemStack heldStack = player.getMainHandItem();
-        return HandPointerItem.isAuthorizedFor(heldStack, networkId);
+        return HandPointerItem.isAuthorizedFor(handPointerStack, networkId);
     }
 
     private static void invalidateSummary(UUID networkId) {
@@ -284,6 +245,56 @@ public record HandPointerLogisticsNetworkPacket(
         if (be instanceof SmartBlockEntity smart) {
             smart.notifyUpdate();
         }
+    }
+
+    private List<FactoryPanelBehaviour> getTargetPanels(FactoryPanelBlockEntity panel) {
+        if (panel.panels == null || panel.panels.isEmpty()) {
+            return List.of();
+        }
+        if (allSlots) {
+            return panel.panels.values().stream()
+                .filter(FactoryPanelBehaviour::isActive)
+                .toList();
+        }
+        return LogisticsLinkResolver.resolvePanel(panel, panelSlot)
+            .stream()
+            .toList();
+    }
+
+    private static void moveFactoryPanelToNetwork(FactoryPanelBehaviour fp, UUID newNetwork) {
+        UUID oldNetwork = fp.network;
+        if (oldNetwork.equals(newNetwork)) {
+            return;
+        }
+
+        clearOldPanelPromises(fp, oldNetwork, newNetwork);
+        fp.setNetwork(newNetwork);
+        invalidateSummary(oldNetwork);
+        invalidateSummary(newNetwork);
+    }
+
+    private static void clearOldPanelPromises(FactoryPanelBehaviour fp, UUID oldNetwork, UUID newNetwork) {
+        if (fp.panelBE().restocker || fp.getFilter().isEmpty() || oldNetwork.equals(newNetwork)
+            || !Create.LOGISTICS.hasQueuedPromises(oldNetwork)) {
+            return;
+        }
+        Create.LOGISTICS.getQueuedPromises(oldNetwork).forceClear(fp.getFilter());
+    }
+
+    private void displayResultStatus(ServerPlayer player) {
+        String key = action == Action.CONNECT
+            ? "create.fluidlogistics.hand_pointer.logistics.added"
+            : "create.fluidlogistics.hand_pointer.logistics.removed";
+        int color = action == Action.CONNECT ? STATUS_CONNECTABLE_COLOR : STATUS_INVALID_COLOR;
+        displayStatus(player, key, color);
+    }
+
+    private static void displayStatus(ServerPlayer player, String translationKey, int color) {
+        player.displayClientMessage(
+            Component.translatable(translationKey)
+                .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(color))),
+            true
+        );
     }
 
     private static void moveGlobalBehaviourToNetwork(Level level, BlockPos pos, LogisticallyLinkedBehaviour behaviour,
@@ -303,6 +314,15 @@ public record HandPointerLogisticsNetworkPacket(
         LogisticallyLinkedBehaviour.remove(behaviour);
         behaviour.freqId = newNetwork;
         LogisticallyLinkedBehaviour.keepAlive(behaviour);
+    }
+
+    private static void moveBehaviourToNetwork(Level level, BlockPos pos, LogisticallyLinkedBehaviour behaviour,
+                                               UUID newNetwork, boolean global, UUID ownedBy) {
+        if (global) {
+            moveGlobalBehaviourToNetwork(level, pos, behaviour, newNetwork, ownedBy);
+        } else {
+            moveLocalBehaviourToNetwork(behaviour, newNetwork);
+        }
     }
 
     private static void purgeLegacyRegisteredPosFromAllNetworks(Level level, BlockPos pos) {

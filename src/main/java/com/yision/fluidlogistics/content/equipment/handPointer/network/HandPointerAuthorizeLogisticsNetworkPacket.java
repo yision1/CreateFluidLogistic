@@ -4,13 +4,10 @@ import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import java.util.UUID;
 
 import com.simibubi.create.Create;
-import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlock;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity;
-import com.simibubi.create.content.logistics.packagerLink.PackagerLinkBlockEntity;
-import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterBlockEntity;
-import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
 import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerItem;
+import com.yision.fluidlogistics.content.equipment.handPointer.logistics.LogisticsLinkResolver;
 
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.createmod.catnip.platform.CatnipServices;
@@ -23,7 +20,6 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 
 public record HandPointerAuthorizeLogisticsNetworkPacket(BlockPos sourcePos, FactoryPanelBlock.PanelSlot panelSlot)
     implements ServerboundPacketPayload {
@@ -70,8 +66,14 @@ public record HandPointerAuthorizeLogisticsNetworkPacket(BlockPos sourcePos, Fac
             return;
         }
 
-        UUID networkId = resolveNetworkId(level.getBlockEntity(sourcePos));
+        UUID networkId = LogisticsLinkResolver.resolve(level, sourcePos, panelSlot)
+            .map(LogisticsLinkResolver.ResolvedLink::networkId)
+            .orElse(null);
         if (networkId == null) {
+            if (level.getBlockEntity(sourcePos) instanceof FactoryPanelBlockEntity) {
+                displayStatus(player, "create.fluidlogistics.hand_pointer.logistics.no_panel_at_slot",
+                    STATUS_INVALID_COLOR);
+            }
             return;
         }
 
@@ -86,30 +88,6 @@ public record HandPointerAuthorizeLogisticsNetworkPacket(BlockPos sourcePos, Fac
         }
 
         displayStatus(player, "create.fluidlogistics.hand_pointer.authorization_added", STATUS_SUCCESS_COLOR);
-    }
-
-    private UUID resolveNetworkId(BlockEntity be) {
-        if (be instanceof PackagerLinkBlockEntity link) {
-            return link.behaviour.freqId;
-        }
-        if (be instanceof StockTickerBlockEntity ticker) {
-            return ticker.behaviour.freqId;
-        }
-        if (be instanceof RedstoneRequesterBlockEntity requester) {
-            return requester.behaviour.freqId;
-        }
-        if (be instanceof FactoryPanelBlockEntity panel) {
-            if (panel.panels == null || panel.panels.isEmpty()) {
-                return null;
-            }
-
-            FactoryPanelBehaviour fp = panel.panels.get(panelSlot);
-            if (fp == null || !fp.isActive()) {
-                fp = panel.panels.values().stream().findFirst().orElse(null);
-            }
-            return fp == null ? null : fp.network;
-        }
-        return null;
     }
 
     private static void displayStatus(ServerPlayer player, String translationKey, int color) {

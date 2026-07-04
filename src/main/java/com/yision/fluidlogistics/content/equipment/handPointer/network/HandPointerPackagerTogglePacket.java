@@ -1,8 +1,8 @@
 package com.yision.fluidlogistics.content.equipment.handPointer.network;
 
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
-import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
+import com.yision.fluidlogistics.util.PackagerTargetHelper;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.createmod.catnip.platform.CatnipServices;
@@ -44,11 +44,9 @@ public record HandPointerPackagerTogglePacket(BlockPos pos) implements Serverbou
 
         Level level = player.level();
         BlockState state = level.getBlockState(pos);
-        boolean isCreatePackager = AllBlocks.PACKAGER.has(state) || AllBlocks.REPACKAGER.has(state);
-        boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
-        boolean isFluidRepackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_REPACKAGER.has(state);
-        if ((!isCreatePackager && !isFluidPackager && !isFluidRepackager)
-            || !state.hasProperty(BlockStateProperties.POWERED)) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (!PackagerTargetHelper.isToggleTarget(blockEntity, state)
+            || !(blockEntity instanceof IPackagerOverrideData data)) {
             return;
         }
 
@@ -56,11 +54,6 @@ public record HandPointerPackagerTogglePacket(BlockPos pos) implements Serverbou
         BlockState toggledState = state.setValue(BlockStateProperties.POWERED, !wasPowered);
         level.setBlock(pos, toggledState, Block.UPDATE_CLIENTS);
         level.updateNeighborsAt(pos, toggledState.getBlock());
-
-        BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (!(blockEntity instanceof IPackagerOverrideData data)) {
-            return;
-        }
 
         if (data.fluidlogistics$isManualOverrideLocked()) {
             data.fluidlogistics$setManualOverrideLocked(false);

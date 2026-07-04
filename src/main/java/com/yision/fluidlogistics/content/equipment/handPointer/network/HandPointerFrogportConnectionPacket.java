@@ -10,6 +10,7 @@ import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEnti
 import com.simibubi.create.content.logistics.packagePort.PackagePortBlockEntity;
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget.ChainConveyorFrogportTarget;
 import com.simibubi.create.infrastructure.config.AllConfigs;
+import com.yision.fluidlogistics.config.Config;
 
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.createmod.catnip.platform.CatnipServices;
@@ -27,8 +28,6 @@ public record HandPointerFrogportConnectionPacket(
     float chainPosition,
     BlockPos connection
 ) implements ServerboundPacketPayload {
-
-    private static final int MAX_FROGPORTS = 5;
 
     public HandPointerFrogportConnectionPacket {
         frogportPositions = List.copyOf(frogportPositions);
@@ -86,7 +85,7 @@ public record HandPointerFrogportConnectionPacket(
         }
 
         LinkedHashSet<BlockPos> uniqueFrogports = new LinkedHashSet<>(frogportPositions);
-        if (uniqueFrogports.isEmpty() || uniqueFrogports.size() > MAX_FROGPORTS) {
+        if (uniqueFrogports.isEmpty() || uniqueFrogports.size() > Config.getHandPointerMaxFrogports()) {
             return;
         }
 

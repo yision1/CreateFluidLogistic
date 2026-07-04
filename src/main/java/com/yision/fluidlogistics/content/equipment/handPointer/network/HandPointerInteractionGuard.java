@@ -3,6 +3,7 @@ package com.yision.fluidlogistics.content.equipment.handPointer.network;
 import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerItem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 final class HandPointerInteractionGuard {
@@ -11,6 +12,10 @@ final class HandPointerInteractionGuard {
     }
 
     static boolean canUseHandPointer(ServerPlayer player, BlockPos pos) {
+        return canUseHandPointer(player, pos, player.getMainHandItem());
+    }
+
+    static boolean canUseHandPointer(ServerPlayer player, BlockPos pos, ItemStack handPointerStack) {
         if (!player.mayBuild()) {
             return false;
         }
@@ -24,6 +29,6 @@ final class HandPointerInteractionGuard {
             return false;
         }
 
-        return player.getMainHandItem().getItem() instanceof HandPointerItem;
+        return handPointerStack.getItem() instanceof HandPointerItem;
     }
 }

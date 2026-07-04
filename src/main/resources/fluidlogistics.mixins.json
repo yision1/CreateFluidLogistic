@@ -6,6 +6,7 @@
     "compatibilityLevel": "JAVA_21",
     "mixins": [
         "accessor.ArmBlockEntityAccessor",
+        "accessor.LogisticallyLinkedBehaviourAccessor",
         "accessor.StockTickerBlockEntityAccessor",
         "fluids.FluidPropagatorMixin",
         "kinetics.BeltInventoryMixin",

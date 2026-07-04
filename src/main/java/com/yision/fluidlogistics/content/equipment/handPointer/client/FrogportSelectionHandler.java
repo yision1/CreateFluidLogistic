@@ -16,9 +16,11 @@ import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorShape;
 import com.simibubi.create.content.logistics.packagePort.PackagePortBlockEntity;
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget;
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget.ChainConveyorFrogportTarget;
+import com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import com.simibubi.create.infrastructure.config.AllConfigs;
+import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorOBBAccessor;
 import com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorShapeAccessor;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerFrogportConnectionPacket;
@@ -43,8 +45,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class FrogportSelectionHandler {
-
-    private static final int MAX_FROGPORTS = 5;
 
     private static final String CHAIN_POINT_OUTLINE = "HandPointerChainPointSelection";
     private static final String FROGPORT_TARGET = "HandPointerFrogportTarget";
@@ -78,7 +78,8 @@ public class FrogportSelectionHandler {
     }
 
     public static boolean addFrogport(BlockPos pos, Player player, Level level) {
-        if (selectedFrogports.size() >= MAX_FROGPORTS) {
+        int maxFrogports = Config.getHandPointerMaxFrogports();
+        if (selectedFrogports.size() >= maxFrogports) {
             return false;
         }
 
@@ -87,7 +88,7 @@ public class FrogportSelectionHandler {
             SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 0.5f, 1.0f, false);
 
         CreateLang.builder()
-            .translate("fluidlogistics.hand_pointer.frogport.added", selectedFrogports.size(), MAX_FROGPORTS)
+            .translate("fluidlogistics.hand_pointer.frogport.added", selectedFrogports.size(), maxFrogports)
             .color(0xDDC166)
             .sendStatus(player);
         return true;
@@ -124,7 +125,7 @@ public class FrogportSelectionHandler {
     }
 
     public static boolean isFrogport(Level level, BlockPos pos) {
-        return AllBlocks.PACKAGE_FROGPORT.has(level.getBlockState(pos));
+        return level.getBlockEntity(pos) instanceof FrogportBlockEntity;
     }
 
     public static boolean refreshChainTargetFromRaycast(Minecraft mc) {
@@ -312,7 +313,7 @@ public class FrogportSelectionHandler {
         }
 
         BlockPos pos = ((BlockHitResult) mc.hitResult).getBlockPos();
-        if (!AllBlocks.PACKAGE_FROGPORT.has(mc.level.getBlockState(pos))) {
+        if (!isFrogport(mc.level, pos)) {
             clearHoverPreview();
             return;
         }

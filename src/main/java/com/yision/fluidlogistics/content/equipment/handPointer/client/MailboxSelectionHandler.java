@@ -8,6 +8,7 @@ import com.simibubi.create.content.logistics.packagePort.postbox.PostboxBlockEnt
 import com.simibubi.create.content.trains.station.StationBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.simibubi.create.infrastructure.config.AllConfigs;
+import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerMailboxStationConnectionPacket;
 
 import net.createmod.catnip.animation.AnimationTickHolder;
@@ -30,7 +31,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 public class MailboxSelectionHandler {
-    private static final int MAX_MAILBOXES = 5;
     private static final int STATUS_CONNECTABLE_COLOR = 0x9EF173;
     private static final int STATUS_INVALID_COLOR = 0xFF6171;
 
@@ -62,7 +62,8 @@ public class MailboxSelectionHandler {
     }
 
     public static boolean addMailbox(BlockPos pos, Player player, Level level) {
-        if (selectedMailboxes.size() >= MAX_MAILBOXES) {
+        int maxMailboxes = Config.getHandPointerMaxMailboxes();
+        if (selectedMailboxes.size() >= maxMailboxes) {
             return false;
         }
 
@@ -71,7 +72,7 @@ public class MailboxSelectionHandler {
             SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 0.5f, 1.0f, false);
 
         CreateLang.builder()
-            .translate("fluidlogistics.hand_pointer.mailbox.added", selectedMailboxes.size(), MAX_MAILBOXES)
+            .translate("fluidlogistics.hand_pointer.mailbox.added", selectedMailboxes.size(), maxMailboxes)
             .color(0xDDC166)
             .sendStatus(player);
         return true;

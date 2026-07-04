@@ -3,56 +3,31 @@ package com.yision.fluidlogistics.content.logistics.fluidPackager;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.AllSoundEvents;
-import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
-import com.simibubi.create.foundation.block.IBE;
-import com.simibubi.create.foundation.block.WrenchableDirectionalBlock;
-import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
-import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
+import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortBlockEntity;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
-import com.yision.fluidlogistics.util.IPackagerOverrideData;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.ItemInteractionResult;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelReader;
-import net.minecraft.world.level.SignalGetter;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.common.util.FakePlayer;
 
-public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IBE<FluidPackagerBlockEntity>, IWrenchable {
-
-    public static final BooleanProperty POWERED = PackagerBlock.POWERED;
-    public static final BooleanProperty LINKED = PackagerBlock.LINKED;
+public class FluidPackagerBlock extends PackagerBlock {
 
     public FluidPackagerBlock(Properties properties) {
         super(properties);
-        BlockState defaultBlockState = defaultBlockState();
-        if (defaultBlockState.hasProperty(LINKED))
-            defaultBlockState = defaultBlockState.setValue(LINKED, false);
-        registerDefaultState(defaultBlockState.setValue(POWERED, false));
-    }
-
-    @Override
-    public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
-        super.setPlacedBy(level, pos, state, placer, stack);
     }
 
     @Override
@@ -97,9 +72,9 @@ public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IB
             }
         }
 
-        return super.getStateForPlacement(context)
-                .setValue(POWERED, context.getLevel().hasNeighborSignal(context.getClickedPos()))
-                .setValue(FACING, preferredFacing);
+        return defaultBlockState()
+            .setValue(POWERED, level.hasNeighborSignal(context.getClickedPos()))
+            .setValue(FACING, preferredFacing);
     }
 
     @Override
@@ -149,82 +124,7 @@ public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IB
     }
 
     @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        super.createBlockStateDefinition(builder.add(POWERED, LINKED));
-    }
-
-    @Override
-    public void onNeighborChange(BlockState state, LevelReader level, BlockPos pos, BlockPos neighbor) {
-        super.onNeighborChange(state, level, pos, neighbor);
-
-        if (neighbor.relative(state.getOptionalValue(FACING).orElse(Direction.UP)).equals(pos))
-            withBlockEntityDo(level, pos, FluidPackagerBlockEntity::triggerStockCheck);
-    }
-
-    @Override
-    public void neighborChanged(BlockState state, Level worldIn, BlockPos pos, Block blockIn, BlockPos fromPos,
-                                boolean isMoving) {
-        if (worldIn.isClientSide)
-            return;
-
-        BlockEntity blockEntity = worldIn.getBlockEntity(pos);
-        if (blockEntity instanceof IPackagerOverrideData data && data.fluidlogistics$isManualOverrideLocked()) {
-            InvManipulationBehaviour behaviour = BlockEntityBehaviour.get(worldIn, pos, InvManipulationBehaviour.TYPE);
-            if (behaviour != null)
-                behaviour.onNeighborChanged(fromPos);
-            return;
-        }
-
-        InvManipulationBehaviour behaviour = BlockEntityBehaviour.get(worldIn, pos, InvManipulationBehaviour.TYPE);
-        if (behaviour != null)
-            behaviour.onNeighborChanged(fromPos);
-
-        boolean previouslyPowered = state.getValue(POWERED);
-        if (previouslyPowered == worldIn.hasNeighborSignal(pos))
-            return;
-        worldIn.setBlock(pos, state.cycle(POWERED), Block.UPDATE_CLIENTS);
-        if (!previouslyPowered)
-            withBlockEntityDo(worldIn, pos, FluidPackagerBlockEntity::activate);
-    }
-
-    @Override
-    public void onRemove(BlockState pState, Level pLevel, BlockPos pPos, BlockState pNewState, boolean pIsMoving) {
-        IBE.onRemove(pState, pLevel, pPos, pNewState);
-    }
-
-    @Override
-    public boolean shouldCheckWeakPower(BlockState state, SignalGetter level, BlockPos pos, Direction side) {
-        return false;
-    }
-
-    @Override
-    public Class<FluidPackagerBlockEntity> getBlockEntityClass() {
-        return FluidPackagerBlockEntity.class;
-    }
-
-    @Override
-    public BlockEntityType<? extends FluidPackagerBlockEntity> getBlockEntityType() {
+    public BlockEntityType<? extends PackagerBlockEntity> getBlockEntityType() {
         return AllBlockEntities.FLUID_PACKAGER.get();
-    }
-
-    @Override
-    protected boolean isPathfindable(BlockState state, PathComputationType pathComputationType) {
-        return false;
-    }
-
-    @Override
-    public boolean hasAnalogOutputSignal(BlockState pState) {
-        return true;
-    }
-
-    @Override
-    public int getAnalogOutputSignal(BlockState pState, Level pLevel, BlockPos pPos) {
-        return getBlockEntityOptional(pLevel, pPos).map(pbe -> {
-                    boolean empty = pbe.inventory.getStackInSlot(0).isEmpty();
-                    if (pbe.animationTicks != 0)
-                        empty = false;
-                    return empty ? 0 : 15;
-                })
-                .orElse(0);
     }
 }

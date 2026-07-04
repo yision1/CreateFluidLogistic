@@ -10,6 +10,7 @@ import com.simibubi.create.content.logistics.packagePort.postbox.PostboxBlockEnt
 import com.simibubi.create.content.trains.station.GlobalStation;
 import com.simibubi.create.content.trains.station.StationBlockEntity;
 import com.simibubi.create.infrastructure.config.AllConfigs;
+import com.yision.fluidlogistics.config.Config;
 
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.minecraft.core.BlockPos;
@@ -24,8 +25,6 @@ public record HandPointerMailboxStationConnectionPacket(
     List<BlockPos> mailboxPositions,
     BlockPos stationPos
 ) implements ServerboundPacketPayload {
-
-    private static final int MAX_MAILBOXES = 5;
 
     public HandPointerMailboxStationConnectionPacket {
         mailboxPositions = List.copyOf(mailboxPositions);
@@ -73,7 +72,7 @@ public record HandPointerMailboxStationConnectionPacket(
         }
 
         LinkedHashSet<BlockPos> uniqueMailboxes = new LinkedHashSet<>(mailboxPositions);
-        if (uniqueMailboxes.isEmpty() || uniqueMailboxes.size() > MAX_MAILBOXES) {
+        if (uniqueMailboxes.isEmpty() || uniqueMailboxes.size() > Config.getHandPointerMaxMailboxes()) {
             return;
         }
 

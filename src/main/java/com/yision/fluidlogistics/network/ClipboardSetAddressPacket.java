@@ -5,6 +5,7 @@ import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.yision.fluidlogistics.util.ClipboardAddressUtil;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
+import com.yision.fluidlogistics.util.PackagerTargetHelper;
 import net.createmod.catnip.data.Iterate;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.createmod.catnip.platform.CatnipServices;
@@ -69,18 +70,13 @@ public record ClipboardSetAddressPacket(BlockPos pos) implements ServerboundPack
         }
 
         BlockState state = level.getBlockState(pos);
-        boolean isCreatePackager = AllBlocks.PACKAGER.has(state);
-        boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
-        if (!isCreatePackager && !isFluidPackager) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (!PackagerTargetHelper.isClipboardAddressTarget(blockEntity, state)
+            || !(blockEntity instanceof IPackagerOverrideData data)) {
             return;
         }
 
         String blockTypeName = fluidlogistics$getBlockTypeName(state, level, pos);
-
-        BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (!(blockEntity instanceof IPackagerOverrideData data)) {
-            return;
-        }
 
         String address = ClipboardAddressUtil.extractFirstAddress(heldItem);
         if (address == null) {

@@ -11,6 +11,7 @@ import com.simibubi.create.content.logistics.packager.repackager.RepackagerBlock
 import com.yision.fluidlogistics.content.logistics.fluidPackager.PackagerGoggleInfo;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
+import com.yision.fluidlogistics.util.PackagerTargetHelper;
 import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -72,6 +73,9 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
         if (level == null || level.isClientSide) {
             return;
         }
+        if (!PackagerTargetHelper.isClipboardAddressBlock(packager.getBlockState())) {
+            return;
+        }
 
         if (!packager.signBasedAddress.isBlank() || fluidlogistics$clipboardAddress.isBlank()) {
             return;
@@ -106,6 +110,7 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
         Level level = packager.getLevel();
 
         BlockState state = packager.getBlockState();
+        boolean showsAddress = PackagerTargetHelper.isClipboardAddressBlock(state);
         boolean isRepackager = packager instanceof RepackagerBlockEntity;
         boolean isLinkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
 
@@ -116,6 +121,14 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
             }
             PackagerGoggleInfo.addToTooltip(
                 tooltip, "", fluidlogistics$manualOverrideLocked, true, false, cachedPackageCount);
+            return true;
+        }
+
+        if (!showsAddress) {
+            if (!fluidlogistics$manualOverrideLocked) {
+                return false;
+            }
+            PackagerGoggleInfo.addPackagerManualOverrideOnlyToTooltip(tooltip);
             return true;
         }
 

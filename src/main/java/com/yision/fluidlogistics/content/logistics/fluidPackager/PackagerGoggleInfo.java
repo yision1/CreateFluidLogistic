@@ -28,10 +28,7 @@ public class PackagerGoggleInfo {
 				.forGoggles(tooltip);
 
 			if (isManualOverride) {
-				CreateLang.builder()
-					.translate("goggles.manual_override")
-					.style(ChatFormatting.RED)
-					.forGoggles(tooltip, 1);
+				addManualOverrideLine(tooltip);
 			}
 
 			if (cachedPackageCount > 0) {
@@ -64,10 +61,7 @@ public class PackagerGoggleInfo {
 			}
 
 			if (isManualOverride) {
-				CreateLang.builder()
-					.translate("goggles.manual_override")
-					.style(ChatFormatting.RED)
-					.forGoggles(tooltip, 1);
+				addManualOverrideLine(tooltip);
 			}
 		}
 	}
@@ -75,6 +69,15 @@ public class PackagerGoggleInfo {
 	public static void addToTooltip(List<Component> tooltip, String address, boolean isManualOverride,
 									boolean isRepackager, boolean isLinkedToNetwork) {
 		addToTooltip(tooltip, address, isManualOverride, isRepackager, isLinkedToNetwork, 0);
+	}
+
+	public static void addPackagerManualOverrideOnlyToTooltip(List<Component> tooltip) {
+		CreateLang.builder()
+			.translate("goggles.packager_title")
+			.style(ChatFormatting.WHITE)
+			.forGoggles(tooltip);
+
+		addManualOverrideLine(tooltip);
 	}
 
 	public static void addFluidPackagerToTooltip(List<Component> tooltip, String address, boolean isManualOverride,
@@ -114,10 +117,7 @@ public class PackagerGoggleInfo {
 		}
 
 		if (!isLinkedToNetwork && isManualOverride) {
-			CreateLang.builder()
-				.translate("goggles.manual_override")
-				.style(ChatFormatting.RED)
-				.forGoggles(tooltip, 1);
+			addManualOverrideLine(tooltip);
 		}
 	}
 
@@ -129,10 +129,7 @@ public class PackagerGoggleInfo {
 			.forGoggles(tooltip);
 
 		if (isManualOverride) {
-			CreateLang.builder()
-				.translate("goggles.manual_override")
-				.style(ChatFormatting.RED)
-				.forGoggles(tooltip, 1);
+			addManualOverrideLine(tooltip);
 		}
 
 		if (cachedPackageCount > 0) {
@@ -146,5 +143,12 @@ public class PackagerGoggleInfo {
 	public static void addFluidRepackagerToTooltip(List<Component> tooltip, String address,
 												   boolean isManualOverride) {
 		addFluidRepackagerToTooltip(tooltip, address, isManualOverride, 0);
+	}
+
+	private static void addManualOverrideLine(List<Component> tooltip) {
+		CreateLang.builder()
+			.translate("goggles.manual_override")
+			.style(ChatFormatting.RED)
+			.forGoggles(tooltip, 1);
 	}
 }

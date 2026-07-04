@@ -1,10 +1,10 @@
 package com.yision.fluidlogistics.content.equipment.handPointer.network;
 
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
-import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
+import com.yision.fluidlogistics.util.PackagerTargetHelper;
 import net.createmod.catnip.data.Iterate;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.createmod.catnip.platform.CatnipServices;
@@ -54,14 +54,9 @@ public record HandPointerClearClipboardAddressPacket(BlockPos pos) implements Se
 
         Level level = player.level();
         BlockState state = level.getBlockState(pos);
-        boolean isCreatePackager = AllBlocks.PACKAGER.has(state);
-        boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
-        if (!isCreatePackager && !isFluidPackager) {
-            return;
-        }
-
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (!(blockEntity instanceof IPackagerOverrideData data)) {
+        if (!PackagerTargetHelper.isClipboardAddressTarget(blockEntity, state)
+            || !(blockEntity instanceof IPackagerOverrideData data)) {
             return;
         }
 

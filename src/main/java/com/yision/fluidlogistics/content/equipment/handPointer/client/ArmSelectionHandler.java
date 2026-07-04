@@ -3,6 +3,7 @@ package com.yision.fluidlogistics.content.equipment.handPointer.client;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmBlockEntity;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPoint;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.mixin.accessor.ArmBlockEntityAccessor;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerArmPlacementPacket;
 import net.createmod.catnip.outliner.Outliner;
@@ -24,8 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 
 public class ArmSelectionHandler {
-
-	private static final int MAX_ARMS = 5;
 
 	private static final List<BlockPos> selectedArms = new ArrayList<>();
 	private static List<ArmInteractionPoint> currentArmSelection = new ArrayList<>();
@@ -59,7 +58,8 @@ public class ArmSelectionHandler {
 			return true;
 		}
 
-		if (selectedArms.size() >= MAX_ARMS) {
+		int maxArms = Config.getHandPointerMaxArms();
+		if (selectedArms.size() >= maxArms) {
 			return false;
 		}
 
@@ -72,7 +72,7 @@ public class ArmSelectionHandler {
 		}
 
 		CreateLang.builder()
-			.translate("fluidlogistics.hand_pointer.arm.arm_added", selectedArms.size(), MAX_ARMS)
+			.translate("fluidlogistics.hand_pointer.arm.arm_added", selectedArms.size(), maxArms)
 			.color(0xDDC166)
 			.sendStatus(player);
 		return true;
