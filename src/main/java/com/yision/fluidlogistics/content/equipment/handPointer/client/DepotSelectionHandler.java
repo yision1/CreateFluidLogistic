@@ -15,6 +15,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
@@ -24,9 +25,12 @@ public class DepotSelectionHandler {
     private static final String EJECTOR_HIGHLIGHT = "HandPointerEjectorHighlight";
     private static final String EJECTOR_TARGET = "HandPointerEjectorTarget";
     private static final String EJECTOR_INVALID_TARGET = "HandPointerEjectorInvalidTarget";
+    private static final String WRENCH_EJECTOR_TARGET = "HandPointerWrenchEjectorTarget";
+    private static final String WRENCH_EJECTOR_VALID_ARC = "HandPointerWrenchEjectorValidArc";
     private static final int SELECTED_COLOR = 0xDDC166;
     private static final int VALID_COLOR = 0x9EF173;
     private static final int INVALID_COLOR = 0xFF6171;
+    private static final int EJECTOR_TARGET_COLOR = 0xFFCB74;
 
     private static BlockPos selectedEjectorPos;
     private static BlockPos ejectorTargetPos;
@@ -75,6 +79,11 @@ public class DepotSelectionHandler {
     public static void clearHoverPreview() {
         Outliner.getInstance().remove(EJECTOR_TARGET);
         Outliner.getInstance().remove(EJECTOR_INVALID_TARGET);
+    }
+
+    public static void clearHoveredTargetPreview() {
+        Outliner.getInstance().remove(WRENCH_EJECTOR_TARGET);
+        Outliner.getInstance().remove(WRENCH_EJECTOR_VALID_ARC);
     }
 
     public record EjectorTargetValidation(boolean valid, @Nullable Direction facing, int horizontalDistance,
@@ -170,15 +179,47 @@ public class DepotSelectionHandler {
             return;
         }
 
-        int xDiff = ejectorTargetPos.getX() - selectedEjectorPos.getX();
-        int zDiff = ejectorTargetPos.getZ() - selectedEjectorPos.getZ();
-        int yDiff = ejectorTargetPos.getY() - selectedEjectorPos.getY();
+        int color = validation.valid() ? VALID_COLOR : INVALID_COLOR;
+        drawTrajectory(mc, selectedEjectorPos, ejectorTargetPos, color, null);
+    }
+
+    public static void renderHoveredTargetPreview(Minecraft mc, BlockPos ejectorPos, BlockPos targetPos) {
+        if (mc.level == null || ejectorPos == null || targetPos == null) {
+            clearHoveredTargetPreview();
+            return;
+        }
+
+        Level level = mc.level;
+        BlockState state = level.getBlockState(targetPos);
+        VoxelShape shape = state.getShape(level, targetPos);
+        AABB aabb = shape.isEmpty() ? new AABB(BlockPos.ZERO) : shape.bounds();
+
+        Outliner.getInstance()
+            .showAABB(WRENCH_EJECTOR_TARGET, aabb.move(targetPos))
+            .colored(EJECTOR_TARGET_COLOR)
+            .lineWidth(1 / 16f);
+
+        drawTrajectory(mc, ejectorPos, targetPos, VALID_COLOR, WRENCH_EJECTOR_VALID_ARC);
+    }
+
+    private static void drawTrajectory(Minecraft mc, BlockPos ejectorPos, BlockPos targetPos,
+                                       int color, @Nullable String sourceOutlineKey) {
+        if (mc.level == null) {
+            return;
+        }
+
+        int xDiff = targetPos.getX() - ejectorPos.getX();
+        int zDiff = targetPos.getZ() - ejectorPos.getZ();
+        int yDiff = targetPos.getY() - ejectorPos.getY();
 
         int validX = Math.abs(zDiff) > Math.abs(xDiff) ? 0 : xDiff;
         int validZ = Math.abs(zDiff) < Math.abs(xDiff) ? 0 : zDiff;
-        BlockPos validPos = ejectorTargetPos.offset(validX, yDiff, validZ);
-        EjectorTargetValidation renderValidation = validateTarget(validPos, ejectorTargetPos);
+        BlockPos validPos = targetPos.offset(validX, yDiff, validZ);
+        EjectorTargetValidation renderValidation = validateTarget(validPos, targetPos);
         if (!renderValidation.valid() || renderValidation.facing() == null) {
+            if (sourceOutlineKey != null) {
+                Outliner.getInstance().remove(sourceOutlineKey);
+            }
             return;
         }
 
@@ -191,14 +232,21 @@ public class DepotSelectionHandler {
         double totalFlyingTicks = launcher.getTotalFlyingTicks() + 3.0;
         int segments = (int) (totalFlyingTicks / 3) + 1;
         double tickOffset = totalFlyingTicks / segments;
-        int color = validation.valid() ? VALID_COLOR : INVALID_COLOR;
         Vector3f colorVec = new Color(color).asVectorF();
         DustParticleOptions dust = new DustParticleOptions(colorVec, 1.0F);
         ClientLevel world = mc.level;
 
+        if (sourceOutlineKey != null) {
+            AABB bb = new AABB(0, 0, 0, 1, 0, 1).move(targetPos.offset(-validX, -yDiff, -validZ));
+            Outliner.getInstance()
+                .chaseAABB(sourceOutlineKey, bb)
+                .colored(color)
+                .lineWidth(1 / 16f);
+        }
+
         for (int i = 0; i < segments; i++) {
             double ticks = (AnimationTickHolder.getRenderTime() / 3.0F) % tickOffset + i * tickOffset;
-            Vec3 vec = launcher.getGlobalPos(ticks, renderValidation.facing(), selectedEjectorPos)
+            Vec3 vec = launcher.getGlobalPos(ticks, renderValidation.facing(), ejectorPos)
                 .add(xDiff - validX, 0, zDiff - validZ);
             world.addParticle(dust, vec.x, vec.y, vec.z, 0, 0, 0);
         }

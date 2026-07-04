@@ -26,7 +26,7 @@
   "block.fluidlogistics.fluid_repackager.tooltip.condition2": "当连接到固液混合容器时",
   "block.fluidlogistics.fluid_repackager.tooltip.behaviour2": "可_解包_混合包裹至容器中",
   "block.fluidlogistics.fluid_pump": "流体泵",
-  "block.fluidlogistics.fluid_pump.tooltip.summary": "一个_更快更强_的泵",
+  "block.fluidlogistics.fluid_pump.tooltip.summary": "_更快更强_的泵",
   "block.fluidlogistics.fluid_pump.tooltip.condition1": "放置在地面上时",
   "block.fluidlogistics.fluid_pump.tooltip.behaviour1": "可通过_顶部选择器_切换_流体传输方向_",
   "block.fluidlogistics.fluid_transporter": "流体传输器",

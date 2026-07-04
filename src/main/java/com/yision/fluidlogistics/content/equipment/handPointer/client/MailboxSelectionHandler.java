@@ -24,7 +24,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -35,7 +34,6 @@ public class MailboxSelectionHandler {
     private static final int STATUS_INVALID_COLOR = 0xFF6171;
 
     private static final String STATION_HIGHLIGHT = "HandPointerStationHighlight";
-    private static final String MAILBOX_TARGET = "HandPointerMailboxTarget";
     private static final String MAILBOX_HIGHLIGHT_PREFIX = "HandPointerMailboxHighlight_";
 
     private static final List<BlockPos> selectedMailboxes = new ArrayList<>();
@@ -101,11 +99,6 @@ public class MailboxSelectionHandler {
         selectedStationPos = null;
         statusUpdateCounter = 0;
         Outliner.getInstance().remove(STATION_HIGHLIGHT);
-        Outliner.getInstance().remove(MAILBOX_TARGET);
-    }
-
-    public static void clearHoverPreview() {
-        Outliner.getInstance().remove(MAILBOX_TARGET);
     }
 
     public static boolean isMailbox(Level level, BlockPos pos) {
@@ -202,43 +195,6 @@ public class MailboxSelectionHandler {
             .translate(key)
             .color(alreadyConnected || outOfRange ? STATUS_INVALID_COLOR : STATUS_CONNECTABLE_COLOR)
             .sendStatus(mc.player);
-    }
-
-    public static void renderHoveredConnectionPreview(Minecraft mc) {
-        if (mc.level == null || mc.player == null || mc.hitResult == null) {
-            clearHoverPreview();
-            return;
-        }
-
-        if (mc.hitResult.getType() != HitResult.Type.BLOCK) {
-            clearHoverPreview();
-            return;
-        }
-
-        BlockPos pos = ((BlockHitResult) mc.hitResult).getBlockPos();
-        BlockEntity be = mc.level.getBlockEntity(pos);
-        if (!(be instanceof PostboxBlockEntity postbox)) {
-            clearHoverPreview();
-            return;
-        }
-
-        if (!(postbox.target instanceof PackagePortTarget.TrainStationFrogportTarget stationTarget)) {
-            clearHoverPreview();
-            return;
-        }
-
-        Vec3 targetLocation = stationTarget.getExactTargetLocation(postbox, mc.level, pos);
-        if (targetLocation == null || targetLocation == Vec3.ZERO) {
-            clearHoverPreview();
-            return;
-        }
-
-        Outliner.getInstance()
-            .chaseAABB(MAILBOX_TARGET, new AABB(targetLocation, targetLocation))
-            .colored(0x9EF173)
-            .lineWidth(1 / 6f)
-            .disableLineNormals();
-        animateConnection(mc, Vec3.atCenterOf(pos), targetLocation, new Color(0x9EF173));
     }
 
     public static boolean tryConnectCurrentTarget(Level level) {

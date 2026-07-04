@@ -157,17 +157,12 @@ public class HandPointerModeManager {
     }
 
     private static void clearHoverPreviewsExcept(SelectionMode mode) {
+        HandPointerWrenchHoverPreviewHandler.clear();
         if (mode != SelectionMode.DEPOT) {
             DepotSelectionHandler.clearHoverPreview();
         }
         if (mode != SelectionMode.DISPLAY_LINK) {
             DisplayLinkSelectionHandler.clearHoverPreview();
-        }
-        if (mode != SelectionMode.FROGPORT) {
-            FrogportSelectionHandler.clearHoverPreview();
-        }
-        if (mode != SelectionMode.MAILBOX) {
-            MailboxSelectionHandler.clearHoverPreview();
         }
         if (mode != SelectionMode.LOGISTICS) {
             LogisticsSelectionHandler.clearHoverPreview();

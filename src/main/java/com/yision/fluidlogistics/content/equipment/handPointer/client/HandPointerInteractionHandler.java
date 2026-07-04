@@ -93,8 +93,7 @@ public class HandPointerInteractionHandler {
 
         DepotSelectionHandler.clearHoverPreview();
         DisplayLinkSelectionHandler.clearHoverPreview();
-        FrogportSelectionHandler.renderHoveredConnectionPreview(mc);
-        MailboxSelectionHandler.renderHoveredConnectionPreview(mc);
+        HandPointerWrenchHoverPreviewHandler.render(mc);
         LogisticsSelectionHandler.renderHoverPreview(mc);
         MechanicalFluidGunSelectionHandler.clearHoverPreview();
     }
@@ -358,6 +357,12 @@ public class HandPointerInteractionHandler {
                         sendStatus(player, "fluidlogistics.hand_pointer.too_far", STATUS_INVALID_COLOR);
                     }
                 }
+                return;
+            }
+
+            if (!MechanicalFluidGunSelectionHandler.isTargetCandidate(level, pos)) {
+                HandPointerModeManager.exitMode(player, level);
+                sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
                 return;
             }
 

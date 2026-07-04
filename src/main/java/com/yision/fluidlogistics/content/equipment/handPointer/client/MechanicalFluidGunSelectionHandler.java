@@ -51,6 +51,10 @@ public class MechanicalFluidGunSelectionHandler {
 		return selectedGunPos != null && selectedGunPos.equals(pos);
 	}
 
+	public static boolean isTargetCandidate(Level level, BlockPos pos) {
+		return isValidCandidate(level, pos);
+	}
+
 	public static boolean setTarget(Level level, BlockPos pos, @Nullable Direction face) {
 		if (!isValidCandidate(level, pos)) {
 			return false;

@@ -13,8 +13,6 @@ import com.simibubi.create.AllBlockEntityTypes;
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorInteractionHandler;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorShape;
-import com.simibubi.create.content.logistics.packagePort.PackagePortBlockEntity;
-import com.simibubi.create.content.logistics.packagePort.PackagePortTarget;
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget.ChainConveyorFrogportTarget;
 import com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
@@ -39,7 +37,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -47,7 +44,6 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class FrogportSelectionHandler {
 
     private static final String CHAIN_POINT_OUTLINE = "HandPointerChainPointSelection";
-    private static final String FROGPORT_TARGET = "HandPointerFrogportTarget";
     private static final String FROGPORT_HIGHLIGHT_PREFIX = "HandPointerFrogportHighlight_";
 
     private static final Color CHAIN_SELECTION_COLOR = new Color(0xFFFFFF);
@@ -117,11 +113,6 @@ public class FrogportSelectionHandler {
         statusUpdateCounter = 0;
         resetChainTargetState();
         Outliner.getInstance().remove(CHAIN_POINT_OUTLINE);
-        Outliner.getInstance().remove(FROGPORT_TARGET);
-    }
-
-    public static void clearHoverPreview() {
-        Outliner.getInstance().remove(FROGPORT_TARGET);
     }
 
     public static boolean isFrogport(Level level, BlockPos pos) {
@@ -299,49 +290,6 @@ public class FrogportSelectionHandler {
                 : "fluidlogistics.hand_pointer.frogport.can_connect")
             .color(outOfRange ? STATUS_INVALID_COLOR : STATUS_CONNECTABLE_COLOR)
             .sendStatus(mc.player);
-    }
-
-    public static void renderHoveredConnectionPreview(Minecraft mc) {
-        if (mc.level == null || mc.player == null || mc.hitResult == null) {
-            clearHoverPreview();
-            return;
-        }
-
-        if (mc.hitResult.getType() != HitResult.Type.BLOCK) {
-            clearHoverPreview();
-            return;
-        }
-
-        BlockPos pos = ((BlockHitResult) mc.hitResult).getBlockPos();
-        if (!isFrogport(mc.level, pos)) {
-            clearHoverPreview();
-            return;
-        }
-
-        if (!(mc.level.getBlockEntity(pos) instanceof PackagePortBlockEntity ppbe)) {
-            clearHoverPreview();
-            return;
-        }
-
-        PackagePortTarget target = ppbe.target;
-        if (!(target instanceof ChainConveyorFrogportTarget)) {
-            clearHoverPreview();
-            return;
-        }
-
-        Vec3 targetLocation = target.getExactTargetLocation(ppbe, mc.level, pos);
-        if (targetLocation == null || targetLocation == Vec3.ZERO) {
-            clearHoverPreview();
-            return;
-        }
-
-        Outliner.getInstance()
-            .chaseAABB(FROGPORT_TARGET, new AABB(targetLocation, targetLocation))
-            .colored(0x9EF173)
-            .lineWidth(1 / 6f)
-            .disableLineNormals();
-
-        animateConnection(mc, Vec3.atCenterOf(pos), targetLocation, new Color(0x9EF173));
     }
 
     public static boolean tryConnectCurrentTarget(Level level) {

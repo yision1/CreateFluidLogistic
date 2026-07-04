@@ -19,7 +19,9 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @EventBusSubscriber(modid = FluidLogistics.MODID, value = Dist.CLIENT)
 public final class MechanicalFluidGunWrenchTargetHandler {
@@ -29,6 +31,7 @@ public final class MechanicalFluidGunWrenchTargetHandler {
 	private static final String OUTLINE_PREFIX = "MFGWrenchTarget_";
 
 	private static BlockPos hoveredGunPos;
+	private static final Set<String> activeOutlineKeys = new HashSet<>();
 
 	private MechanicalFluidGunWrenchTargetHandler() {
 	}
@@ -59,11 +62,12 @@ public final class MechanicalFluidGunWrenchTargetHandler {
 			hoveredGunPos = gunPos.immutable();
 		}
 
-		drawOutlines(level, gunPos, gun);
+		renderTargets(level, gunPos, gun);
 	}
 
-	private static void drawOutlines(Level level, BlockPos gunPos, MechanicalFluidGunBlockEntity gun) {
+	public static void renderTargets(Level level, BlockPos gunPos, MechanicalFluidGunBlockEntity gun) {
 		List<MechanicalFluidGunTargetConfig> targets = gun.getTargets();
+		Set<String> nextKeys = new HashSet<>();
 
 		for (MechanicalFluidGunTargetConfig target : targets) {
 			BlockPos targetPos = target.absoluteFrom(gunPos);
@@ -77,11 +81,29 @@ public final class MechanicalFluidGunWrenchTargetHandler {
 				continue;
 			}
 
+			String key = outlineKey(gunPos, targetPos);
+			nextKeys.add(key);
 			Outliner.getInstance()
-				.showAABB(outlineKey(gunPos, targetPos), shape.bounds().move(targetPos))
+				.showAABB(key, shape.bounds().move(targetPos))
 				.colored(TARGET_COLOR)
 				.lineWidth(LINE_WIDTH);
 		}
+
+		for (String key : activeOutlineKeys) {
+			if (!nextKeys.contains(key)) {
+				Outliner.getInstance().remove(key);
+			}
+		}
+		activeOutlineKeys.clear();
+		activeOutlineKeys.addAll(nextKeys);
+	}
+
+	public static void clear() {
+		hoveredGunPos = null;
+		for (String key : activeOutlineKeys) {
+			Outliner.getInstance().remove(key);
+		}
+		activeOutlineKeys.clear();
 	}
 
 	private static String outlineKey(BlockPos gunPos, BlockPos targetPos) {
