@@ -1,6 +1,5 @@
 package com.yision.fluidlogistics.content.fluids.fluidHatch;
 
-import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.registry.AllBlocks;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -34,8 +33,7 @@ public final class FluidHatchFluidHandlerForwarder {
     }
 
     private static boolean isSupportedHatch(BlockState state) {
-        return state.is(AllBlocks.FLUID_HATCH.get())
-                && FeatureToggle.isEnabled(FeatureToggle.FLUID_HATCH);
+        return state.is(AllBlocks.FLUID_HATCH.get());
     }
 
     private static boolean canExpose(BlockState state, @Nullable Direction side) {

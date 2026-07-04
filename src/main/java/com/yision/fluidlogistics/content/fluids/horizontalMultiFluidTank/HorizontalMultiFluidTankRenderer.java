@@ -2,6 +2,7 @@ package com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.foundation.blockEntity.renderer.SafeBlockEntityRenderer;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.SmartMultiFluidTank;
 import net.createmod.catnip.animation.LerpedFloat;
 import net.createmod.catnip.platform.NeoForgeCatnipServices;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -36,7 +37,7 @@ public class HorizontalMultiFluidTankRenderer extends SafeBlockEntityRenderer<Ho
         float minPuddleHeight = 1 / 16f;
         float totalHeight = be.getWidth() - 2 * tankHullSize - minPuddleHeight;
 
-        com.yision.fluidlogistics.content.fluids.multiFluidTank.SmartMultiFluidTank tank = be.tankInventory;
+        SmartMultiFluidTank tank = be.tankInventory;
         if (tank.isEmpty()) return;
         FluidStack[] fluidStacks = tank.getFluids();
         float accHeight = 0;

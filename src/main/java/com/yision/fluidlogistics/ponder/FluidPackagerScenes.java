@@ -1,6 +1,9 @@
 package com.yision.fluidlogistics.ponder;
 
+import com.simibubi.create.AllDataComponents;
+import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageItem;
+import com.simibubi.create.foundation.item.ItemHelper;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
@@ -229,8 +232,8 @@ public class FluidPackagerScenes {
         ItemStack tankStack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
         CompressedTankItem.setFluid(tankStack, fluid);
         contents.setStackInSlot(0, tankStack);
-        packageStack.set(com.simibubi.create.AllDataComponents.PACKAGE_CONTENTS,
-                com.simibubi.create.foundation.item.ItemHelper.containerContentsFromHandler(contents));
+        packageStack.set(AllDataComponents.PACKAGE_CONTENTS,
+                ItemHelper.containerContentsFromHandler(contents));
     }
 
     public static void fluidPackagerAddress(SceneBuilder builder, SceneBuildingUtil util) {
@@ -503,8 +506,8 @@ public class FluidPackagerScenes {
                 .removeItemsFromBelt(beltPos);
         return scene.world()
                 .createEntity(level -> {
-                    com.simibubi.create.content.logistics.box.PackageEntity packageEntity = 
-                            new com.simibubi.create.content.logistics.box.PackageEntity(
+                    PackageEntity packageEntity =
+                            new PackageEntity(
                                     level, 
                                     beltPos.getX() + 0.5 + side.getStepX() * 0.675,
                                     beltPos.getY() + 0.875, 

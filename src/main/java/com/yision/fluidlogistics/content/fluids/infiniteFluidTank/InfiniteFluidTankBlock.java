@@ -6,7 +6,6 @@ import com.simibubi.create.content.fluids.transfer.GenericItemFilling;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.fluid.FluidHelper;
 import com.simibubi.create.foundation.fluid.FluidHelper.FluidExchange;
-import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -38,9 +37,6 @@ public class InfiniteFluidTankBlock extends Block implements IWrenchable, IBE<In
 
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
-		if (!FeatureToggle.isEnabled(FeatureToggle.INFINITE_FLUID_TANK)) {
-			return null;
-		}
 		return super.getStateForPlacement(context);
 	}
 

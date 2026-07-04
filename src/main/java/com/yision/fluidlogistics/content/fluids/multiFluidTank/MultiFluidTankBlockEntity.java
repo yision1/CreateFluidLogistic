@@ -10,6 +10,7 @@ import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.yision.fluidlogistics.content.fluids.multiFluidTank.SmartMultiFluidTank;
+import com.yision.fluidlogistics.registry.AllBlockEntities;
 
 import net.createmod.catnip.animation.LerpedFloat;
 import net.createmod.catnip.nbt.NBTHelper;
@@ -76,11 +77,8 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
     public static void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(
             Capabilities.FluidHandler.BLOCK,
-            com.yision.fluidlogistics.registry.AllBlockEntities.MULTI_FLUID_TANK.get(),
+            AllBlockEntities.MULTI_FLUID_TANK.get(),
             (be, side) -> {
-                if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.MULTI_FLUID_TANK)) {
-                    return null;
-                }
                 if (be.fluidCapability == null)
                     be.refreshCapability();
                 return be.fluidCapability;
@@ -109,10 +107,6 @@ public class MultiFluidTankBlockEntity extends SmartBlockEntity implements IHave
     @Override
     public void tick() {
         super.tick();
-
-        if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.MULTI_FLUID_TANK)) {
-            return;
-        }
 
         if (syncCooldown > 0) {
             syncCooldown--;

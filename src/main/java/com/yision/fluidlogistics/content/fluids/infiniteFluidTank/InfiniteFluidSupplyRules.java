@@ -1,6 +1,7 @@
 package com.yision.fluidlogistics.content.fluids.infiniteFluidTank;
 
 import com.simibubi.create.infrastructure.config.AllConfigs;
+import com.yision.fluidlogistics.config.Config;
 
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -18,10 +19,17 @@ public final class InfiniteFluidSupplyRules {
 	}
 
 	public static boolean isInfiniteSourceEnabled() {
+		if (Config.getInfiniteFluidTankCapacity() > 0) {
+			return true;
+		}
 		return getConfiguredThresholdBuckets() != -1;
 	}
 
 	public static int getRequiredAmount() {
+		int override = Config.getInfiniteFluidTankCapacity();
+		if (override > 0) {
+			return override;
+		}
 		int threshold = getConfiguredThresholdBuckets();
 		if (threshold == -1)
 			return Integer.MAX_VALUE;
@@ -44,7 +52,7 @@ public final class InfiniteFluidSupplyRules {
 	public static boolean canSupplyInfinitely(Fluid fluid) {
 		return fluid != null
 			&& isInfiniteSourceEnabled()
-			&& AllConfigs.server().fluids.bottomlessFluidMode.get().test(fluid);
+			&& Config.getInfiniteFluidTankAllowedFluids().test(fluid);
 	}
 
 	public static boolean canEnterInfiniteTank(FluidStack stack) {

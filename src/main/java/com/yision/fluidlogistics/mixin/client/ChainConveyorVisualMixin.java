@@ -12,8 +12,8 @@ import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorPackage;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorVisual;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.client.phantomChain.PhantomChainVisibility;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.phantomChain.PhantomChainVisibility;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
 import com.yision.fluidlogistics.render.FluidVisual;
@@ -42,9 +42,6 @@ public class ChainConveyorVisualMixin {
             at = @At("RETURN")
     )
     private void fluidlogistics$ctor(VisualizationContext context, ChainConveyorBlockEntity blockEntity, float partialTick, CallbackInfo ci) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
         fluidlogistics$fluidVisual = new FluidVisual(context, false, true);
     }
 
@@ -109,7 +106,7 @@ public class ChainConveyorVisualMixin {
                                                                    @Local(argsOnly = true) ChainConveyorPackage box,
                                                                    @Share("fluid") LocalRef<FluidStack> fluid,
                                                                    @Share("fluidBufferIndex") LocalIntRef fluidBufferIndex) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled() || fluidlogistics$fluidVisual == null) {
+        if (fluidlogistics$fluidVisual == null) {
             return original;
         }
         if (!(box.item.getItem() instanceof FluidPackageItem)) return original;
@@ -139,7 +136,7 @@ public class ChainConveyorVisualMixin {
             @Local(ordinal = 1) TransformedInstance boxBuffer,
             @Share("fluidBufferIndex") LocalIntRef fluidBufferIndex,
             @Share("fluid") LocalRef<FluidStack> fluid) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled() || fluidlogistics$fluidVisual == null) {
+        if (fluidlogistics$fluidVisual == null) {
             return original.call(instance, light);
         }
         if (instance == rigBuffer || instance == boxBuffer) {

@@ -13,15 +13,6 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 
-/**
- * Shared "hatch style" item &lt;-&gt; tank fluid transfer orchestration used by both the fluid hatch and the
- * multi-fluid access port. Callers own the interaction shell (side detection, ordering, sounds, animation);
- * this class only performs the transfer against a supplied tank capability and filter.
- *
- * <p>{@code onChanged} is invoked after the backing tank is modified so callers can mark the tank block entity
- * dirty and sync it. {@code tankIsCreative} suppresses item consumption for non-creative players when the tank
- * behaves like a creative source.
- */
 public final class HatchStyleItemTransfer {
     private HatchStyleItemTransfer() {
     }
@@ -55,7 +46,6 @@ public final class HatchStyleItemTransfer {
         ItemStack copy = stack.copy();
         emptying = GenericItemEmptying.emptyItem(level, copy, false);
 
-        // Prevent special cap behavior interrupting insert fluid.
         int realFill = tank.fill(fluidStack.copy(), FluidAction.SIMULATE);
         if (realFill == 0) return fluidStack;
         tank.fill(fluidStack.copy(), FluidAction.EXECUTE);

@@ -1,11 +1,13 @@
 package com.yision.fluidlogistics.content.fluids.faucet;
 
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.api.behaviour.spouting.CauldronSpoutingBehavior;
 import com.simibubi.create.content.fluids.spout.FillingBySpout;
 import com.simibubi.create.content.logistics.depot.DepotBehaviour;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.yision.fluidlogistics.compat.CompatMods;
 import com.yision.fluidlogistics.compat.createenchantmentindustry.CreateEnchantmentIndustryCompat;
+import com.yision.fluidlogistics.content.fluids.infiniteWater.InfiniteWaterSource;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,14 +75,14 @@ public final class FaucetFilling {
 
 final class FaucetFluidSupport {
 
-    static final InfiniteWaterSourceHandler INFINITE_WATER_SOURCE = new InfiniteWaterSourceHandler();
-
     private FaucetFluidSupport() {
     }
 
     static @Nullable IFluidHandler getSourceHandler(Level level, BlockPos sourcePos, Direction side) {
-        if (AbstractFaucetBlock.isInfiniteWaterSource(level.getBlockState(sourcePos))) {
-            return INFINITE_WATER_SOURCE;
+        IFluidHandler infinite = InfiniteWaterSource.getSourceHandler(
+            InfiniteWaterSource.Consumer.FAUCET, level.getBlockState(sourcePos));
+        if (infinite != null) {
+            return infinite;
         }
         IFluidHandler sidedHandler = level.getCapability(Capabilities.FluidHandler.BLOCK, sourcePos, side);
         if (sidedHandler != null) {
@@ -402,7 +404,7 @@ final class FaucetTargetSupport {
 
         targetHandler.fill(actualDrain, FluidAction.EXECUTE);
         if (level.random.nextFloat() < 0.1f) {
-            com.simibubi.create.AllSoundEvents.SPOUTING.playOnServer(level, faucetPos, 0.3f, 0.9f + 0.2f * level.random.nextFloat());
+            AllSoundEvents.SPOUTING.playOnServer(level, faucetPos, 0.3f, 0.9f + 0.2f * level.random.nextFloat());
         }
         return actualDrain;
     }
@@ -451,47 +453,5 @@ final class FaucetTargetSupport {
         if (targetEntity instanceof SmartBlockEntity smartBlockEntity) {
             smartBlockEntity.notifyUpdate();
         }
-    }
-}
-
-final class InfiniteWaterSourceHandler implements IFluidHandler {
-    private static final FluidStack WATER = new FluidStack(Fluids.WATER, 1000);
-
-    @Override
-    public int getTanks() {
-        return 1;
-    }
-
-    @Override
-    public FluidStack getFluidInTank(int tank) {
-        return WATER.copy();
-    }
-
-    @Override
-    public int getTankCapacity(int tank) {
-        return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public boolean isFluidValid(int tank, FluidStack stack) {
-        return false;
-    }
-
-    @Override
-    public int fill(FluidStack resource, FluidAction action) {
-        return 0;
-    }
-
-    @Override
-    public FluidStack drain(FluidStack resource, FluidAction action) {
-        if (resource.isEmpty() || resource.getFluid() != Fluids.WATER) {
-            return FluidStack.EMPTY;
-        }
-        return WATER.copyWithAmount(Math.min(resource.getAmount(), WATER.getAmount()));
-    }
-
-    @Override
-    public FluidStack drain(int maxDrain, FluidAction action) {
-        return maxDrain <= 0 ? FluidStack.EMPTY : WATER.copyWithAmount(Math.min(maxDrain, WATER.getAmount()));
     }
 }

@@ -7,7 +7,6 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.renderer.SafeBlockEntityRenderer;
 import com.simibubi.create.foundation.fluid.FluidHelper;
-import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import java.util.List;
 import net.createmod.catnip.platform.NeoForgeCatnipServices;
@@ -42,9 +41,6 @@ public class WaterContainingCopperCasingBlock extends Block implements IWrenchab
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        if (!FeatureToggle.isEnabled(FeatureToggle.WATER_CONTAINING_COPPER_CASING)) {
-            return null;
-        }
         return super.getStateForPlacement(context);
     }
 

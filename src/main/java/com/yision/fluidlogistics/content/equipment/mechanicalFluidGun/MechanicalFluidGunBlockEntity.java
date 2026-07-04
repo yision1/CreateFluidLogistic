@@ -115,10 +115,6 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 	public void tick() {
 		super.tick();
 
-		if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.MECHANICAL_FLUID_GUN)) {
-			return;
-		}
-
 		if (level == null) return;
 
 		if (level.isClientSide) {
@@ -271,11 +267,12 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 			return itemFilling.getProcessingBeltAimPoint();
 		}
 		BlockPos absTarget = target.absoluteFrom(worldPosition);
-		if (level != null) {
-			BlockEntity targetEntity = level.getBlockEntity(absTarget);
-			if (processor.isDepot(targetEntity) && !processor.getItemOnDepot(targetEntity).isEmpty()) {
-				return MechanicalFluidGunTarget.getDepotItemCenter(absTarget);
-			}
+		if (level == null) {
+			return Vec3.atCenterOf(absTarget);
+		}
+		BlockEntity targetEntity = level.getBlockEntity(absTarget);
+		if (processor.isDepot(targetEntity) && !processor.getItemOnDepot(targetEntity).isEmpty()) {
+			return MechanicalFluidGunTarget.getDepotItemCenter(absTarget);
 		}
 		return MechanicalFluidGunTarget.getTargetCenter(level, absTarget);
 	}

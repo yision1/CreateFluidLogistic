@@ -2,7 +2,6 @@ package com.yision.fluidlogistics.network.factoryPanel;
 
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.util.FluidGaugeHelper;
 import com.yision.fluidlogistics.util.IFluidPromiseLimit;
 
@@ -35,9 +34,6 @@ public record FactoryPanelSetFluidPromiseLimitPacket(
 
     @Override
     public void handle(ServerPlayer player) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         FluidGaugeHelper.applyPanelSetting(player, panelPosition, IFluidPromiseLimit.class,
             promiseLimitData -> promiseLimitData.fluidlogistics$setPromiseLimit(limit));

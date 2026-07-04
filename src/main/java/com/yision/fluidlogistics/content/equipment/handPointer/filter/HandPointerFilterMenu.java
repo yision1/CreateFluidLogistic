@@ -6,6 +6,7 @@ import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.logistics.filter.FilterItem;
 import com.simibubi.create.foundation.gui.menu.GhostItemMenu;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.registry.AllMenuTypes;
 import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterTargetResolver.ResolvedItemSlot;
 
 import net.minecraft.core.Direction;
@@ -37,7 +38,7 @@ public class HandPointerFilterMenu extends GhostItemMenu<HandPointerFilterTarget
     }
 
     public static HandPointerFilterMenu create(int id, Inventory inv, HandPointerFilterTarget target) {
-        return new HandPointerFilterMenu(com.yision.fluidlogistics.registry.AllMenuTypes.HAND_POINTER_FILTER.get(), id, inv, target);
+        return new HandPointerFilterMenu(AllMenuTypes.HAND_POINTER_FILTER.get(), id, inv, target);
     }
 
     @Override

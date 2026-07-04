@@ -12,6 +12,7 @@ import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.AllBlocks;
+import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.Create;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.compat.computercraft.ComputerCraftProxy;
@@ -22,6 +23,7 @@ import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlock;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity;
+import com.simibubi.create.content.logistics.packager.IdentifiedInventory;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.content.logistics.packager.PackagingRequest;
@@ -66,7 +68,6 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
-import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 public class FluidPackagerBlockEntity extends PackagerBlockEntity
@@ -94,9 +95,6 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
             Capabilities.ItemHandler.BLOCK,
             AllBlockEntities.FLUID_PACKAGER.get(),
             (be, context) -> {
-                if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-                    return null;
-                }
                 return be.inventory;
             }
         );
@@ -115,9 +113,6 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
     @Override
     public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return false;
-        }
 
         String address = signBasedAddress;
         if (level != null && level.isClientSide) {
@@ -160,9 +155,6 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
     @Override
     public void tick() {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         boolean fluidInsertionNeeded = animationTicks == 1 && animationInward
             && !level.isClientSide() && !pendingFluidsToInsert.isEmpty();
@@ -207,9 +199,6 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
     @Override
     public InventorySummary getAvailableItems() {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return new InventorySummary();
-        }
 
         IFluidHandler fluidHandler = fluidTarget.getInventory();
 
@@ -357,9 +346,6 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
     @Override
     public void attemptToSend(List<PackagingRequest> queuedRequests) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         if (queuedRequests == null) {
             attemptToPackageFluid();
@@ -369,9 +355,6 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
     }
 
     public void attemptToPackageFluid() {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
         if (!heldBox.isEmpty() || animationTicks != 0 || buttonCooldown > 0)
             return;
 
@@ -429,35 +412,18 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
     private ItemStack createFluidPackage(FluidStack fluid) {
         ItemStackHandler packageContents = new ItemStackHandler(PackageItem.SLOTS);
-        int tankCapacity = CompressedTankItem.getCapacity();
-        int maxTanks = PackageItem.SLOTS;
-        int tanksCreated = 0;
-
-        FluidStack remainingFluid = fluid.copy();
-
-        while (!remainingFluid.isEmpty() && tanksCreated < maxTanks) {
-            int fluidForTank = Math.min(remainingFluid.getAmount(), tankCapacity);
-            FluidStack tankFluid = remainingFluid.copyWithAmount(fluidForTank);
-
-            ItemStack compressedTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-            CompressedTankItem.setFluid(compressedTank, tankFluid);
-            ItemHandlerHelper.insertItemStacked(packageContents, compressedTank, false);
-
-            remainingFluid.shrink(fluidForTank);
-            tanksCreated++;
-        }
+        ItemStack compressedTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+        CompressedTankItem.setFluid(compressedTank, fluid.copy());
+        packageContents.setStackInSlot(0, compressedTank);
 
         ItemStack fluidPackage = AllItems.createFluidPackage();
-        fluidPackage.set(com.simibubi.create.AllDataComponents.PACKAGE_CONTENTS,
-            com.simibubi.create.foundation.item.ItemHelper.containerContentsFromHandler(packageContents));
+        fluidPackage.set(AllDataComponents.PACKAGE_CONTENTS,
+            ItemHelper.containerContentsFromHandler(packageContents));
         return fluidPackage;
     }
 
     @Override
     public boolean unwrapBox(ItemStack box, boolean simulate) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return false;
-        }
 
         if (animationTicks > 0)
             return false;
@@ -565,11 +531,8 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
             ItemStack stack, int amount, String address, int linkIndex,
             org.apache.commons.lang3.mutable.MutableBoolean finalLink, int orderId,
             @Nullable PackageOrderWithCrafts context,
-            @Nullable com.simibubi.create.content.logistics.packager.IdentifiedInventory ignoredHandler) {
+            @Nullable IdentifiedInventory ignoredHandler) {
 
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return null;
-        }
 
         if (isTargetingSameInventory(ignoredHandler))
             return null;
@@ -593,9 +556,6 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
     @Override
     public void attemptToSendFluidRequest(List<PackagingRequest> queuedRequests) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
         if (queuedRequests == null || queuedRequests.isEmpty())
             return;
 
@@ -748,7 +708,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
     @Override
     @Nullable
-    public com.simibubi.create.content.logistics.packager.IdentifiedInventory getIdentifiedInventory() {
+    public IdentifiedInventory getIdentifiedInventory() {
         if (targetInventory == null)
             return null;
         return targetInventory.getIdentifiedInventory();

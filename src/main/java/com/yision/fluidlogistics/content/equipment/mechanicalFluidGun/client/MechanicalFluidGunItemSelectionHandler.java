@@ -6,6 +6,7 @@ import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchFluidHandle
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlock;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunItem;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.network.MechanicalFluidGunPackets;
+import com.yision.fluidlogistics.registry.AllBlocks;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -209,7 +210,7 @@ public class MechanicalFluidGunItemSelectionHandler {
 	}
 
 	private static boolean isHoldingGun(Player player) {
-		return com.yision.fluidlogistics.registry.AllBlocks.MECHANICAL_FLUID_GUN.isIn(player.getMainHandItem());
+		return AllBlocks.MECHANICAL_FLUID_GUN.isIn(player.getMainHandItem());
 	}
 
 	private static Direction getTargetFace(Level level, BlockPos pos, Direction clickedFace) {

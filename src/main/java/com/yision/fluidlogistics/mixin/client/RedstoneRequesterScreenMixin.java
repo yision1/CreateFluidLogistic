@@ -24,6 +24,7 @@ import com.simibubi.create.foundation.gui.widget.ScrollInput;
 import com.yision.fluidlogistics.client.RedstoneRequesterAmountsAccess;
 import com.yision.fluidlogistics.client.FluidTooltipHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
 import net.createmod.catnip.data.Pair;
@@ -78,7 +79,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
                     FluidStack fluidStack = emptyResult.getFirst();
                     
                     if (!fluidStack.isEmpty()) {
-                        ItemStack virtualTank = new ItemStack(com.yision.fluidlogistics.registry.AllItems.COMPRESSED_STORAGE_TANK.get());
+                        ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
                         CompressedTankItem.setFluidVirtual(virtualTank, fluidStack.copyWithAmount(1));
                         menu.ghostInventory.setStackInSlot(slotIndex, virtualTank);
                         amounts.set(slotIndex, FluidAmountHelper.DEFAULT_FLUID_REQUEST_AMOUNT);

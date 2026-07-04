@@ -114,25 +114,15 @@ public final class FluidPackageSplitting {
 	private static List<ItemStack> createFluidPackages(FluidStack fluidType, int totalAmount) {
 		List<ItemStack> packages = new ArrayList<>();
 		int tankCapacity = CompressedTankItem.getCapacity();
-		int maxTanks = PackageItem.SLOTS;
-		int maxFluidPerPackage = tankCapacity * maxTanks;
 
 		int remaining = totalAmount;
 
 		while (remaining > 0) {
-			int fluidForPackage = Math.min(remaining, maxFluidPerPackage);
+			int fluidForPackage = Math.min(remaining, tankCapacity);
 			ItemStackHandler packageContents = new ItemStackHandler(PackageItem.SLOTS);
-			int fluidRemaining = fluidForPackage;
-			int tanksCreated = 0;
-
-			while (fluidRemaining > 0 && tanksCreated < maxTanks) {
-				int fluidForTank = Math.min(fluidRemaining, tankCapacity);
-				ItemStack compressedTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-				CompressedTankItem.setFluid(compressedTank, fluidType.copyWithAmount(fluidForTank));
-				packageContents.setStackInSlot(tanksCreated, compressedTank);
-				fluidRemaining -= fluidForTank;
-				tanksCreated++;
-			}
+			ItemStack compressedTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+			CompressedTankItem.setFluid(compressedTank, fluidType.copyWithAmount(fluidForPackage));
+			packageContents.setStackInSlot(0, compressedTank);
 
 			ItemStack fluidPackage = AllItems.createFluidPackage();
 			fluidPackage.set(AllDataComponents.PACKAGE_CONTENTS,

@@ -198,10 +198,6 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 	public void tick() {
 		super.tick();
 
-		if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.FLUID_PUMP)) {
-			return;
-		}
-
 		if (level.isClientSide && !isVirtual())
 			return;
 

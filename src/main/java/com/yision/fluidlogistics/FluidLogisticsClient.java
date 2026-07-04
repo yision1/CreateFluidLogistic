@@ -1,13 +1,15 @@
 package com.yision.fluidlogistics;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.yision.fluidlogistics.config.Config;
+import com.simibubi.create.content.contraptions.wrench.RadialWrenchMenu;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.FrogportSelectionHandler;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerModeManager;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerInteractionHandler;
 import net.createmod.catnip.render.DefaultSuperRenderTypeBuffer;
 import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import com.yision.fluidlogistics.ponder.FluidLogisticsPonderPlugin;
+import com.yision.fluidlogistics.registry.AllBlocks;
+import com.yision.fluidlogistics.registry.AllPartialModels;
 import com.yision.fluidlogistics.registry.AllSpriteShifts;
 import com.yision.fluidlogistics.registry.AllFluidLogisticsParticleTypes;
 import net.createmod.ponder.foundation.PonderIndex;
@@ -46,8 +48,8 @@ public class FluidLogisticsClient {
         AllSpriteShifts.register();
         PonderIndex.addPlugin(new FluidLogisticsPonderPlugin());
         event.enqueueWork(() -> {
-            com.simibubi.create.content.contraptions.wrench.RadialWrenchMenu
-                .registerBlacklistedBlock(com.yision.fluidlogistics.registry.AllBlocks.MECHANICAL_FLUID_GUN.getId());
+            RadialWrenchMenu
+                .registerBlacklistedBlock(AllBlocks.MECHANICAL_FLUID_GUN.getId());
         });
         FluidLogistics.LOGGER.info("HELLO FROM CLIENT SETUP");
         FluidLogistics.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
@@ -55,11 +57,11 @@ public class FluidLogisticsClient {
 
     @SubscribeEvent
     static void onRegisterAdditionalModels(ModelEvent.RegisterAdditional event) {
-        for (ResourceLocation modelLocation : com.yision.fluidlogistics.registry.AllPartialModels.customModelLocations()) {
+        for (ResourceLocation modelLocation : AllPartialModels.customModelLocations()) {
             event.register(ModelResourceLocation.standalone(modelLocation));
         }
 
-        com.yision.fluidlogistics.registry.AllPartialModels.register();
+        AllPartialModels.register();
     }
 
     @SubscribeEvent
@@ -87,10 +89,6 @@ public class FluidLogisticsClient {
         @SubscribeEvent
         static void onRenderWorld(RenderLevelStageEvent event) {
             if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
-                return;
-            }
-
-            if (!Config.isAdvancedLogisticsNetworkEnabled()) {
                 return;
             }
 

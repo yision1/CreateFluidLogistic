@@ -7,7 +7,6 @@ import com.simibubi.create.content.logistics.box.PackageStyles;
 import com.simibubi.create.content.logistics.box.PackageStyles.PackageStyle;
 import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
 
 import net.minecraft.stats.Stats;
@@ -53,9 +52,6 @@ public class FluidPackageItem extends PackageItem {
     public InteractionResult useOn(UseOnContext context) {
         Player player = context.getPlayer();
         if (player == null || !player.isSecondaryUseActive()) {
-            return InteractionResult.PASS;
-        }
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
             return InteractionResult.PASS;
         }
 

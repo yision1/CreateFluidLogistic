@@ -11,7 +11,6 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortBlockEntity;
-import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
@@ -58,9 +57,6 @@ public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IB
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_PACKAGER)) {
-            return null;
-        }
         Direction preferredFacing = null;
         Level level = context.getLevel();
 
@@ -109,10 +105,6 @@ public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IB
     @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
                                               Player player, InteractionHand hand, BlockHitResult hitResult) {
-        if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_PACKAGER)) {
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-        }
-
         if (AllItems.WRENCH.isIn(stack))
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         if (AllBlocks.FACTORY_GAUGE.isIn(stack))
@@ -164,9 +156,6 @@ public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IB
     @Override
     public void onNeighborChange(BlockState state, LevelReader level, BlockPos pos, BlockPos neighbor) {
         super.onNeighborChange(state, level, pos, neighbor);
-        if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_PACKAGER)) {
-            return;
-        }
 
         if (neighbor.relative(state.getOptionalValue(FACING).orElse(Direction.UP)).equals(pos))
             withBlockEntityDo(level, pos, FluidPackagerBlockEntity::triggerStockCheck);
@@ -177,10 +166,6 @@ public class FluidPackagerBlock extends WrenchableDirectionalBlock implements IB
                                 boolean isMoving) {
         if (worldIn.isClientSide)
             return;
-
-        if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_PACKAGER)) {
-            return;
-        }
 
         BlockEntity blockEntity = worldIn.getBlockEntity(pos);
         if (blockEntity instanceof IPackagerOverrideData data && data.fluidlogistics$isManualOverrideLocked()) {

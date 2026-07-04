@@ -1,11 +1,11 @@
 {
 	"format_version": "1.21.11",
 	"credit": "Made with Blockbench",
-	"parent": "fluidlogistics:block/faucet/faucet",
+	"parent": "fluidlogistics:block/smart_faucet/smart_faucet",
 	"textures": {
-		"body": "fluidlogistics:block/faucet/faucet",
-		"pipes": "fluidlogistics:block/faucet/faucet_pipes",
-		"particle": "fluidlogistics:block/faucet/faucet"
+		"particle": "fluidlogistics:block/smart_faucet/smart_faucet",
+		"body": "fluidlogistics:block/smart_faucet/smart_faucet",
+		"pipes": "fluidlogistics:block/smart_faucet/smart_faucet_pipes"
 	},
 	"elements": [
 		{
@@ -15,8 +15,8 @@
 			"rotation": {"angle": 0, "axis": "y", "origin": [7, 7, 13]},
 			"faces": {
 				"north": {"uv": [11, 10, 15, 14], "texture": "#body"},
-				"east": {"uv": [11, 0, 7, 9], "rotation": 270, "texture": "#body"},
-				"west": {"uv": [11, 9, 7, 0], "rotation": 270, "texture": "#body"},
+				"east": {"uv": [9, 11, 0, 15], "texture": "#body"},
+				"west": {"uv": [9, 15, 0, 11], "rotation": 180, "texture": "#body"},
 				"up": {"uv": [0, 11, 9, 15], "rotation": 90, "texture": "#body"},
 				"down": {"uv": [0, 11, 9, 15], "rotation": 270, "texture": "#body"}
 			}

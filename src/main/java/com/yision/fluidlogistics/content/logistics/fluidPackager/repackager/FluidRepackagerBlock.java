@@ -5,7 +5,6 @@ import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
-import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 
@@ -33,9 +32,6 @@ public class FluidRepackagerBlock extends PackagerBlock {
 
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
-		if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_REPACKAGER)) {
-			return null;
-		}
 		return super.getStateForPlacement(context);
 	}
 
@@ -43,9 +39,6 @@ public class FluidRepackagerBlock extends PackagerBlock {
 	protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
 											  Player player, net.minecraft.world.InteractionHand hand,
 											  BlockHitResult hitResult) {
-		if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_REPACKAGER)) {
-			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-		}
 		if (level.getBlockEntity(pos) instanceof FluidRepackagerBlockEntity repackager
 			&& repackager.hasStalledPackageReady()) {
 			if (!level.isClientSide()) {
@@ -65,9 +58,6 @@ public class FluidRepackagerBlock extends PackagerBlock {
 
 	@Override
 	public void onNeighborChange(BlockState state, LevelReader level, BlockPos pos, BlockPos neighbor) {
-		if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_REPACKAGER)) {
-			return;
-		}
 		super.onNeighborChange(state, level, pos, neighbor);
 	}
 
@@ -76,10 +66,6 @@ public class FluidRepackagerBlock extends PackagerBlock {
 								boolean isMoving) {
 		if (worldIn.isClientSide)
 			return;
-
-		if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_REPACKAGER)) {
-			return;
-		}
 
 		BlockEntity blockEntity = worldIn.getBlockEntity(pos);
 		if (blockEntity instanceof IPackagerOverrideData data && data.fluidlogistics$isManualOverrideLocked()) {

@@ -24,6 +24,7 @@ import com.yision.fluidlogistics.registry.FluidLogisticsArmInteractionPointTypes
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.AllBlocks;
 import com.simibubi.create.content.logistics.box.PackageItem;
+import com.simibubi.create.foundation.item.ItemHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankFluidHandler;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankTooltipModifier;
@@ -32,6 +33,7 @@ import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidT
 import com.yision.fluidlogistics.registry.AllDataComponents;
 import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.registry.AllMenuTypes;
+import com.yision.fluidlogistics.registry.AllMountedStorageTypes;
 import com.yision.fluidlogistics.registry.AllConditionCodecs;
 import com.yision.fluidlogistics.registry.AllFluidAttributeTypes;
 import com.yision.fluidlogistics.registry.FluidLogisticsUnpackingHandlers;
@@ -109,6 +111,7 @@ public class FluidLogistics {
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(this::hideDisabledItems);
         modEventBus.addListener(AllItems::registerAliases);
+        modEventBus.addListener(FeatureToggle::onConfigChanged);
 
         NeoForge.EVENT_BUS.register(this);
         LOGGER.info("FluidLogistics initialized!");
@@ -118,7 +121,7 @@ public class FluidLogistics {
         event.enqueueWork(() -> {
             FluidLogisticsPackets.register();
             ArmInteractionPointType.init();
-            com.yision.fluidlogistics.registry.AllMountedStorageTypes.register();
+            AllMountedStorageTypes.register();
             FluidLogisticsUnpackingHandlers.registerDefaults();
             BlockStressValues.IMPACTS.register(AllBlocks.FLUID_PUMP.get(), () -> 8.0);
             BlockStressValues.IMPACTS.register(AllBlocks.MECHANICAL_FLUID_GUN.get(), () -> 2.0);
@@ -137,28 +140,13 @@ public class FluidLogistics {
         InfiniteFluidTankBlockEntity.registerCapabilities(event);
         CopperBasinBlockEntity.registerCapabilities(event);
         event.registerBlock(Capabilities.FluidHandler.BLOCK,
-                (level, pos, state, blockEntity, side) -> {
-                    if (!FeatureToggle.isEnabled(FeatureToggle.WATER_CONTAINING_COPPER_CASING)) {
-                        return null;
-                    }
-                    return WaterContainingCopperCasingFluidHandler.INSTANCE;
-                },
+                (level, pos, state, blockEntity, side) -> WaterContainingCopperCasingFluidHandler.INSTANCE,
                 AllBlocks.WATER_CONTAINING_COPPER_CASING.get());
         event.registerItem(Capabilities.FluidHandler.ITEM,
-                (stack, context) -> {
-                    if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-                        return null;
-                    }
-                    return new CompressedTankFluidHandler(stack);
-                },
+                (stack, context) -> new CompressedTankFluidHandler(stack),
                 AllItems.COMPRESSED_STORAGE_TANK.get());
         event.registerItem(Capabilities.FluidHandler.ITEM,
-                (stack, context) -> {
-                    if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-                        return null;
-                    }
-                    return new FluidPackageFluidHandler(stack);
-                },
+                (stack, context) -> new FluidPackageFluidHandler(stack),
                 AllItems.FLUID_PACKAGE.get(),
                 AllItems.FLUID_PACKAGE_EXPOSED.get(),
                 AllItems.FLUID_PACKAGE_OXIDIZED.get(),
@@ -233,7 +221,7 @@ public class FluidLogistics {
         CompressedTankItem.setFluid(tankStack, new FluidStack(Fluids.WATER, amount));
         contents.setStackInSlot(0, tankStack);
         packageStack.set(com.simibubi.create.AllDataComponents.PACKAGE_CONTENTS,
-                com.simibubi.create.foundation.item.ItemHelper.containerContentsFromHandler(contents));
+                ItemHelper.containerContentsFromHandler(contents));
         return packageStack;
     }
 }

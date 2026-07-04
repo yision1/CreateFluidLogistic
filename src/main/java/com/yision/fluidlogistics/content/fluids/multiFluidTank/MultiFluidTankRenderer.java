@@ -36,7 +36,7 @@ public class MultiFluidTankRenderer extends SafeBlockEntityRenderer<MultiFluidTa
         float minPuddleHeight = 1 / 16f;
         float totalHeight = be.height - 2 * capHeight - minPuddleHeight;
 
-        com.yision.fluidlogistics.content.fluids.multiFluidTank.SmartMultiFluidTank tank = be.tankInventory;
+        SmartMultiFluidTank tank = be.tankInventory;
         if (tank.isEmpty()) return;
         FluidStack[] fluidStacks = tank.getFluids();
         float accheight = 0;

@@ -9,17 +9,17 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
 import com.simibubi.create.foundation.item.ItemHelper;
+import com.yision.fluidlogistics.content.fluids.infiniteWater.InfiniteWaterSource;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
+import com.yision.fluidlogistics.util.SidedCapabilityCache;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -31,7 +31,6 @@ import net.neoforged.neoforge.items.ItemHandlerHelper;
 import net.neoforged.neoforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.EnumMap;
 import java.util.List;
 
 public class SmartHopperBlockEntity extends SmartBlockEntity {
@@ -58,10 +57,10 @@ public class SmartHopperBlockEntity extends SmartBlockEntity {
 	private FilteringBehaviour filtering;
 	private int transferCooldown;
 
-	private final EnumMap<Direction, BlockCapabilityCache<IItemHandler, @Nullable Direction>> itemCapCaches =
-		new EnumMap<>(Direction.class);
-	private final EnumMap<Direction, BlockCapabilityCache<IFluidHandler, @Nullable Direction>> fluidCapCaches =
-		new EnumMap<>(Direction.class);
+	private final SidedCapabilityCache<IItemHandler> itemCapCaches =
+		new SidedCapabilityCache<>(Capabilities.ItemHandler.BLOCK);
+	private final SidedCapabilityCache<IFluidHandler> fluidCapCaches =
+		new SidedCapabilityCache<>(Capabilities.FluidHandler.BLOCK);
 
 	public SmartHopperBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -69,19 +68,9 @@ public class SmartHopperBlockEntity extends SmartBlockEntity {
 
 	public static void registerCapabilities(RegisterCapabilitiesEvent event) {
 		event.registerBlockEntity(Capabilities.ItemHandler.BLOCK, AllBlockEntities.SMART_HOPPER.get(),
-			(be, side) -> {
-				if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.SMART_HOPPER)) {
-					return null;
-				}
-				return be.exposedItemHandler;
-			});
+			(be, side) -> be.exposedItemHandler);
 		event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, AllBlockEntities.SMART_HOPPER.get(),
-			(be, side) -> {
-				if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.SMART_HOPPER)) {
-					return null;
-				}
-				return be.tank == null ? null : be.exposedFluidHandler;
-			});
+			(be, side) -> be.tank == null ? null : be.exposedFluidHandler);
 	}
 
 	@Override
@@ -95,10 +84,6 @@ public class SmartHopperBlockEntity extends SmartBlockEntity {
 	@Override
 	public void tick() {
 		super.tick();
-
-		if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.SMART_HOPPER)) {
-			return;
-		}
 
 		if (level == null || level.isClientSide) {
 			return;
@@ -145,6 +130,16 @@ public class SmartHopperBlockEntity extends SmartBlockEntity {
 		itemCapCaches.clear();
 		fluidCapCaches.clear();
 		super.invalidate();
+	}
+
+	@Nullable
+	private IItemHandler getItemCapability(Direction facing, BlockPos targetPos) {
+		return itemCapCaches.get(level, targetPos, facing);
+	}
+
+	@Nullable
+	private IFluidHandler getFluidCapability(Direction facing, BlockPos targetPos) {
+		return fluidCapCaches.get(level, targetPos, facing);
 	}
 
 	@Override
@@ -372,6 +367,10 @@ public class SmartHopperBlockEntity extends SmartBlockEntity {
 		BlockPos abovePos = worldPosition.above();
 		IFluidHandler source = getFluidCapability(Direction.UP, abovePos);
 		if (source == null) {
+			source = InfiniteWaterSource.getSourceHandler(
+				InfiniteWaterSource.Consumer.SMART_HOPPER, level.getBlockState(abovePos));
+		}
+		if (source == null) {
 			return false;
 		}
 
@@ -428,34 +427,6 @@ public class SmartHopperBlockEntity extends SmartBlockEntity {
 		}
 		FluidStack stored = tank.getPrimaryHandler().getFluid();
 		return stored.isEmpty() || FluidStack.isSameFluidSameComponents(stored, stack);
-	}
-
-	@Nullable
-	private IItemHandler getItemCapability(Direction facing, BlockPos targetPos) {
-		if (level == null || !(level instanceof ServerLevel serverLevel)) {
-			return null;
-		}
-		BlockCapabilityCache<IItemHandler, @Nullable Direction> cache = itemCapCaches.get(facing);
-		if (cache == null) {
-			cache = BlockCapabilityCache.create(Capabilities.ItemHandler.BLOCK, serverLevel, targetPos,
-				facing.getOpposite());
-			itemCapCaches.put(facing, cache);
-		}
-		return cache.getCapability();
-	}
-
-	@Nullable
-	private IFluidHandler getFluidCapability(Direction facing, BlockPos targetPos) {
-		if (level == null || !(level instanceof ServerLevel serverLevel)) {
-			return null;
-		}
-		BlockCapabilityCache<IFluidHandler, @Nullable Direction> cache = fluidCapCaches.get(facing);
-		if (cache == null) {
-			cache = BlockCapabilityCache.create(Capabilities.FluidHandler.BLOCK, serverLevel, targetPos,
-				facing.getOpposite());
-			fluidCapCaches.put(facing, cache);
-		}
-		return cache.getCapability();
 	}
 
 	private void returnItemToInternal(int preferredSlot, ItemStack stack) {

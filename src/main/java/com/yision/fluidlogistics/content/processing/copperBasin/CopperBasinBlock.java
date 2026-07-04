@@ -2,7 +2,6 @@ package com.yision.fluidlogistics.content.processing.copperBasin;
 
 import com.simibubi.create.content.processing.basin.BasinBlock;
 import com.simibubi.create.content.processing.basin.BasinBlockEntity;
-import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -17,9 +16,6 @@ public class CopperBasinBlock extends BasinBlock {
 
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
-		if (!FeatureToggle.isEnabled(FeatureToggle.COPPER_BASIN)) {
-			return null;
-		}
 		return super.getStateForPlacement(context);
 	}
 

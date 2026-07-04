@@ -7,7 +7,6 @@ import com.simibubi.create.content.fluids.transfer.GenericItemFilling;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.fluid.FluidHelper;
 import com.simibubi.create.foundation.fluid.FluidHelper.FluidExchange;
-import com.yision.fluidlogistics.config.FeatureToggle;
 import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -78,9 +77,6 @@ public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<Multi
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        if (!FeatureToggle.isEnabled(FeatureToggle.MULTI_FLUID_TANK)) {
-            return null;
-        }
         return super.getStateForPlacement(context);
     }
 

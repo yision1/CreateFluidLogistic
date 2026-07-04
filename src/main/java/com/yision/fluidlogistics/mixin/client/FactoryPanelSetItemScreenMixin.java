@@ -10,6 +10,7 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemScr
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.gui.menu.GhostItemSubmitPacket;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.registry.AllItems;
 
 import net.createmod.catnip.data.Pair;
 import net.createmod.catnip.platform.CatnipServices;
@@ -45,7 +46,7 @@ public abstract class FactoryPanelSetItemScreenMixin extends AbstractSimiContain
                     FluidStack fluidStack = emptyResult.getFirst();
                     
                     if (!fluidStack.isEmpty()) {
-                        ItemStack virtualTank = new ItemStack(com.yision.fluidlogistics.registry.AllItems.COMPRESSED_STORAGE_TANK.get());
+                        ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
                         CompressedTankItem.setFluidVirtual(virtualTank, fluidStack.copyWithAmount(1));
                         menu.ghostInventory.setStackInSlot(slotIndex, virtualTank);
                         CatnipServices.NETWORK.sendToServer(new GhostItemSubmitPacket(virtualTank, slotIndex));

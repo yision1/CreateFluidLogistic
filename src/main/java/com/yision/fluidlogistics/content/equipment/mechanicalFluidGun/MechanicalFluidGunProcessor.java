@@ -1,9 +1,9 @@
 package com.yision.fluidlogistics.content.equipment.mechanicalFluidGun;
 
+import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
 import com.simibubi.create.content.logistics.depot.DepotBehaviour;
 import com.yision.fluidlogistics.content.fluids.faucet.FaucetFilling;
-import com.yision.fluidlogistics.config.FeatureToggle;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -34,9 +34,6 @@ class MechanicalFluidGunProcessor {
 	}
 
 	void tickServer() {
-		if (!FeatureToggle.isEnabled(FeatureToggle.MECHANICAL_FLUID_GUN)) {
-			return;
-		}
 		MechanicalFluidGunTargets targets = be.getTargetsHelper();
 		MechanicalFluidGunCycle cycle = be.getCycleHelper();
 		MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
@@ -434,6 +431,6 @@ class MechanicalFluidGunProcessor {
 	}
 
 	private boolean isBelt(BlockEntity entity) {
-		return entity instanceof com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
+		return entity instanceof BeltBlockEntity;
 	}
 }

@@ -24,15 +24,22 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
+import org.jetbrains.annotations.Nullable;
 
 public class CopperBasinBlockEntity extends BasinBlockEntity {
 
 	private FilteringBehaviour filtering;
+
+	@Nullable
+	private BlockCapabilityCache<IFluidHandler, @Nullable Direction> outputTargetCache;
+	@Nullable
+	private Direction cachedTargetFacing;
 
 	public CopperBasinBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -175,13 +182,30 @@ public class CopperBasinBlockEntity extends BasinBlockEntity {
 	public void tick() {
 		super.tick();
 
-		if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.COPPER_BASIN)) {
-			return;
-		}
-
 		if (level == null || level.isClientSide)
 			return;
+
 		pushOutputFluidsToSpoutputTarget();
+	}
+
+	@Override
+	public void invalidate() {
+		outputTargetCache = null;
+		cachedTargetFacing = null;
+		super.invalidate();
+	}
+
+	private @Nullable IFluidHandler getSpoutputTarget(BlockPos targetPos, Direction facing) {
+		if (!(level instanceof net.minecraft.server.level.ServerLevel serverLevel)) {
+			return level == null ? null
+				: level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, facing.getOpposite());
+		}
+		if (outputTargetCache == null || cachedTargetFacing != facing) {
+			outputTargetCache = BlockCapabilityCache.create(
+				Capabilities.FluidHandler.BLOCK, serverLevel, targetPos, facing.getOpposite());
+			cachedTargetFacing = facing;
+		}
+		return outputTargetCache.getCapability();
 	}
 
 	private void pushOutputFluidsToSpoutputTarget() {
@@ -195,12 +219,9 @@ public class CopperBasinBlockEntity extends BasinBlockEntity {
 
 		BlockPos targetPos = worldPosition.below()
 			.relative(direction);
-		BlockEntity targetBlockEntity = level.getBlockEntity(targetPos);
-		if (targetBlockEntity == null)
-			return;
 
 		IFluidHandler sourceTank = outputTank.getCapability();
-		IFluidHandler targetTank = level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, direction.getOpposite());
+		IFluidHandler targetTank = getSpoutputTarget(targetPos, direction);
 		if (sourceTank == null || targetTank == null)
 			return;
 
@@ -255,22 +276,12 @@ public class CopperBasinBlockEntity extends BasinBlockEntity {
 		event.registerBlockEntity(
 			Capabilities.ItemHandler.BLOCK,
 			AllBlockEntities.COPPER_BASIN.get(),
-			(be, context) -> {
-				if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.COPPER_BASIN)) {
-					return null;
-				}
-				return be.itemCapability;
-			}
+			(be, context) -> be.itemCapability
 		);
 		event.registerBlockEntity(
 			Capabilities.FluidHandler.BLOCK,
 			AllBlockEntities.COPPER_BASIN.get(),
-			(be, context) -> {
-				if (!com.yision.fluidlogistics.config.FeatureToggle.isEnabled(com.yision.fluidlogistics.config.FeatureToggle.COPPER_BASIN)) {
-					return null;
-				}
-				return be.fluidCapability;
-			}
+			(be, context) -> be.fluidCapability
 		);
 	}
 

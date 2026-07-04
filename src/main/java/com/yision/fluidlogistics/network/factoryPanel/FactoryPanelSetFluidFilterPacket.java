@@ -1,11 +1,12 @@
 package com.yision.fluidlogistics.network.factoryPanel;
 
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
+import com.simibubi.create.Create;
 import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.registry.AllItems;
 
 import net.createmod.catnip.data.Pair;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
@@ -42,16 +43,13 @@ public record FactoryPanelSetFluidFilterPacket(
 
     @Override
     public void handle(ServerPlayer player) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         FactoryPanelBehaviour behaviour = FactoryPanelBehaviour.at(player.level(), panelPosition);
         if (behaviour == null) {
             return;
         }
         
-        if (!com.simibubi.create.Create.LOGISTICS.mayInteract(behaviour.network, player)) {
+        if (!Create.LOGISTICS.mayInteract(behaviour.network, player)) {
             return;
         }
         
@@ -72,7 +70,7 @@ public record FactoryPanelSetFluidFilterPacket(
             return;
         }
         
-        ItemStack virtualTank = new ItemStack(com.yision.fluidlogistics.registry.AllItems.COMPRESSED_STORAGE_TANK.get());
+        ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
         CompressedTankItem.setFluidVirtual(virtualTank, fluidStack.copyWithAmount(1));
         
         if (behaviour.setFilter(virtualTank)) {

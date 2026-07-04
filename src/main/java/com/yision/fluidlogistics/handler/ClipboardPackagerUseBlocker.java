@@ -1,7 +1,6 @@
 package com.yision.fluidlogistics.handler;
 
 import com.simibubi.create.AllBlocks;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.FluidLogistics;
 
 import net.minecraft.core.BlockPos;
@@ -22,9 +21,6 @@ public class ClipboardPackagerUseBlocker {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         if (event.isCanceled() || !shouldBlockClipboardUse(event.getItemStack(), event.getEntity())) {
             return;
@@ -40,9 +36,6 @@ public class ClipboardPackagerUseBlocker {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         if (event.isCanceled() || !shouldBlockClipboardUse(event.getItemStack(), event.getEntity())) {
             return;

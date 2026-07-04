@@ -7,19 +7,17 @@ import com.simibubi.create.foundation.block.IBE;
 import com.mojang.serialization.MapCodec;
 import com.yision.fluidlogistics.compat.CompatMods;
 import com.yision.fluidlogistics.compat.kaleidoscopetavern.KaleidoscopeTavernCompat;
-import com.yision.fluidlogistics.config.FeatureToggle;
+import com.yision.fluidlogistics.content.fluids.infiniteWater.InfiniteWaterSource;
 import java.util.EnumMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.BlockGetter;
@@ -27,7 +25,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -63,15 +60,8 @@ public abstract class AbstractFaucetBlock<T extends AbstractFaucetBlockEntity> e
         super.createBlockStateDefinition(builder.add(FACING, OPEN, POWERED));
     }
 
-    protected ResourceLocation getFeature() { return null; }
-
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
-        ResourceLocation feature = getFeature();
-        if (feature != null && !FeatureToggle.isEnabled(feature)) {
-            return null;
-        }
-
         Level level = context.getLevel();
         BlockPos pos = context.getClickedPos();
         Direction facing = resolvePlacementFacing(level, pos, context.getHorizontalDirection().getOpposite());
@@ -195,12 +185,6 @@ public abstract class AbstractFaucetBlock<T extends AbstractFaucetBlockEntity> e
         return getShape(state, level, pos, context);
     }
 
-    public static boolean isInfiniteWaterSource(BlockState state) {
-        return (state.is(BlockTags.LEAVES) || isCopperGrate(state))
-            && state.hasProperty(BlockStateProperties.WATERLOGGED)
-            && state.getValue(BlockStateProperties.WATERLOGGED);
-    }
-
     private @Nullable Direction resolvePlacementFacing(Level level, BlockPos pos, Direction preferredFacing) {
         if (hasSourceForFacing(level, pos, preferredFacing)) {
             return preferredFacing;
@@ -241,7 +225,7 @@ public abstract class AbstractFaucetBlock<T extends AbstractFaucetBlockEntity> e
 
     private boolean hasFluidSource(LevelReader level, BlockPos sourcePos, Direction side) {
         BlockState sourceState = level.getBlockState(sourcePos);
-        if (isInfiniteWaterSource(sourceState)) {
+        if (InfiniteWaterSource.isWaterSourceBlock(sourceState)) {
             return true;
         }
 
@@ -272,14 +256,6 @@ public abstract class AbstractFaucetBlock<T extends AbstractFaucetBlockEntity> e
     private void playToggleSound(Level level, BlockPos pos, boolean wasOpen) {
         level.playSound(null, pos, wasOpen ? net.minecraft.sounds.SoundEvents.IRON_TRAPDOOR_CLOSE
             : net.minecraft.sounds.SoundEvents.IRON_TRAPDOOR_OPEN, net.minecraft.sounds.SoundSource.BLOCKS, 0.5f, 1.0f);
-    }
-
-    private static boolean isCopperGrate(BlockState state) {
-        Block block = state.getBlock();
-        return block == Blocks.COPPER_GRATE || block == Blocks.EXPOSED_COPPER_GRATE
-            || block == Blocks.WEATHERED_COPPER_GRATE || block == Blocks.OXIDIZED_COPPER_GRATE
-            || block == Blocks.WAXED_COPPER_GRATE || block == Blocks.WAXED_EXPOSED_COPPER_GRATE
-            || block == Blocks.WAXED_WEATHERED_COPPER_GRATE || block == Blocks.WAXED_OXIDIZED_COPPER_GRATE;
     }
 
     private static EnumMap<Direction, VoxelShape> buildShapes() {

@@ -7,7 +7,6 @@ import com.simibubi.create.content.fluids.transfer.GenericItemFilling;
 import com.simibubi.create.foundation.block.IBE;
 import com.simibubi.create.foundation.fluid.FluidHelper;
 import com.simibubi.create.foundation.fluid.FluidHelper.FluidExchange;
-import com.yision.fluidlogistics.config.FeatureToggle;
 import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -86,9 +85,6 @@ public class HorizontalMultiFluidTankBlock extends Block implements IWrenchable,
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext ctx) {
-        if (!FeatureToggle.isEnabled(FeatureToggle.HORIZONTAL_MULTI_FLUID_TANK)) {
-            return null;
-        }
         if (ctx.getPlayer() == null || !ctx.getPlayer().isShiftKeyDown()) {
             BlockState placedOn = ctx.getLevel().getBlockState(ctx.getClickedPos().relative(ctx.getClickedFace().getOpposite()));
             Axis preferredAxis = placedOn.getOptionalValue(AXIS).orElse(null);

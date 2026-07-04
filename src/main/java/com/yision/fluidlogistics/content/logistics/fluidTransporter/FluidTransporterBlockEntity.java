@@ -4,18 +4,16 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.fluid.SmartFluidTankBehaviour;
-import com.yision.fluidlogistics.config.FeatureToggle;
+import com.yision.fluidlogistics.content.fluids.infiniteWater.InfiniteWaterSource;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.AllBlocks;
+import com.yision.fluidlogistics.util.SidedCapabilityCache;
 import java.util.EnumMap;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluids;
-import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -29,8 +27,8 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
     private static final int TRANSFER_PER_CYCLE = 450;
     private static final int TRANSFER_COOLDOWN_TICKS = 5;
 
-    private final EnumMap<Direction, BlockCapabilityCache<IFluidHandler, @Nullable Direction>> capCaches =
-        new EnumMap<>(Direction.class);
+    private final SidedCapabilityCache<IFluidHandler> capCaches =
+        new SidedCapabilityCache<>(Capabilities.FluidHandler.BLOCK);
     private final EnumMap<Direction, IFluidHandler> exposedFluidHandlers = new EnumMap<>(Direction.class);
     private final IFluidHandler readOnlyFluidHandler = new TransporterFluidHandler(null);
 
@@ -44,9 +42,7 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
     public static void registerCapabilities(RegisterCapabilitiesEvent event) {
         event.registerBlockEntity(Capabilities.FluidHandler.BLOCK, AllBlockEntities.FLUID_TRANSPORTER.get(),
-            (be, side) -> !FeatureToggle.isEnabled(FeatureToggle.FLUID_TRANSPORTER) || be.internalTank == null
-                    ? null
-                    : be.getExposedFluidHandler(side));
+            (be, side) -> be.internalTank == null ? null : be.getExposedFluidHandler(side));
     }
 
     @Override
@@ -60,7 +56,7 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
     public void tick() {
         super.tick();
 
-        if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_TRANSPORTER) || level == null || level.isClientSide) {
+        if (level == null || level.isClientSide) {
             return;
         }
 
@@ -86,7 +82,7 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
     }
 
     public boolean shouldRenderInterface(Direction side) {
-        if (!FeatureToggle.isEnabled(FeatureToggle.FLUID_TRANSPORTER) || level == null) {
+        if (level == null) {
             return false;
         }
 
@@ -97,7 +93,7 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
         BlockPos targetPos = worldPosition.relative(side);
         BlockState targetState = level.getBlockState(targetPos);
-        if (targetState.is(AllBlocks.FLUID_TRANSPORTER.get()) || FluidTransporterBlock.isInfiniteWaterSource(targetState)) {
+        if (targetState.is(AllBlocks.FLUID_TRANSPORTER.get()) || InfiniteWaterSource.isWaterSourceBlock(targetState)) {
             return false;
         }
 
@@ -186,8 +182,10 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
         BlockPos targetPos = worldPosition.relative(facing);
         BlockState targetState = level.getBlockState(targetPos);
-        if (FluidTransporterBlock.isInfiniteWaterSource(targetState)) {
-            return WaterloggedLeavesFluidHandler.INSTANCE;
+        IFluidHandler infinite = InfiniteWaterSource.getSourceHandler(
+            InfiniteWaterSource.Consumer.FLUID_TRANSPORTER, targetState);
+        if (infinite != null) {
+            return infinite;
         }
 
         return grabCapability(facing);
@@ -199,18 +197,7 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
         }
 
         BlockPos targetPos = worldPosition.relative(facing);
-        BlockCapabilityCache<IFluidHandler, @Nullable Direction> cache = capCaches.get(facing);
-        if (cache == null && level instanceof ServerLevel serverLevel) {
-            cache = BlockCapabilityCache.create(Capabilities.FluidHandler.BLOCK, serverLevel, targetPos,
-                facing.getOpposite());
-            capCaches.put(facing, cache);
-        }
-
-        if (cache != null) {
-            return cache.getCapability();
-        }
-
-        return level.getCapability(Capabilities.FluidHandler.BLOCK, targetPos, facing.getOpposite());
+        return capCaches.get(level, targetPos, facing);
     }
 
     @Override
@@ -295,52 +282,6 @@ public class FluidTransporterBlockEntity extends SmartBlockEntity {
 
         private @Nullable IFluidHandler getInternalHandler() {
             return internalTank == null ? null : internalTank.getCapability();
-        }
-    }
-
-    private static class WaterloggedLeavesFluidHandler implements IFluidHandler {
-        private static final WaterloggedLeavesFluidHandler INSTANCE = new WaterloggedLeavesFluidHandler();
-        private static final FluidStack WATER = new FluidStack(Fluids.WATER, 1000);
-
-        @Override
-        public int getTanks() {
-            return 1;
-        }
-
-        @Override
-        public FluidStack getFluidInTank(int tank) {
-            return WATER.copy();
-        }
-
-        @Override
-        public int getTankCapacity(int tank) {
-            return Integer.MAX_VALUE;
-        }
-
-        @Override
-        public boolean isFluidValid(int tank, FluidStack stack) {
-            return false;
-        }
-
-        @Override
-        public int fill(FluidStack resource, FluidAction action) {
-            return 0;
-        }
-
-        @Override
-        public FluidStack drain(FluidStack resource, FluidAction action) {
-            if (resource.isEmpty() || resource.getFluid() != Fluids.WATER) {
-                return FluidStack.EMPTY;
-            }
-            return WATER.copyWithAmount(Math.min(resource.getAmount(), WATER.getAmount()));
-        }
-
-        @Override
-        public FluidStack drain(int maxDrain, FluidAction action) {
-            if (maxDrain <= 0) {
-                return FluidStack.EMPTY;
-            }
-            return WATER.copyWithAmount(Math.min(maxDrain, WATER.getAmount()));
         }
     }
 }

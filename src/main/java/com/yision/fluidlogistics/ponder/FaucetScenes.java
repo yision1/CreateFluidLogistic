@@ -1,5 +1,6 @@
 package com.yision.fluidlogistics.ponder;
 
+import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.content.processing.basin.BasinBlockEntity;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
@@ -112,7 +113,7 @@ public class FaucetScenes {
         scene.world().hideIndependentSection(depotLink, Direction.NORTH);
         scene.idle(20);
 
-        scene.world().setBlock(basinPos, com.simibubi.create.AllBlocks.BASIN.getDefaultState(), false);
+        scene.world().setBlock(basinPos, AllBlocks.BASIN.getDefaultState(), false);
         scene.world().showSection(basinS, Direction.SOUTH);
         scene.idle(15);
 

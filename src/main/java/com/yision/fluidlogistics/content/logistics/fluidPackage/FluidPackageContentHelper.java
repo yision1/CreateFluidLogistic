@@ -1,5 +1,6 @@
 package com.yision.fluidlogistics.content.logistics.fluidPackage;
 
+import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.foundation.item.ItemHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidPackageSplitting;
@@ -78,18 +79,11 @@ public final class FluidPackageContentHelper {
 
     private static void writeSingleFluid(ItemStack packageStack, FluidStack remainingFluid) {
         ItemStackHandler contents = new ItemStackHandler(PackageItem.SLOTS);
-        int remaining = remainingFluid.getAmount();
-        int slot = 0;
+        ItemStack tank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+        CompressedTankItem.setFluid(tank, remainingFluid.copy());
+        contents.setStackInSlot(0, tank);
 
-        while (remaining > 0 && slot < PackageItem.SLOTS) {
-            int amount = Math.min(remaining, CompressedTankItem.getCapacity());
-            ItemStack tank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-            CompressedTankItem.setFluid(tank, remainingFluid.copyWithAmount(amount));
-            contents.setStackInSlot(slot++, tank);
-            remaining -= amount;
-        }
-
-        packageStack.set(com.simibubi.create.AllDataComponents.PACKAGE_CONTENTS,
+        packageStack.set(AllDataComponents.PACKAGE_CONTENTS,
             ItemHelper.containerContentsFromHandler(contents));
     }
 }

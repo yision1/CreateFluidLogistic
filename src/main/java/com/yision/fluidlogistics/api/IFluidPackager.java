@@ -7,6 +7,7 @@ import com.simibubi.create.content.logistics.packager.IdentifiedInventory;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.content.logistics.packager.PackagingRequest;
+import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour.RequestType;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 
 import net.createmod.catnip.data.Pair;
@@ -28,7 +29,7 @@ public interface IFluidPackager {
 
     void flashFluidLink();
 
-    boolean isFluidPackagerTooBusy(com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour.RequestType type);
+    boolean isFluidPackagerTooBusy(RequestType type);
 
     @Nullable
     IdentifiedInventory getIdentifiedInventory();

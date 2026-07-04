@@ -1,6 +1,8 @@
 package com.yision.fluidlogistics.content.equipment.mechanicalFluidGun;
 
+import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.contraptions.StructureTransform;
+import com.yision.fluidlogistics.content.fluids.faucet.FaucetFilling;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -264,7 +266,7 @@ class MechanicalFluidGunItemFilling {
 								ProcessingTarget targetType,
 								@Nullable BlockPos beltPos,
 								@Nullable Vec3 beltAimPoint) {
-		int requiredAmount = com.yision.fluidlogistics.content.fluids.faucet.FaucetFilling
+		int requiredAmount = FaucetFilling
 			.getRequiredAmountForItem(be.getLevel(), item, availableFluid.copy());
 		if (requiredAmount <= 0 || requiredAmount > availableFluid.getAmount()) return false;
 
@@ -284,7 +286,7 @@ class MechanicalFluidGunItemFilling {
 			itemFilling.startDepot(item, simulatedDrain, fillingTicks);
 		}
 		visuals.startSpraying(simulatedDrain, be.getSpeed(), false);
-		com.simibubi.create.AllSoundEvents.SPOUTING.playOnServer(
+		AllSoundEvents.SPOUTING.playOnServer(
 			be.getLevel(), be.gunPos(), 0.75f, 0.9f + be.getLevel().random.nextFloat() * 0.2f);
 		be.notifyGunUpdate();
 		return true;

@@ -19,7 +19,6 @@ import com.simibubi.create.content.logistics.packager.PackagerItemHandler;
 import com.simibubi.create.content.logistics.packager.PackagingRequest;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 import com.simibubi.create.foundation.item.ItemHelper;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.PackagerGoggleInfo;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
@@ -63,9 +62,6 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 			Capabilities.ItemHandler.BLOCK,
 			AllBlockEntities.FLUID_REPACKAGER.get(),
 			(be, context) -> {
-				if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-					return null;
-				}
 				return be.externalItemHandler;
 			}
 		);
@@ -73,9 +69,6 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 
 	@Override
 	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
-		if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-			return false;
-		}
 
 		int cachedPackageCount = getCachedPackageCount();
 		if (!manualOverrideLocked && cachedPackageCount <= 0) {
@@ -99,9 +92,6 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 
 	@Override
 	public void tick() {
-		if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-			return;
-		}
 
 		super.tick();
 
@@ -112,9 +102,6 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 
 	@Override
 	public boolean unwrapBox(ItemStack box, boolean simulate) {
-		if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-			return false;
-		}
 
 		if (animationTicks > 0 || !stalledPackages.isEmpty()) {
 			return false;
@@ -187,9 +174,6 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 
 	@Override
 	public void attemptToSend(List<PackagingRequest> queuedRequests) {
-		if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-			return;
-		}
 
 		if (queuedRequests != null) {
 			return;

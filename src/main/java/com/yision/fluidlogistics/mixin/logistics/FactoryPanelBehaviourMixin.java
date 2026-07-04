@@ -16,13 +16,16 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBlockEntity;
+import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelConnection;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition;
 import com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity;
+import com.simibubi.create.content.logistics.packager.IdentifiedInventory;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour.RequestType;
 import com.simibubi.create.content.logistics.packagerLink.LogisticsManager;
 import com.simibubi.create.content.logistics.packagerLink.RequestPromise;
+import com.simibubi.create.content.logistics.packagerLink.RequestPromiseQueue;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
@@ -72,13 +75,13 @@ public abstract class FactoryPanelBehaviourMixin {
     public java.util.UUID network;
 
     @Shadow(remap = false)
-    public com.simibubi.create.content.logistics.packagerLink.RequestPromiseQueue restockerPromises;
-    
-    @Shadow(remap = false)
-    public Map<FactoryPanelPosition, com.simibubi.create.content.logistics.factoryBoard.FactoryPanelConnection> targetedBy;
+    public RequestPromiseQueue restockerPromises;
 
     @Shadow(remap = false)
-    private void sendEffect(com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition fromPos, boolean success) {
+    public Map<FactoryPanelPosition, FactoryPanelConnection> targetedBy;
+
+    @Shadow(remap = false)
+    private void sendEffect(FactoryPanelPosition fromPos, boolean success) {
     }
 
     @Unique
@@ -263,7 +266,7 @@ public abstract class FactoryPanelBehaviourMixin {
             return;
         }
 
-        com.simibubi.create.content.logistics.packager.IdentifiedInventory identifiedInventory =
+        IdentifiedInventory identifiedInventory =
             fluidPackager.getIdentifiedInventory();
 
         int availableOnNetwork = LogisticsManager.getStockOf(network, item, identifiedInventory);
