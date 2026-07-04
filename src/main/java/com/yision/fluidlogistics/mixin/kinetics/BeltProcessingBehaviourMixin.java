@@ -1,9 +1,9 @@
 package com.yision.fluidlogistics.mixin.kinetics;
 
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
-import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlock;
-import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
-import com.yision.fluidlogistics.block.SmartFaucet.SmartFaucetBlock;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlock;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
+import com.yision.fluidlogistics.content.fluids.faucet.SmartFaucetBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockGetter;
 import org.spongepowered.asm.mixin.Mixin;

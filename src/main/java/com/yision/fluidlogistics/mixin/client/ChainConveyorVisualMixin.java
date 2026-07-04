@@ -12,15 +12,14 @@ import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorPackage;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorVisual;
-import com.yision.fluidlogistics.client.phantomchain.PhantomChainVisibility;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.item.FluidPackageItem;
-import com.yision.fluidlogistics.render.FluidPackageItemRenderer;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.phantomChain.PhantomChainVisibility;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
 import com.yision.fluidlogistics.render.FluidVisual;
 import dev.engine_room.flywheel.api.visual.DynamicVisual;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import dev.engine_room.flywheel.lib.instance.TransformedInstance;
-import dev.engine_room.flywheel.lib.transform.Translate;
 import net.minecraft.core.BlockPos;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.spongepowered.asm.mixin.Mixin;
@@ -43,9 +42,6 @@ public class ChainConveyorVisualMixin {
             at = @At("RETURN")
     )
     private void fluidlogistics$ctor(VisualizationContext context, ChainConveyorBlockEntity blockEntity, float partialTick, CallbackInfo ci) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
         fluidlogistics$fluidVisual = new FluidVisual(context, false, true);
     }
 
@@ -108,8 +104,9 @@ public class ChainConveyorVisualMixin {
     )
     private TransformedInstance[] fluidlogistics$setupFluidBuffers(TransformedInstance[] original,
                                                                    @Local(argsOnly = true) ChainConveyorPackage box,
-                                                                   @Share("fluid") LocalRef<FluidStack> fluid) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled() || fluidlogistics$fluidVisual == null) {
+                                                                   @Share("fluid") LocalRef<FluidStack> fluid,
+                                                                   @Share("fluidBufferIndex") LocalIntRef fluidBufferIndex) {
+        if (fluidlogistics$fluidVisual == null) {
             return original;
         }
         if (!(box.item.getItem() instanceof FluidPackageItem)) return original;
@@ -118,36 +115,41 @@ public class ChainConveyorVisualMixin {
 
         if (fluid.get().isEmpty()) return original;
 
+        fluidBufferIndex.set(0);
+
         TransformedInstance[] buffers = fluidlogistics$fluidVisual.setupBuffers(fluid.get(), original.length);
         System.arraycopy(original, 0, buffers, 0, original.length);
 
         return buffers;
     }
 
-    @SuppressWarnings("rawtypes")
     @WrapOperation(
             method = "setupBoxVisual",
             at = @At(
                     value = "INVOKE",
-                    target = "Ldev/engine_room/flywheel/lib/instance/TransformedInstance;uncenter()Ldev/engine_room/flywheel/lib/transform/Translate;"
+                    target = "Ldev/engine_room/flywheel/lib/instance/TransformedInstance;light(I)Ldev/engine_room/flywheel/lib/instance/ColoredLitInstance;"
             )
     )
-    private Translate fluidlogistics$setupFluidVisual(TransformedInstance instance, Operation<Translate> original,
-                                                      @Local(ordinal = 0) TransformedInstance rigBuffer,
-                                                      @Local(ordinal = 1) TransformedInstance boxBuffer,
-                                                      @Local(ordinal = 2) TransformedInstance buf,
-                                                      @Share("fluidBufferIndex") LocalIntRef fluidBufferIndex,
-                                                      @Share("fluid") LocalRef<FluidStack> fluid) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled() || fluidlogistics$fluidVisual == null) {
-            return original.call(instance);
+    private dev.engine_room.flywheel.lib.instance.ColoredLitInstance fluidlogistics$setupFluidVisual(
+            TransformedInstance instance, int light, Operation<dev.engine_room.flywheel.lib.instance.ColoredLitInstance> original,
+            @Local(ordinal = 0) TransformedInstance rigBuffer,
+            @Local(ordinal = 1) TransformedInstance boxBuffer,
+            @Share("fluidBufferIndex") LocalIntRef fluidBufferIndex,
+            @Share("fluid") LocalRef<FluidStack> fluid) {
+        if (fluidlogistics$fluidVisual == null) {
+            return original.call(instance, light);
         }
-        if (buf == rigBuffer || buf == boxBuffer) return original.call(instance);
+        if (instance == rigBuffer || instance == boxBuffer) {
+            return original.call(instance, light);
+        }
 
-        fluidlogistics$fluidVisual.setupBuffer(fluid.get(), Config.getFluidPerPackage(), buf, fluidBufferIndex.get(),
-            FluidPackageItemRenderer.PACKAGE_VISUAL_WIDTH,
-            FluidPackageItemRenderer.PACKAGE_VISUAL_HEIGHT);
+        fluidlogistics$fluidVisual.setupBuffer(fluid.get(), Config.getFluidPerPackage(), instance, fluidBufferIndex.get(),
+            FluidPackageItemRenderer.FLUID_MIN_XZ,
+            FluidPackageItemRenderer.FLUID_MAX_XZ,
+            FluidPackageItemRenderer.FLUID_MIN_Y,
+            FluidPackageItemRenderer.FLUID_MAX_Y);
         fluidBufferIndex.set(fluidBufferIndex.get() + 1);
 
-        return instance;
+        return original.call(instance, light);
     }
 }

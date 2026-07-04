@@ -1,10 +1,10 @@
 package com.yision.fluidlogistics.config;
 
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.compat.CompatMods;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
@@ -29,7 +29,7 @@ public final class FeatureToggle {
     public static final ResourceLocation FLUID_PACKAGER = FluidLogistics.asResource("fluid_packager");
     public static final ResourceLocation FLUID_REPACKAGER = FluidLogistics.asResource("fluid_repackager");
     public static final ResourceLocation COMPRESSED_STORAGE_TANK = FluidLogistics.asResource("compressed_storage_tank");
-    public static final ResourceLocation RARE_FLUID_PACKAGE = FluidLogistics.asResource("rare_fluid_package");
+    public static final ResourceLocation FLUID_PACKAGE = FluidLogistics.asResource("fluid_package");
 
     public static final ResourceLocation FLUID_HATCH = FluidLogistics.asResource("fluid_hatch");
 
@@ -54,7 +54,7 @@ public final class FeatureToggle {
         map.put(FLUID_PACKAGER, Config::isAdvancedLogisticsNetworkEnabled);
         map.put(FLUID_REPACKAGER, Config::isAdvancedLogisticsNetworkEnabled);
         map.put(COMPRESSED_STORAGE_TANK, Config::isAdvancedLogisticsNetworkEnabled);
-        map.put(RARE_FLUID_PACKAGE, Config::isAdvancedLogisticsNetworkEnabled);
+        map.put(FLUID_PACKAGE, Config::isAdvancedLogisticsNetworkEnabled);
         map.put(FLUID_HATCH, Config::isFluidHatchEnabled);
         FEATURE_MAP = Collections.unmodifiableMap(map);
     }
@@ -62,16 +62,28 @@ public final class FeatureToggle {
     private FeatureToggle() {
     }
 
+    private static volatile Map<ResourceLocation, Boolean> CACHE = Map.of();
+
+    public static void reload() {
+        Map<ResourceLocation, Boolean> next = new HashMap<>();
+        FEATURE_MAP.forEach((key, supplier) -> next.put(key, supplier.getAsBoolean()));
+        CACHE = Map.copyOf(next);
+    }
+
+    public static void onConfigChanged(net.neoforged.fml.event.config.ModConfigEvent event) {
+        reload();
+    }
+
     public static boolean isEnabled(ResourceLocation feature) {
+        Boolean cached = CACHE.get(feature);
+        if (cached != null) {
+            return cached;
+        }
         BooleanSupplier supplier = FEATURE_MAP.get(feature);
         return supplier != null ? supplier.getAsBoolean() : true;
     }
 
-    public static boolean isAdvancedLogisticsNetworkEnabled() {
-        return Config.isAdvancedLogisticsNetworkEnabled();
-    }
-
     public static boolean isFluidHatchAdvertised() {
-        return Config.isFluidHatchEnabled() && !CompatMods.createDragonsPlusLoaded();
+        return Config.isFluidHatchEnabled();
     }
 }

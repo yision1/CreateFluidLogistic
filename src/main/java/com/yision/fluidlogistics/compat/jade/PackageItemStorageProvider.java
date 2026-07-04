@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.resources.ResourceLocation;

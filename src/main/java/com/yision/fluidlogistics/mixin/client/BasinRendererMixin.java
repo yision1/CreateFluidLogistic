@@ -5,7 +5,7 @@ import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 
 import com.simibubi.create.content.processing.basin.BasinRenderer;
-import com.yision.fluidlogistics.util.CreateBasinCapacity;
+import com.yision.fluidlogistics.content.processing.copperBasin.CreateBasinCapacity;
 
 @Mixin(BasinRenderer.class)
 public class BasinRendererMixin {

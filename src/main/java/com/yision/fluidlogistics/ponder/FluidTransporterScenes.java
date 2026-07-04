@@ -1,9 +1,9 @@
 package com.yision.fluidlogistics.ponder;
 
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
-import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlock;
-import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlockEntity;
-import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.content.logistics.fluidTransporter.FluidTransporterBlock;
+import com.yision.fluidlogistics.content.logistics.fluidTransporter.FluidTransporterBlockEntity;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankBlockEntity;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.PonderPalette;
 import net.createmod.ponder.api.element.ElementLink;

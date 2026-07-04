@@ -1,33 +1,63 @@
 {
   "variants": {
-    "facing=east,waterlogged=false": {
-      "model": "fluidlogistics:block/fluid_hatch",
+    "facing=east,open=false,waterlogged=false": {
+      "model": "fluidlogistics:block/fluid_hatch/block_closed",
       "y": 90
     },
-    "facing=east,waterlogged=true": {
-      "model": "fluidlogistics:block/fluid_hatch",
+    "facing=east,open=false,waterlogged=true": {
+      "model": "fluidlogistics:block/fluid_hatch/block_closed",
       "y": 90
     },
-    "facing=north,waterlogged=false": {
-      "model": "fluidlogistics:block/fluid_hatch"
+    "facing=east,open=true,waterlogged=false": {
+      "model": "fluidlogistics:block/fluid_hatch/block_open",
+      "y": 90
     },
-    "facing=north,waterlogged=true": {
-      "model": "fluidlogistics:block/fluid_hatch"
+    "facing=east,open=true,waterlogged=true": {
+      "model": "fluidlogistics:block/fluid_hatch/block_open",
+      "y": 90
     },
-    "facing=south,waterlogged=false": {
-      "model": "fluidlogistics:block/fluid_hatch",
+    "facing=north,open=false,waterlogged=false": {
+      "model": "fluidlogistics:block/fluid_hatch/block_closed"
+    },
+    "facing=north,open=false,waterlogged=true": {
+      "model": "fluidlogistics:block/fluid_hatch/block_closed"
+    },
+    "facing=north,open=true,waterlogged=false": {
+      "model": "fluidlogistics:block/fluid_hatch/block_open"
+    },
+    "facing=north,open=true,waterlogged=true": {
+      "model": "fluidlogistics:block/fluid_hatch/block_open"
+    },
+    "facing=south,open=false,waterlogged=false": {
+      "model": "fluidlogistics:block/fluid_hatch/block_closed",
       "y": 180
     },
-    "facing=south,waterlogged=true": {
-      "model": "fluidlogistics:block/fluid_hatch",
+    "facing=south,open=false,waterlogged=true": {
+      "model": "fluidlogistics:block/fluid_hatch/block_closed",
       "y": 180
     },
-    "facing=west,waterlogged=false": {
-      "model": "fluidlogistics:block/fluid_hatch",
+    "facing=south,open=true,waterlogged=false": {
+      "model": "fluidlogistics:block/fluid_hatch/block_open",
+      "y": 180
+    },
+    "facing=south,open=true,waterlogged=true": {
+      "model": "fluidlogistics:block/fluid_hatch/block_open",
+      "y": 180
+    },
+    "facing=west,open=false,waterlogged=false": {
+      "model": "fluidlogistics:block/fluid_hatch/block_closed",
       "y": 270
     },
-    "facing=west,waterlogged=true": {
-      "model": "fluidlogistics:block/fluid_hatch",
+    "facing=west,open=false,waterlogged=true": {
+      "model": "fluidlogistics:block/fluid_hatch/block_closed",
+      "y": 270
+    },
+    "facing=west,open=true,waterlogged=false": {
+      "model": "fluidlogistics:block/fluid_hatch/block_open",
+      "y": 270
+    },
+    "facing=west,open=true,waterlogged=true": {
+      "model": "fluidlogistics:block/fluid_hatch/block_open",
       "y": 270
     }
   }

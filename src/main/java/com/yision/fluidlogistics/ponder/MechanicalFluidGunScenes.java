@@ -3,8 +3,8 @@ package com.yision.fluidlogistics.ponder;
 import com.simibubi.create.AllShapes;
 import com.simibubi.create.content.fluids.tank.FluidTankBlockEntity;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
-import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
-import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunTargetConfig;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunTargetConfig;
 import com.yision.fluidlogistics.registry.AllBlocks;
 
 import net.createmod.catnip.math.Pointing;

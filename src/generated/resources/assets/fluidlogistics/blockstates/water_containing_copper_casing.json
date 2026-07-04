@@ -1,7 +1,7 @@
 {
   "variants": {
     "": {
-      "model": "fluidlogistics:block/water_containing_copper_casing"
+      "model": "fluidlogistics:block/water_containing_copper_casing/block"
     }
   }
 }

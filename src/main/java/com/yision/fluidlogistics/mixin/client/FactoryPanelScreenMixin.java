@@ -26,11 +26,12 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelScreen;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.client.FluidAmountScrollInput;
+import com.yision.fluidlogistics.client.FluidTooltipHelper;
 import com.yision.fluidlogistics.client.FluidLogisticsGuiTextures;
-import com.yision.fluidlogistics.item.CompressedTankItem;
-import com.yision.fluidlogistics.network.FactoryPanelSetFluidAdditionalStockPacket;
-import com.yision.fluidlogistics.network.FactoryPanelSetFluidPromiseLimitPacket;
-import com.yision.fluidlogistics.network.FactoryPanelSetFluidRestockThresholdPacket;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidAdditionalStockPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidPromiseLimitPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidRestockThresholdPacket;
 import com.yision.fluidlogistics.util.IFluidAdditionalStock;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 import com.yision.fluidlogistics.util.FluidGaugeHelper;
@@ -43,6 +44,7 @@ import net.createmod.catnip.gui.element.RenderElement;
 import net.createmod.catnip.platform.CatnipServices;
 import net.createmod.catnip.platform.NeoForgeCatnipServices;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.network.chat.Component;
@@ -181,6 +183,8 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                     .style(ChatFormatting.ITALIC)
                     .component());
             }
+            FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluidlogistics$cachedFluid,
+                    Minecraft.getInstance().options.advancedItemTooltips);
             graphics.renderComponentTooltip(font, newTooltips, mouseX, mouseY);
             return;
         }
@@ -302,7 +306,8 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     @Unique
     private void fluidlogistics$configureFluidAmountInput(FluidAmountScrollInput input, int minValue,
         boolean allowUnlimited) {
-        input.withRange(minValue, FluidGaugeHelper.MAX_FLUID_AMOUNT + 1)
+        int maxBatch = FluidGaugeHelper.getMaxFluidRequestPerBatch();
+        input.withRange(minValue, maxBatch + 1)
             .withShiftStep(1)
             .withStepFunction(context -> {
                 if (allowUnlimited && context.currentValue < 0) {
@@ -310,7 +315,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                 }
 
                 int next = FluidAmountHelper.adjustFluidRequestAmount(context.currentValue, context.forward,
-                    context.shift, context.control, 0, FluidGaugeHelper.MAX_FLUID_AMOUNT);
+                    context.shift, context.control, 0, maxBatch);
                 return Math.max(1, Math.abs(next - context.currentValue));
             });
     }
@@ -482,8 +487,9 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             @Local BigItemStack itemStack) {
         if (FluidGaugeHelper.isVirtualFluidFilter(itemStack.stack)) {
             FactoryPanelScreen self = (FactoryPanelScreen) (Object) this;
+            int maxBatch = FluidGaugeHelper.getMaxFluidRequestPerBatch();
             return FluidAmountHelper.adjustFluidRequestAmount(itemStack.count, value > itemStack.count, self.hasShiftDown(),
-                self.hasControlDown(), 1, FluidGaugeHelper.MAX_FLUID_AMOUNT);
+                self.hasControlDown(), 1, maxBatch);
         }
         return Mth.clamp(value, min, max);
     }
@@ -570,7 +576,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                     .style(ChatFormatting.ITALIC)
                     .component();
 
-            graphics.renderComponentTooltip(font, List.of(c1, c2, c3, c4, c5), mouseX, mouseY);
+            List<Component> newTooltips = new ArrayList<>(List.of(c1, c2, c3, c4, c5));
+            FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluid,
+                    Minecraft.getInstance().options.advancedItemTooltips);
+            graphics.renderComponentTooltip(font, newTooltips, mouseX, mouseY);
             return;
         }
         graphics.renderComponentTooltip(font, tooltips, mouseX, mouseY);
@@ -596,7 +605,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             if (promised > 0) {
                 String fluidName = fluid.getHoverName().getString();
                 String amountText = FluidAmountHelper.formatPrecise(promised);
-                List<Component> newTooltips = List.of(
+                List<Component> newTooltips = new ArrayList<>(List.of(
                     CreateLang.translate("gui.factory_panel.promised_items")
                         .color(ScrollInput.HEADER_RGB)
                         .component(),
@@ -606,7 +615,9 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                         .style(ChatFormatting.DARK_GRAY)
                         .style(ChatFormatting.ITALIC)
                         .component()
-                );
+                ));
+                FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluid,
+                        Minecraft.getInstance().options.advancedItemTooltips);
                 graphics.renderComponentTooltip(font, newTooltips, mouseX, mouseY);
                 return;
             }

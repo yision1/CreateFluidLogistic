@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageItem;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 import com.yision.fluidlogistics.util.VirtualFluidDisplayHelper;
 

@@ -1,5 +1,7 @@
 package com.yision.fluidlogistics.mixin.logistics;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.simibubi.create.content.logistics.filter.AttributeFilterWhitelistMode;
 import com.simibubi.create.content.logistics.filter.FilterItemStack;
 import com.simibubi.create.content.logistics.item.filter.attribute.ItemAttribute;
@@ -9,13 +11,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 
 import java.util.List;
 
 @Mixin(FilterItemStack.AttributeFilterItemStack.class)
 public abstract class AttributeFilterItemStackMixin extends FilterItemStack {
+
     @Shadow
     public AttributeFilterWhitelistMode whitelistMode;
 
@@ -26,10 +28,14 @@ public abstract class AttributeFilterItemStackMixin extends FilterItemStack {
         super(filter);
     }
 
-    @Overwrite
-    public boolean test(Level world, FluidStack stack, boolean matchNBT) {
-        if (attributeTests.isEmpty())
-            return super.test(world, stack, matchNBT);
+    @WrapMethod(
+        method = "test(Lnet/minecraft/world/level/Level;Lnet/neoforged/neoforge/fluids/FluidStack;Z)Z",
+        remap = false)
+    private boolean fluidlogistics$testFluidAttributes(Level world, FluidStack stack, boolean matchNBT,
+            Operation<Boolean> original) {
+        if (attributeTests.isEmpty()) {
+            return original.call(world, stack, matchNBT);
+        }
 
         for (Pair<ItemAttribute, Boolean> test : attributeTests) {
             ItemAttribute itemAttribute = test.getFirst();

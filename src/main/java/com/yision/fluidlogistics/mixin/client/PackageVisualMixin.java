@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageVisual;
-import com.yision.fluidlogistics.item.FluidPackageItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 
 import dev.engine_room.flywheel.lib.instance.TransformedInstance;
 

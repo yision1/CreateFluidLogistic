@@ -11,7 +11,7 @@
       "tag": "c:ingots/copper"
     },
     {
-      "item": "create:item_drain"
+      "item": "create:item_hatch"
     }
   ],
   "result": {

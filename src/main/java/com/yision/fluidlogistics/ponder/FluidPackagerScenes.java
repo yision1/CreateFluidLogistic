@@ -1,9 +1,12 @@
 package com.yision.fluidlogistics.ponder;
 
+import com.simibubi.create.AllDataComponents;
+import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageItem;
+import com.simibubi.create.foundation.item.ItemHelper;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.registry.AllItems;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.PonderPalette;
@@ -77,7 +80,7 @@ public class FluidPackagerScenes {
 
         scene.idle(10);
 
-        ItemStack fluidPackage = new ItemStack(AllItems.RARE_FLUID_PACKAGE.get());
+        ItemStack fluidPackage = new ItemStack(AllItems.FLUID_PACKAGE.get());
         setFluidPackageContents(fluidPackage, new FluidStack(Fluids.WATER.getSource(), 1000));
         fluidPackagerCreate(scene, packagerPos, fluidPackage);
 
@@ -229,8 +232,8 @@ public class FluidPackagerScenes {
         ItemStack tankStack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
         CompressedTankItem.setFluid(tankStack, fluid);
         contents.setStackInSlot(0, tankStack);
-        packageStack.set(com.simibubi.create.AllDataComponents.PACKAGE_CONTENTS,
-                com.simibubi.create.foundation.item.ItemHelper.containerContentsFromHandler(contents));
+        packageStack.set(AllDataComponents.PACKAGE_CONTENTS,
+                ItemHelper.containerContentsFromHandler(contents));
     }
 
     public static void fluidPackagerAddress(SceneBuilder builder, SceneBuildingUtil util) {
@@ -294,7 +297,7 @@ public class FluidPackagerScenes {
                 .toggleRedstonePower(packagerAndLever);
         scene.effects()
                 .indicateRedstone(util.grid().at(5, 1, 4));
-        ItemStack fluidBox = new ItemStack(AllItems.RARE_FLUID_PACKAGE.get());
+        ItemStack fluidBox = new ItemStack(AllItems.FLUID_PACKAGE.get());
         setFluidPackageContents(fluidBox, new FluidStack(Fluids.WATER.getSource(), 1000));
         fluidPackagerCreate(scene, packager, fluidBox);
 
@@ -380,9 +383,9 @@ public class FluidPackagerScenes {
                 .pointAt(util.vector().of(4, 2.825, 4.5));
         scene.idle(70);
 
-        ItemStack warehouseFluidBox = new ItemStack(AllItems.RARE_FLUID_PACKAGE.get());
+        ItemStack warehouseFluidBox = new ItemStack(AllItems.FLUID_PACKAGE.get());
         setFluidPackageContents(warehouseFluidBox, new FluidStack(Fluids.WATER.getSource(), 1000));
-        ItemStack factoryFluidBox = new ItemStack(AllItems.RARE_FLUID_PACKAGE.get());
+        ItemStack factoryFluidBox = new ItemStack(AllItems.FLUID_PACKAGE.get());
         setFluidPackageContents(factoryFluidBox, new FluidStack(Fluids.LAVA.getSource(), 1000));
         PackageItem.addAddress(warehouseFluidBox, "Warehouse");
         PackageItem.addAddress(factoryFluidBox, "Factory");
@@ -503,8 +506,8 @@ public class FluidPackagerScenes {
                 .removeItemsFromBelt(beltPos);
         return scene.world()
                 .createEntity(level -> {
-                    com.simibubi.create.content.logistics.box.PackageEntity packageEntity = 
-                            new com.simibubi.create.content.logistics.box.PackageEntity(
+                    PackageEntity packageEntity =
+                            new PackageEntity(
                                     level, 
                                     beltPos.getX() + 0.5 + side.getStepX() * 0.675,
                                     beltPos.getY() + 0.875, 

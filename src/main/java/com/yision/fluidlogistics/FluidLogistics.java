@@ -9,28 +9,32 @@ import com.simibubi.create.foundation.item.KineticStats;
 import com.simibubi.create.foundation.item.TooltipModifier;
 import net.createmod.catnip.lang.FontHelper;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.block.WaterContainingCopperCasing.WaterContainingCopperCasingFluidHandler;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
-import com.yision.fluidlogistics.block.FluidRepackager.FluidRepackagerBlockEntity;
-import com.yision.fluidlogistics.block.FluidTransporter.FluidTransporterBlockEntity;
-import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
-import com.yision.fluidlogistics.block.InfiniteFluidTank.InfiniteFluidTankBlockEntity;
-import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortBlockEntity;
-import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlockEntity;
-import com.yision.fluidlogistics.block.SmartHopper.SmartHopperBlockEntity;
-import com.yision.fluidlogistics.block.CopperBasin.CopperBasinBlockEntity;
+import com.yision.fluidlogistics.content.fluids.waterContainingCopperCasing.WaterContainingCopperCasingFluidHandler;
+import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpNetworkUpdater;
+import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidRepackagerBlockEntity;
+import com.yision.fluidlogistics.content.logistics.fluidTransporter.FluidTransporterBlockEntity;
+import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidTankBlockEntity;
+import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortBlockEntity;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.content.logistics.smartHopper.SmartHopperBlockEntity;
+import com.yision.fluidlogistics.content.processing.copperBasin.CopperBasinBlockEntity;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.yision.fluidlogistics.registry.FluidLogisticsArmInteractionPointTypes;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.AllBlocks;
 import com.simibubi.create.content.logistics.box.PackageItem;
-import com.yision.fluidlogistics.item.CompressedTankFluidHandler;
-import com.yision.fluidlogistics.item.CompressedTankItem;
-import com.yision.fluidlogistics.item.CompressedTankTooltipModifier;
-import com.yision.fluidlogistics.item.InfiniteFluidTankItem;
+import com.simibubi.create.foundation.item.ItemHelper;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankFluidHandler;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankTooltipModifier;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageFluidHandler;
+import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidTankItem;
 import com.yision.fluidlogistics.registry.AllDataComponents;
 import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.registry.AllMenuTypes;
+import com.yision.fluidlogistics.registry.AllMountedStorageTypes;
 import com.yision.fluidlogistics.registry.AllConditionCodecs;
 import com.yision.fluidlogistics.registry.AllFluidAttributeTypes;
 import com.yision.fluidlogistics.registry.FluidLogisticsUnpackingHandlers;
@@ -55,6 +59,7 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -107,6 +112,8 @@ public class FluidLogistics {
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(this::hideDisabledItems);
+        modEventBus.addListener(AllItems::registerAliases);
+        modEventBus.addListener(FeatureToggle::onConfigChanged);
 
         NeoForge.EVENT_BUS.register(this);
         LOGGER.info("FluidLogistics initialized!");
@@ -116,7 +123,7 @@ public class FluidLogistics {
         event.enqueueWork(() -> {
             FluidLogisticsPackets.register();
             ArmInteractionPointType.init();
-            com.yision.fluidlogistics.registry.AllMountedStorageTypes.register();
+            AllMountedStorageTypes.register();
             FluidLogisticsUnpackingHandlers.registerDefaults();
             BlockStressValues.IMPACTS.register(AllBlocks.FLUID_PUMP.get(), () -> 8.0);
             BlockStressValues.IMPACTS.register(AllBlocks.MECHANICAL_FLUID_GUN.get(), () -> 2.0);
@@ -135,21 +142,17 @@ public class FluidLogistics {
         InfiniteFluidTankBlockEntity.registerCapabilities(event);
         CopperBasinBlockEntity.registerCapabilities(event);
         event.registerBlock(Capabilities.FluidHandler.BLOCK,
-                (level, pos, state, blockEntity, side) -> {
-                    if (!FeatureToggle.isEnabled(FeatureToggle.WATER_CONTAINING_COPPER_CASING)) {
-                        return null;
-                    }
-                    return WaterContainingCopperCasingFluidHandler.INSTANCE;
-                },
+                (level, pos, state, blockEntity, side) -> WaterContainingCopperCasingFluidHandler.INSTANCE,
                 AllBlocks.WATER_CONTAINING_COPPER_CASING.get());
         event.registerItem(Capabilities.FluidHandler.ITEM,
-                (stack, context) -> {
-                    if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-                        return null;
-                    }
-                    return new CompressedTankFluidHandler(stack);
-                },
+                (stack, context) -> new CompressedTankFluidHandler(stack),
                 AllItems.COMPRESSED_STORAGE_TANK.get());
+        event.registerItem(Capabilities.FluidHandler.ITEM,
+                (stack, context) -> new FluidPackageFluidHandler(stack),
+                AllItems.FLUID_PACKAGE.get(),
+                AllItems.FLUID_PACKAGE_EXPOSED.get(),
+                AllItems.FLUID_PACKAGE_OXIDIZED.get(),
+                AllItems.FLUID_PACKAGE_WEATHERED.get());
 
     }
 
@@ -200,8 +203,7 @@ public class FluidLogistics {
             new FeatureItem(FeatureToggle.FLUID_PACKAGER, AllBlocks.FLUID_PACKAGER),
             new FeatureItem(FeatureToggle.FLUID_REPACKAGER, AllBlocks.FLUID_REPACKAGER),
             new FeatureItem(FeatureToggle.COMPRESSED_STORAGE_TANK, AllItems.COMPRESSED_STORAGE_TANK),
-            new FeatureItem(FeatureToggle.RARE_FLUID_PACKAGE, AllItems.RARE_FLUID_PACKAGE),
-            new FeatureItem(FeatureToggle.RARE_FLUID_PACKAGE, AllItems.FLUID_PACKAGE_2),
+            new FeatureItem(FeatureToggle.FLUID_PACKAGE, AllItems.FLUID_PACKAGE),
             new FeatureItem(FeatureToggle.FLUID_HATCH, AllBlocks.FLUID_HATCH),
     };
 
@@ -214,14 +216,19 @@ public class FluidLogistics {
         LOGGER.info("FluidLogistics server starting!");
     }
 
+    @net.neoforged.bus.api.SubscribeEvent
+    public void onServerStopped(ServerStoppedEvent event) {
+        FluidPumpNetworkUpdater.clearLoadedFluidPumpCounts();
+    }
+
     private static ItemStack createWaterFluidPackage(int amount) {
-        ItemStack packageStack = new ItemStack(AllItems.RARE_FLUID_PACKAGE.get());
+        ItemStack packageStack = new ItemStack(AllItems.FLUID_PACKAGE.get());
         ItemStackHandler contents = new ItemStackHandler(PackageItem.SLOTS);
         ItemStack tankStack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
         CompressedTankItem.setFluid(tankStack, new FluidStack(Fluids.WATER, amount));
         contents.setStackInSlot(0, tankStack);
         packageStack.set(com.simibubi.create.AllDataComponents.PACKAGE_CONTENTS,
-                com.simibubi.create.foundation.item.ItemHelper.containerContentsFromHandler(contents));
+                ItemHelper.containerContentsFromHandler(contents));
         return packageStack;
     }
 }

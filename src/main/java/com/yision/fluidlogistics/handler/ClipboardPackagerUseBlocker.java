@@ -1,15 +1,14 @@
 package com.yision.fluidlogistics.handler;
 
 import com.simibubi.create.AllBlocks;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.util.PackagerTargetHelper;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.bus.api.EventPriority;
@@ -22,9 +21,6 @@ public class ClipboardPackagerUseBlocker {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         if (event.isCanceled() || !shouldBlockClipboardUse(event.getItemStack(), event.getEntity())) {
             return;
@@ -40,9 +36,6 @@ public class ClipboardPackagerUseBlocker {
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         if (event.isCanceled() || !shouldBlockClipboardUse(event.getItemStack(), event.getEntity())) {
             return;
@@ -66,8 +59,6 @@ public class ClipboardPackagerUseBlocker {
     }
 
     private static boolean isBlockedPackager(Level level, BlockPos pos) {
-        BlockState state = level.getBlockState(pos);
-        return AllBlocks.PACKAGER.has(state)
-            || com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
+        return PackagerTargetHelper.isClipboardAddressBlock(level.getBlockState(pos));
     }
 }

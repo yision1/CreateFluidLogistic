@@ -1,7 +1,7 @@
 package com.yision.fluidlogistics.filter.attribute;
 
 import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import net.createmod.catnip.data.Pair;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;

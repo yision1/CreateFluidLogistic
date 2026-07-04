@@ -2,8 +2,8 @@ package com.yision.fluidlogistics.handler;
 
 import com.simibubi.create.AllBlocks;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.network.ClipboardSetAddressPacket;
+import com.yision.fluidlogistics.util.PackagerTargetHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
@@ -18,9 +18,6 @@ public class ClipboardPasteHandler {
 
     @SubscribeEvent
     public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         ItemStack heldItem = event.getItemStack();
         if (!AllBlocks.CLIPBOARD.isIn(heldItem)) {
@@ -32,8 +29,7 @@ public class ClipboardPasteHandler {
 
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
-        if (!AllBlocks.PACKAGER.has(level.getBlockState(pos))
-            && !com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(level.getBlockState(pos))) {
+        if (!PackagerTargetHelper.isClipboardAddressBlock(level.getBlockState(pos))) {
             return;
         }
 

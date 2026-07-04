@@ -12,25 +12,12 @@ import net.neoforged.neoforge.fluids.FluidStack;
 @OnlyIn(Dist.CLIENT)
 public class FluidSlotRenderer {
 
-    public static void renderFluidInWorld(FluidStack stack, PoseStack ms, MultiBufferSource buffer, int light) {
-        if (stack.isEmpty() || stack.getFluid() == Fluids.EMPTY) {
-            return;
-        }
-
-        FluidStack renderStack = stack;
-        if (stack.getAmount() == 0) {
-            renderStack = stack.copyWithAmount(1);
-        }
-
-        float size = 1.0f / 5.0f;
-        NeoForgeCatnipServices.FLUID_RENDERER.renderFluidBox(
-                renderStack,
-                -size, -size, -1.0f / 32.0f,
-                size, size, 0,
-                buffer, ms, light, true, false);
+    public static void renderFluidItemIcon(FluidStack stack, PoseStack ms, MultiBufferSource buffer, int light) {
+        renderFluidItemIcon(stack, ms, buffer, light, 0.5f);
     }
 
-    public static void renderFluidItemIcon(FluidStack stack, PoseStack ms, MultiBufferSource buffer, int light) {
+    public static void renderFluidItemIcon(FluidStack stack, PoseStack ms, MultiBufferSource buffer, int light,
+            float halfSize) {
         if (stack.isEmpty() || stack.getFluid() == Fluids.EMPTY) {
             return;
         }
@@ -43,8 +30,8 @@ public class FluidSlotRenderer {
         float depth = 1.0f / 32.0f;
         NeoForgeCatnipServices.FLUID_RENDERER.renderFluidBox(
                 renderStack,
-                -0.5f, -0.5f, -depth,
-                0.5f, 0.5f, 0,
+                -halfSize, -halfSize, -depth,
+                halfSize, halfSize, 0,
                 buffer, ms, light, true, false);
     }
 }

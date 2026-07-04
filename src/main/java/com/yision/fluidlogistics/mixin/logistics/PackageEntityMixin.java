@@ -17,8 +17,8 @@ import com.simibubi.create.foundation.utility.FluidFormatter;
 import com.yision.fluidlogistics.compat.CompatMods;
 import com.yision.fluidlogistics.compat.createenchantmentindustry.CreateEnchantmentIndustryCompat;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.item.CompressedTankItem;
-import com.yision.fluidlogistics.item.FluidPackageItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 
 import net.createmod.catnip.data.Couple;
 import net.minecraft.ChatFormatting;

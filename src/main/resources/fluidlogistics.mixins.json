@@ -6,6 +6,7 @@
     "compatibilityLevel": "JAVA_21",
     "mixins": [
         "accessor.ArmBlockEntityAccessor",
+        "accessor.LogisticallyLinkedBehaviourAccessor",
         "accessor.StockTickerBlockEntityAccessor",
         "fluids.FluidPropagatorMixin",
         "kinetics.BeltInventoryMixin",
@@ -15,6 +16,7 @@
         "kinetics.ChainConveyorConnectionPacketMixin",
         "kinetics.SawBlockEntityMixin",
         "logistics.AttributeFilterItemStackMixin",
+        "logistics.FilterItemStackVirtualFluidMixin",
         "logistics.FactoryPanelBehaviourLegacyLinkCleanupMixin",
         "logistics.FactoryPanelBehaviourMixin",
         "logistics.FactoryPanelRestockThresholdMixin",
@@ -43,7 +45,6 @@
         "client.RedstoneRequesterScreenMixin",
         "client.StockKeeperTransferHandlerMixin",
         "client.StockKeeperRequestScreenMixin",
-        "client.ValueBoxRendererMixin",
         "item.PackageItemMixin"
     ],
     "injectors": {

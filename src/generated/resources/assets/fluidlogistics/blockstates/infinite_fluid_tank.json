@@ -1,7 +1,7 @@
 {
   "variants": {
     "": {
-      "model": "fluidlogistics:block/infinite_fluid_tank"
+      "model": "fluidlogistics:block/infinite_fluid_tank/block"
     }
   }
 }
