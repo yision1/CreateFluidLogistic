@@ -551,7 +551,6 @@ public class FluidPumpBlock extends PumpBlock {
 	@Override
 	public void tick(BlockState state, ServerLevel world, BlockPos pos, RandomSource r) {
 		FluidPropagator.propagateChangedPipe(world, pos, state);
-		FluidPumpNetworkUpdater.propagateChangedPipeForFluidPumps(world, pos, state);
 	}
 
 	@Override
@@ -559,7 +558,6 @@ public class FluidPumpBlock extends PumpBlock {
 		boolean blockTypeChanged = !state.is(newState.getBlock());
 		if (blockTypeChanged && !world.isClientSide) {
 			FluidPropagator.propagateChangedPipe(world, pos, state);
-			FluidPumpNetworkUpdater.propagateChangedPipeForFluidPumps(world, pos, state);
 		}
 		super.onRemove(state, world, pos, newState, isMoving);
 	}

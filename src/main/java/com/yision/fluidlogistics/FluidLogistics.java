@@ -10,6 +10,7 @@ import com.simibubi.create.foundation.item.TooltipModifier;
 import net.createmod.catnip.lang.FontHelper;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.fluids.waterContainingCopperCasing.WaterContainingCopperCasingFluidHandler;
+import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpNetworkUpdater;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidRepackagerBlockEntity;
 import com.yision.fluidlogistics.content.logistics.fluidTransporter.FluidTransporterBlockEntity;
@@ -58,6 +59,7 @@ import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -212,6 +214,11 @@ public class FluidLogistics {
     @net.neoforged.bus.api.SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
         LOGGER.info("FluidLogistics server starting!");
+    }
+
+    @net.neoforged.bus.api.SubscribeEvent
+    public void onServerStopped(ServerStoppedEvent event) {
+        FluidPumpNetworkUpdater.clearLoadedFluidPumpCounts();
     }
 
     private static ItemStack createWaterFluidPackage(int amount) {

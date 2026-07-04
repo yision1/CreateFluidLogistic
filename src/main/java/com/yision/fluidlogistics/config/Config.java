@@ -86,7 +86,7 @@ public class Config {
             .define("smartHopperEnabled", SMART_HOPPER_ENABLED_DEFAULT);
 
     public static final ModConfigSpec.BooleanValue FLUID_PUMP_ENABLED = BUILDER
-            .comment("Controls whether Fluid Pump appears in creative tabs; mechanics remain active")
+            .comment("Controls whether Fluid Pump is advertised and whether its network updater is active")
             .translation("block.fluidlogistics.fluid_pump")
             .define("fluidPumpEnabled", FLUID_PUMP_ENABLED_DEFAULT);
 

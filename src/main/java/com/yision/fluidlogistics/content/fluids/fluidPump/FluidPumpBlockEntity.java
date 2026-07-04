@@ -52,6 +52,7 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 	private boolean defaultDirectionInitialized;
 	private boolean fluidPumpPressureUpdate;
 	private boolean directionReady;
+	private boolean registeredForPropagation;
 	private AxisDirection selectedFluidDirection = AxisDirection.POSITIVE;
 	private ScrollOptionBehaviour<FluidTransferDirection> directionSelector;
 
@@ -91,7 +92,28 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 	@Override
 	public void initialize() {
 		super.initialize();
+		registerForPropagation();
 		initializeDefaultDirection();
+	}
+
+	private void registerForPropagation() {
+		if (registeredForPropagation || level == null || level.isClientSide)
+			return;
+		registeredForPropagation = true;
+		FluidPumpNetworkUpdater.onFluidPumpLoaded(level);
+	}
+
+	@Override
+	public void invalidate() {
+		unregisterForPropagation();
+		super.invalidate();
+	}
+
+	private void unregisterForPropagation() {
+		if (!registeredForPropagation || level == null || level.isClientSide)
+			return;
+		registeredForPropagation = false;
+		FluidPumpNetworkUpdater.onFluidPumpUnloaded(level);
 	}
 
 	private void initializeDefaultDirection() {
@@ -104,7 +126,6 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 		directionReady = true;
 		syncDirectionSelectorWithBlockState();
 		updatePressureChange();
-		FluidPumpNetworkUpdater.propagateChangedPipeForFluidPumps(level, worldPosition, getBlockState());
 		notifyUpdate();
 	}
 
@@ -136,7 +157,6 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 		directionManuallyConfigured = true;
 
 		updatePressureChange();
-		FluidPumpNetworkUpdater.propagateChangedPipeForFluidPumps(level, worldPosition, getBlockState());
 
 		if (!wasManuallyConfigured && hasSource()) {
 			detachKinetics();
@@ -163,7 +183,6 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 		directionReady = true;
 		syncDirectionSelectorWithBlockState();
 		updatePressureChange();
-		FluidPumpNetworkUpdater.propagateChangedPipeForFluidPumps(level, worldPosition, getBlockState());
 		notifyUpdate();
 	}
 
