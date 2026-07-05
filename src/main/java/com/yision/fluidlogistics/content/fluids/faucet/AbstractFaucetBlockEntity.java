@@ -19,6 +19,7 @@ import com.yision.fluidlogistics.compat.kaleidoscopetavern.KaleidoscopeTavernCom
 import com.yision.fluidlogistics.compat.sable.SableSublevelTargetHelper;
 import com.yision.fluidlogistics.content.fluids.infiniteWater.InfiniteWaterSource;
 import com.yision.fluidlogistics.content.fluids.faucet.network.FaucetDripParticlePacket;
+import com.yision.fluidlogistics.util.MergedFluidDisplayHandler;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -213,7 +214,7 @@ public abstract class AbstractFaucetBlockEntity extends SmartBlockEntity {
             return null;
         }
 
-        FaucetFluidDisplayHandler display = new FaucetFluidDisplayHandler(source, this::testFluidFilter);
+        MergedFluidDisplayHandler display = new MergedFluidDisplayHandler(source, this::testFluidFilter);
         return display.getTanks() == 0 ? null : display;
     }
 

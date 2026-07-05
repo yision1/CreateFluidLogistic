@@ -21,8 +21,6 @@ public class AllPartialModels {
     public static final PartialModel FLUID_REPACKAGER_TRAY = block("fluid_repackager/tray");
     public static final Map<Direction, PartialModel> FAUCET_SOURCE_INTERFACE = new EnumMap<>(Direction.class);
 
-    public static final PartialModel FLUID_PUMP_SHAFT = block("fluid_pump/shaft");
-
     public static final PartialModel MECHANICAL_FLUID_GUN_BASE = block("mechanical_fluid_gun/base");
     public static final PartialModel MECHANICAL_FLUID_GUN_COG = block("mechanical_fluid_gun/cog");
     public static final PartialModel MECHANICAL_FLUID_GUN_GUN_BODY = block("mechanical_fluid_gun/gun_body");
