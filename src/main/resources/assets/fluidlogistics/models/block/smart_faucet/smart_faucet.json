@@ -1,5 +1,5 @@
 {
-  "parent": "fluidlogistics:block/faucet/base_closed",
+  "parent": "fluidlogistics:block/faucet/faucet",
   "textures": {
     "body": "fluidlogistics:block/smart_faucet/smart_faucet",
     "pipes": "fluidlogistics:block/smart_faucet/smart_faucet_pipes",

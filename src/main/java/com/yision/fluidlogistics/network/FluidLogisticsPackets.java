@@ -1,6 +1,21 @@
 package com.yision.fluidlogistics.network;
 
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerArmPlacementPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerAuthorizeLogisticsNetworkPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerClearClipboardAddressPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerLogisticsNetworkPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerDisplayLinkConfigurationPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerFrogportConnectionPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerMailboxStationConnectionPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerOpenFilterMenuPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerPackagerTogglePacket;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.network.MechanicalFluidGunPackets;
+import com.yision.fluidlogistics.content.fluids.faucet.network.FaucetDripParticlePacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidAdditionalStockPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidFilterPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidPromiseLimitPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidRestockThresholdPacket;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -132,6 +147,26 @@ public class FluidLogisticsPackets {
             })
             .add();
 
+        CHANNEL.messageBuilder(HandPointerLogisticsNetworkPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+            .encoder(HandPointerLogisticsNetworkPacket::write)
+            .decoder(HandPointerLogisticsNetworkPacket::new)
+            .consumerNetworkThread((packet, contextSupplier) -> {
+                if (packet.handle(contextSupplier.get())) {
+                    contextSupplier.get().setPacketHandled(true);
+                }
+            })
+            .add();
+
+        CHANNEL.messageBuilder(HandPointerAuthorizeLogisticsNetworkPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+            .encoder(HandPointerAuthorizeLogisticsNetworkPacket::write)
+            .decoder(HandPointerAuthorizeLogisticsNetworkPacket::new)
+            .consumerNetworkThread((packet, contextSupplier) -> {
+                if (packet.handle(contextSupplier.get())) {
+                    contextSupplier.get().setPacketHandled(true);
+                }
+            })
+            .add();
+
         CHANNEL.messageBuilder(ClipboardSetAddressPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
             .encoder(ClipboardSetAddressPacket::write)
             .decoder(ClipboardSetAddressPacket::new)
@@ -142,9 +177,9 @@ public class FluidLogisticsPackets {
             })
             .add();
 
-        CHANNEL.messageBuilder(SmartFaucetDripParticlePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
-            .encoder(SmartFaucetDripParticlePacket::write)
-            .decoder(SmartFaucetDripParticlePacket::new)
+        CHANNEL.messageBuilder(FaucetDripParticlePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(FaucetDripParticlePacket::write)
+            .decoder(FaucetDripParticlePacket::new)
             .consumerNetworkThread((packet, contextSupplier) -> {
                 if (packet.handle(contextSupplier.get())) {
                     contextSupplier.get().setPacketHandled(true);

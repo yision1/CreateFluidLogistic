@@ -22,7 +22,7 @@ import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScree
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.client.FluidTooltipHelper;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 import com.yision.fluidlogistics.util.FluidGaugeHelper;
@@ -179,7 +179,7 @@ public abstract class StockKeeperRequestScreenMixin {
         if (fluidlogistics$isNoHoveredSlot(hoveredSlot)) {
             return;
         }
-        if (hoveredSlot.getFirst() >= 0 && !Screen.hasShiftDown() && !Screen.hasControlDown() && getMaxScroll() != 0) {
+        if (hoveredSlot.getFirst() >= 0 && !Screen.hasShiftDown() && getMaxScroll() != 0) {
             return;
         }
         if (hoveredSlot.getFirst() == -2) {
@@ -222,8 +222,7 @@ public abstract class StockKeeperRequestScreenMixin {
             return;
         }
 
-        IFluidCraftableBigItemStack data = (IFluidCraftableBigItemStack) cbis;
-        int delta = fluidlogistics$getRecipeStepAmount(data);
+        int delta = fluidlogistics$getFluidRecipeStepAmount();
         if (button == 1) {
             delta = -delta;
         }
@@ -251,8 +250,7 @@ public abstract class StockKeeperRequestScreenMixin {
             return;
         }
 
-        IFluidCraftableBigItemStack data = (IFluidCraftableBigItemStack) cbis;
-        int delta = fluidlogistics$getRecipeStepAmount(data) * steps;
+        int delta = fluidlogistics$getFluidRecipeStepAmount() * steps;
         if (scrollDelta < 0) {
             delta = -delta;
         }
@@ -296,7 +294,7 @@ public abstract class StockKeeperRequestScreenMixin {
     private void fluidlogistics$recipeTooltip(GuiGraphics graphics, Font font, List<Component> tooltipLines, int mouseX,
             int mouseY, @Local(name = "lines") ArrayList<Component> lines, @Local(name = "entry") BigItemStack entry) {
         if (FluidGaugeHelper.isVirtualFluidFilter(entry.stack)) {
-            ArrayList<Component> fluidLines = fluidlogistics$getPreciseFluidTooltipLines(entry, true);
+            ArrayList<Component> fluidLines = fluidlogistics$getPreciseFluidTooltipLines(entry, true, true);
             if (!fluidLines.isEmpty()) {
                 graphics.renderComponentTooltip(font, fluidLines, mouseX, mouseY);
                 return;
@@ -319,7 +317,8 @@ public abstract class StockKeeperRequestScreenMixin {
     private void fluidlogistics$itemTooltip(GuiGraphics graphics, Font font, ItemStack stack, int mouseX, int mouseY,
             @Local(name = "entry") BigItemStack entry) {
         if (fluidlogistics$isBottomOrderEntry(entry) && FluidGaugeHelper.isVirtualFluidFilter(entry.stack)) {
-            ArrayList<Component> lines = fluidlogistics$getPreciseFluidTooltipLines(entry, false);
+            boolean orderHovered = getHoveredSlot(mouseX, mouseY).getFirst() == -1;
+            ArrayList<Component> lines = fluidlogistics$getPreciseFluidTooltipLines(entry, false, orderHovered);
             if (!lines.isEmpty()) {
                 graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
                 return;
@@ -493,7 +492,7 @@ public abstract class StockKeeperRequestScreenMixin {
 
     @Unique
     private static ArrayList<Component> fluidlogistics$getPreciseFluidTooltipLines(BigItemStack entry,
-            boolean recipeHovered) {
+            boolean recipeHovered, boolean showAmount) {
         ArrayList<Component> lines = new ArrayList<>(
             FluidTooltipHelper.getVirtualCompressedTankTooltipLines(entry.stack, fluidlogistics$getFluidTooltipFlag()));
         if (lines.isEmpty()) {
@@ -502,9 +501,11 @@ public abstract class StockKeeperRequestScreenMixin {
         if (recipeHovered) {
             lines.set(0, CreateLang.translateDirect("gui.stock_keeper.craft", lines.get(0).copy()));
         }
-        lines.add(1, CreateLang.text("x" + FluidAmountHelper.formatPrecise(entry.count))
-            .style(ChatFormatting.DARK_GRAY)
-            .component());
+        if (showAmount) {
+            lines.add(1, CreateLang.text("x" + FluidAmountHelper.formatPrecise(entry.count))
+                .style(ChatFormatting.DARK_GRAY)
+                .component());
+        }
         return lines;
     }
 
@@ -540,7 +541,7 @@ public abstract class StockKeeperRequestScreenMixin {
             newAmount = FluidAmountHelper.adjustFluidRequestAmount(current, forward, Screen.hasShiftDown(),
                 Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
         } else {
-            newAmount = FluidAmountHelper.adjustStockTickerFluidRequestAmount(current, forward, Screen.hasShiftDown(),
+            newAmount = FluidAmountHelper.adjustStockKeeperFluidRequestAmount(current, forward, Screen.hasShiftDown(),
                 Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
         }
         if (newAmount <= 0) {
@@ -552,15 +553,8 @@ public abstract class StockKeeperRequestScreenMixin {
     }
 
     @Unique
-    private int fluidlogistics$getRecipeStepAmount(IFluidCraftableBigItemStack data) {
-        int outputCount = Math.max(1, data.fluidlogistics$getCustomOutputCount());
-        if (Screen.hasShiftDown()) {
-            return Math.max(outputCount, data.fluidlogistics$getCustomTransferLimit());
-        }
-        if (Screen.hasControlDown()) {
-            return outputCount * 10;
-        }
-        return outputCount;
+    private int fluidlogistics$getFluidRecipeStepAmount() {
+        return FluidAmountHelper.getStockKeeperFluidRequestStep(Screen.hasShiftDown(), Screen.hasControlDown());
     }
 
     @Unique

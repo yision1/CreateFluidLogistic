@@ -18,9 +18,10 @@ import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity;
-import com.yision.fluidlogistics.goggle.PackagerGoggleInfo;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackager.PackagerGoggleInfo;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
+import com.yision.fluidlogistics.util.PackagerTargetHelper;
 
 import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.Direction;
@@ -74,6 +75,9 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
         PackagerBlockEntity packager = (PackagerBlockEntity) (Object) this;
         Level level = packager.getLevel();
         if (level == null || level.isClientSide) {
+            return;
+        }
+        if (!PackagerTargetHelper.isClipboardAddressBlock(packager.getBlockState())) {
             return;
         }
 
@@ -147,6 +151,15 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
             }
             PackagerGoggleInfo.addToTooltip(tooltip, "", fluidlogistics$manualOverrideLocked, true,
                 false, cachedPackageCount);
+            return true;
+        }
+
+        boolean showsAddress = PackagerTargetHelper.isClipboardAddressBlock(state);
+        if (!showsAddress) {
+            if (!fluidlogistics$manualOverrideLocked) {
+                return false;
+            }
+            PackagerGoggleInfo.addPackagerManualOverrideOnlyToTooltip(tooltip);
             return true;
         }
 

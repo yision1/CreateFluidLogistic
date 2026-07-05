@@ -2,12 +2,15 @@ package com.yision.fluidlogistics.compat.kaleidoscopetavern;
 
 import com.github.ysbbbbbb.kaleidoscopetavern.api.blockentity.ITapBehavior;
 import com.github.ysbbbbbb.kaleidoscopetavern.game.tap.TapBehaviorManager;
-import com.yision.fluidlogistics.block.Faucet.AbstractFaucetBlock;
+import com.yision.fluidlogistics.compat.CompatMods;
+import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlock;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -16,12 +19,28 @@ import net.minecraftforge.fluids.FluidStack;
 
 public final class KaleidoscopeTavernCompat {
     private static final int DISPLAY_AMOUNT = 250;
+    private static final ResourceLocation KT_BARREL =
+        new ResourceLocation(CompatMods.KALEIDOSCOPE_TAVERN, "barrel");
 
     private KaleidoscopeTavernCompat() {
     }
 
     public static boolean hasTapBehavior(BlockState sourceState) {
-        return TapBehaviorManager.contains(sourceState.getBlock());
+        if (!isKnownTapSource(sourceState)) {
+            return false;
+        }
+        return TapBehaviorManager.contains(sourceState);
+    }
+
+    private static boolean isKnownTapSource(BlockState state) {
+        return state.is(Blocks.WATER_CAULDRON)
+            || state.is(Blocks.LAVA_CAULDRON)
+            || state.is(Blocks.BEE_NEST)
+            || state.is(Blocks.BEEHIVE)
+            || state.is(Blocks.DRAGON_HEAD)
+            || state.is(Blocks.DRAGON_WALL_HEAD)
+            || state.is(Blocks.MELON)
+            || KT_BARREL.equals(BuiltInRegistries.BLOCK.getKey(state.getBlock()));
     }
 
     public static @Nullable TapOperation prepare(
@@ -82,7 +101,7 @@ public final class KaleidoscopeTavernCompat {
         if (!hasTapBehavior(sourceState)) {
             return null;
         }
-        return TapBehaviorManager.get(sourceState.getBlock());
+        return TapBehaviorManager.get(sourceState);
     }
 
     private static TapContext resolve(Level level, BlockPos faucetPos, BlockState faucetState) {

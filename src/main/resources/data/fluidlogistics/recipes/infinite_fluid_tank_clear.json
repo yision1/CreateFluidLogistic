@@ -6,6 +6,7 @@
       "feature": "fluidlogistics:infinite_fluid_tank"
     }
   ],
+  "category": "misc",
   "ingredients": [
     {
       "item": "fluidlogistics:infinite_fluid_tank"

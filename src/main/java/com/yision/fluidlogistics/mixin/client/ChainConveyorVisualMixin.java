@@ -7,10 +7,10 @@ import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEnti
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorPackage;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorVisual;
 import com.simibubi.create.content.logistics.box.PackageItem;
-import com.yision.fluidlogistics.client.phantomchain.PhantomChainVisibility;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.phantomChain.PhantomChainVisibility;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.item.FluidPackageItem;
-import com.yision.fluidlogistics.render.FluidPackageItemRenderer;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
 import com.yision.fluidlogistics.render.FluidVisual;
 import dev.engine_room.flywheel.api.visual.DynamicVisual;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
@@ -20,6 +20,7 @@ import net.createmod.catnip.math.VecHelper;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.phys.Vec3;
@@ -32,7 +33,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.Map;
-import net.minecraft.util.Mth;
 
 @Mixin(value = ChainConveyorVisual.class, remap = false)
 public abstract class ChainConveyorVisualMixin {
@@ -40,20 +40,8 @@ public abstract class ChainConveyorVisualMixin {
     @Unique
     private FluidVisual fluidlogistics$fluidVisual;
 
-    @Unique
-    private static final float fluidlogistics$CHAIN_FLUID_Y_OFFSET = 21f / 16f;
-
-    @Unique
-    private static final float fluidlogistics$CHAIN_FLUID_EXTRA_Y_OFFSET = 5f / 16f;
-
-    @Unique
-    private static final float fluidlogistics$CHAIN_FLUID_XZ_OFFSET = .5f;
-
     @Inject(method = "<init>", at = @At("RETURN"), remap = false)
     private void fluidlogistics$ctor(VisualizationContext context, ChainConveyorBlockEntity blockEntity, float partialTick, CallbackInfo ci) {
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
         fluidlogistics$fluidVisual = new FluidVisual(context, false, true);
     }
 
@@ -154,12 +142,11 @@ public abstract class ChainConveyorVisualMixin {
             buf.rotateXDegrees(xRot);
             buf.uncenter();
             buf.translate(0, -PackageItem.getHookDistance(box.item) + 7 / 16f, 0);
-            buf.translate(fluidlogistics$CHAIN_FLUID_XZ_OFFSET, 0, fluidlogistics$CHAIN_FLUID_XZ_OFFSET);
-            buf.translateY(fluidlogistics$CHAIN_FLUID_Y_OFFSET);
-            buf.translateY(fluidlogistics$CHAIN_FLUID_EXTRA_Y_OFFSET);
             fluidlogistics$fluidVisual.setupBuffer(fluid, Config.getFluidPerPackage(), buf, i,
-                FluidPackageItemRenderer.PACKAGE_VISUAL_WIDTH,
-                FluidPackageItemRenderer.PACKAGE_VISUAL_HEIGHT);
+                    FluidPackageItemRenderer.FLUID_MIN_XZ,
+                    FluidPackageItemRenderer.FLUID_MAX_XZ,
+                    FluidPackageItemRenderer.FLUID_MIN_Y,
+                    FluidPackageItemRenderer.FLUID_MAX_Y);
             buf.light(light);
             buf.setChanged();
         }

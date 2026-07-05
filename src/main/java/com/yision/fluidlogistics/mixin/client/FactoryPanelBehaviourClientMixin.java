@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
-import com.yision.fluidlogistics.network.FactoryPanelSetFluidFilterPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidFilterPacket;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 
 import net.minecraft.client.Minecraft;

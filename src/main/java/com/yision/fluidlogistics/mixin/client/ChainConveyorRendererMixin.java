@@ -15,10 +15,10 @@ import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorPackage;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorRenderer;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.client.phantomchain.PhantomChainVisibility;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.phantomChain.PhantomChainVisibility;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.item.FluidPackageItem;
-import com.yision.fluidlogistics.render.FluidPackageItemRenderer;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
 import net.createmod.catnip.math.AngleHelper;
 import net.createmod.catnip.math.VecHelper;
 import net.createmod.catnip.render.SuperByteBuffer;
@@ -127,10 +127,6 @@ public class ChainConveyorRendererMixin {
                                             @Local(ordinal = 1) SuperByteBuffer boxBuffer,
                                             @Local(ordinal = 1) int light) {
         original.call(instance, ms, vertexConsumer);
-
-        if (!Config.isAdvancedLogisticsNetworkEnabled()) {
-            return;
-        }
 
         if (boxBuffer == instance && box.item.getItem() instanceof FluidPackageItem) {
             ChainConveyorPackage.ChainConveyorPackagePhysicsData physicsData = box.physicsData(be.getLevel());

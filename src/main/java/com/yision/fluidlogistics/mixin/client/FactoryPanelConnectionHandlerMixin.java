@@ -5,7 +5,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelConnectionHandler;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;

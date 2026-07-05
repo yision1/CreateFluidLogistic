@@ -12,7 +12,7 @@
       "item": "create:railway_casing"
     },
     "O": {
-      "item": "minecraft:obsidian"
+      "tag": "forge:obsidian"
     },
     "R": {
       "item": "minecraft:netherite_ingot"

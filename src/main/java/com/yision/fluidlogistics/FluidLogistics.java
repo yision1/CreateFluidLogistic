@@ -8,13 +8,15 @@ import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.simibubi.create.foundation.item.ItemDescription;
 import com.simibubi.create.foundation.item.KineticStats;
 import com.simibubi.create.foundation.item.TooltipModifier;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpNetworkUpdater;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.config.FeatureEnabledCondition;
 import com.yision.fluidlogistics.config.FeatureToggle;
-import com.yision.fluidlogistics.item.CompressedTankItem;
-import com.yision.fluidlogistics.item.CompressedTankTooltipModifier;
-import com.yision.fluidlogistics.item.InfiniteFluidTankItem;
+import com.yision.fluidlogistics.config.FluidHatchAdvertisedCondition;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankTooltipModifier;
+import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidTankItem;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.FluidLogisticsUnpackingHandlers;
@@ -42,6 +44,7 @@ import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fluids.FluidStack;
@@ -109,6 +112,7 @@ public class FluidLogistics
         context.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
 
         CraftingHelper.register(FeatureEnabledCondition.Serializer.INSTANCE);
+        CraftingHelper.register(FluidHatchAdvertisedCondition.Serializer.INSTANCE);
 
         modEventBus.addListener(this::onRegister);
         modEventBus.addListener(this::commonSetup);
@@ -147,19 +151,11 @@ public class FluidLogistics
 
     private static ItemStack createWaterFluidPackage(int amount) {
         ItemStackHandler packageContents = new ItemStackHandler(PackageItem.SLOTS);
-        int tankCapacity = CompressedTankItem.getCapacity();
-        int tanksCreated = 0;
-        FluidStack remainingFluid = new FluidStack(Fluids.WATER, amount);
-        while (!remainingFluid.isEmpty() && tanksCreated < PackageItem.SLOTS) {
-            int fluidForTank = Math.min(remainingFluid.getAmount(), tankCapacity);
-            FluidStack tankFluid = FluidHelper.copyStackWithAmount(remainingFluid, fluidForTank);
-            ItemStack compressedTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-            CompressedTankItem.setFluid(compressedTank, tankFluid);
-            ItemHandlerHelper.insertItemStacked(packageContents, compressedTank, false);
-            remainingFluid.shrink(fluidForTank);
-            tanksCreated++;
-        }
-        ItemStack fluidPackage = new ItemStack(AllItems.RARE_FLUID_PACKAGE.get());
+        ItemStack compressedTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+        CompressedTankItem.setFluid(compressedTank, new FluidStack(Fluids.WATER, amount));
+        packageContents.setStackInSlot(0, compressedTank);
+
+        ItemStack fluidPackage = new ItemStack(AllItems.FLUID_PACKAGE.get());
         CompoundTag compound = new CompoundTag();
         compound.put("Items", packageContents.serializeNBT());
         fluidPackage.setTag(compound);
@@ -209,13 +205,18 @@ public class FluidLogistics
             new FeatureItem(FeatureToggle.FLUID_PACKAGER, AllBlocks.FLUID_PACKAGER),
             new FeatureItem(FeatureToggle.FLUID_REPACKAGER, AllBlocks.FLUID_REPACKAGER),
             new FeatureItem(FeatureToggle.COMPRESSED_STORAGE_TANK, AllItems.COMPRESSED_STORAGE_TANK),
-            new FeatureItem(FeatureToggle.RARE_FLUID_PACKAGE, AllItems.RARE_FLUID_PACKAGE),
-            new FeatureItem(FeatureToggle.RARE_FLUID_PACKAGE, AllItems.FLUID_PACKAGE_2),
+            new FeatureItem(FeatureToggle.FLUID_PACKAGE, AllItems.FLUID_PACKAGE),
     };
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event)
     {
         LOGGER.info("FluidLogistics server starting!");
+    }
+
+    @SubscribeEvent
+    public void onServerStopped(ServerStoppedEvent event)
+    {
+        FluidPumpNetworkUpdater.clearLoadedFluidPumpCounts();
     }
 }

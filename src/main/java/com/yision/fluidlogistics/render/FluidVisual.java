@@ -1,6 +1,5 @@
 package com.yision.fluidlogistics.render;
 
-import com.mojang.math.Axis;
 import com.simibubi.create.content.fluids.FluidMesh;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import dev.engine_room.flywheel.lib.instance.InstanceTypes;
@@ -10,6 +9,7 @@ import net.createmod.catnip.data.Iterate;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.minecraftforge.fluids.FluidStack;
@@ -17,8 +17,6 @@ import net.minecraftforge.fluids.FluidStack;
 import java.util.Arrays;
 
 public class FluidVisual {
-    private static final float SURFACE_INSET = 1 / 128f;
-    private static final float BOTTOM_OFFSET = 1 / 64f;
     private final SmartRecycler<TextureAtlasSprite, TransformedInstance> surface;
     private final Direction[] sides;
     private final boolean renderGasesFromTop;
@@ -51,46 +49,62 @@ public class FluidVisual {
         return buffers;
     }
 
-    public void setupBuffer(FluidStack fluidStack, int capacity, TransformedInstance buffer, int index, float width, float height) {
-        var side = sides[index];
+    public void setupBuffer(FluidStack fluidStack, int capacity, TransformedInstance buffer, int index,
+                            float minXZ, float maxXZ, float minY, float maxY) {
+        Direction side = sides[index];
 
-        width -= 1 / 256f;
+        float fill = Mth.clamp((float) fluidStack.getAmount() / capacity, 0f, 1f);
+        float width = maxXZ - minXZ;
+        float height = (maxY - minY) * fill;
 
-        float fillFactor = (float) fluidStack.getAmount() / capacity;
+        boolean gas = renderGasesFromTop
+                && fluidStack.getFluid().getFluidType().isLighterThanAir();
 
-        buffer.translateY(-21f / 16);
+        float fluidMinY = gas ? maxY - height : minY;
+        float fluidMaxY = gas ? maxY : minY + height;
 
-        if (side.getAxis().isHorizontal()) {
-            // Anchor the side faces to the package bottom so low fill levels start at the floor.
-            buffer.translateY(fillFactor * (height - SURFACE_INSET - BOTTOM_OFFSET) / 2 - height / 2 + SURFACE_INSET + BOTTOM_OFFSET);
-            buffer.scaleY(fillFactor / 2);
-        } else {
-            // Move the top surface from the package bottom upward with the fill level.
-            buffer.translateY(fillFactor * (height - SURFACE_INSET - BOTTOM_OFFSET) / 2 - height / 2 + SURFACE_INSET + BOTTOM_OFFSET);
-        }
+        float centerXZ = (minXZ + maxXZ) / 2f;
 
-        float horizontalOffset = width / 2 - SURFACE_INSET;
-        horizontalOffset *= side.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1 : -1;
-        if (side.getAxis() == Direction.Axis.X) {
-            buffer.translateX(horizontalOffset);
-        } else if (side.getAxis() == Direction.Axis.Z) {
-            buffer.translateZ(horizontalOffset);
-        }
+        float halfWidth = width / 2f;
+        float halfHeight = height / 2f;
 
-        buffer.scale(.5f);
+        Direction renderedSide = gas && side == Direction.UP ? Direction.DOWN : side;
 
-        if (renderGasesFromTop && fluidStack.getFluid().getFluidType().isLighterThanAir()) {
-            buffer.rotateDegrees(180, Axis.XP);
-        }
-        buffer.rotateTo(Direction.UP, side);
-
-        if (side.getAxis().isVertical())
-            buffer.scale(width);
-
-        if (side.getAxis() == Direction.Axis.X) {
-            buffer.scaleZ(width);
-        } else if (side.getAxis() == Direction.Axis.Z) {
-            buffer.scaleX(width);
+        switch (renderedSide) {
+            case UP -> {
+                buffer.translateX(centerXZ);
+                buffer.translateY(fluidMaxY);
+                buffer.translateZ(centerXZ);
+                buffer.rotateTo(Direction.UP, renderedSide);
+                buffer.scaleX(halfWidth);
+                buffer.scaleZ(halfWidth);
+            }
+            case DOWN -> {
+                buffer.translateX(centerXZ);
+                buffer.translateY(fluidMinY);
+                buffer.translateZ(centerXZ);
+                buffer.rotateTo(Direction.UP, renderedSide);
+                buffer.scaleX(halfWidth);
+                buffer.scaleZ(halfWidth);
+            }
+            case NORTH, SOUTH -> {
+                float z = renderedSide == Direction.SOUTH ? maxXZ : minXZ;
+                buffer.translateX(centerXZ);
+                buffer.translateY((fluidMinY + fluidMaxY) / 2f);
+                buffer.translateZ(z);
+                buffer.rotateTo(Direction.UP, renderedSide);
+                buffer.scaleX(halfWidth);
+                buffer.scaleZ(halfHeight);
+            }
+            case WEST, EAST -> {
+                float x = renderedSide == Direction.EAST ? maxXZ : minXZ;
+                buffer.translateX(x);
+                buffer.translateY((fluidMinY + fluidMaxY) / 2f);
+                buffer.translateZ(centerXZ);
+                buffer.rotateTo(Direction.UP, renderedSide);
+                buffer.scaleX(halfHeight);
+                buffer.scaleZ(halfWidth);
+            }
         }
     }
 

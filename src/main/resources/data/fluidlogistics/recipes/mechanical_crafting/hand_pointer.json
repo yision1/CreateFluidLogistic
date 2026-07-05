@@ -15,10 +15,10 @@
       "item": "create:electron_tube"
     },
     "G": {
-      "tag": "forge:ingots/brass"
+      "item": "create:brass_ingot"
     },
     "O": {
-      "item": "minecraft:obsidian"
+      "tag": "forge:obsidian"
     },
     "P": {
       "item": "create:precision_mechanism"

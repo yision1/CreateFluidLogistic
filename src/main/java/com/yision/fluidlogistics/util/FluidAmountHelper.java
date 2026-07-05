@@ -15,6 +15,10 @@ public final class FluidAmountHelper {
     public static final int DEFAULT_FLUID_REQUEST_AMOUNT = 1;
     public static final String INACTIVE_AMOUNT_LABEL = "---";
 
+    public static final int STOCK_KEEPER_FLUID_STEP = MB_PER_BUCKET;
+    public static final int STOCK_KEEPER_FLUID_CTRL_STEP = 10 * MB_PER_BUCKET;
+    public static final int STOCK_KEEPER_FLUID_SHIFT_STEP = 20 * MB_PER_BUCKET;
+
     private FluidAmountHelper() {}
 
     public static String format(int amount) {
@@ -94,7 +98,7 @@ public final class FluidAmountHelper {
     public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
             int minAmount, int maxAmount, int steps) {
         int delta = getFluidRequestStep(shift, control) * (forward ? 1 : -1);
-        return adjustFluidRequestAmount(currentAmount, delta, minAmount, maxAmount, steps);
+        return adjustByDelta(currentAmount, delta, minAmount, maxAmount, steps);
     }
 
     public static int adjustFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
@@ -102,13 +106,23 @@ public final class FluidAmountHelper {
         return adjustFluidRequestAmount(currentAmount, forward, shift, control, minAmount, maxAmount, 1);
     }
 
-    public static int adjustStockTickerFluidRequestAmount(int currentAmount, boolean forward, boolean shift, boolean control,
-            int minAmount, int maxAmount, int steps) {
-        int delta = getStockTickerFluidRequestStep(shift, control) * (forward ? 1 : -1);
-        return adjustFluidRequestAmount(currentAmount, delta, minAmount, maxAmount, steps);
+    public static int getStockKeeperFluidRequestStep(boolean shift, boolean control) {
+        if (shift) {
+            return STOCK_KEEPER_FLUID_SHIFT_STEP;
+        }
+        if (control) {
+            return STOCK_KEEPER_FLUID_CTRL_STEP;
+        }
+        return STOCK_KEEPER_FLUID_STEP;
     }
 
-    private static int adjustFluidRequestAmount(int currentAmount, int delta, int minAmount, int maxAmount, int steps) {
+    public static int adjustStockKeeperFluidRequestAmount(int currentAmount, boolean forward, boolean shift,
+            boolean control, int minAmount, int maxAmount, int steps) {
+        int delta = getStockKeeperFluidRequestStep(shift, control) * (forward ? 1 : -1);
+        return adjustByDelta(currentAmount, delta, minAmount, maxAmount, steps);
+    }
+
+    private static int adjustByDelta(int currentAmount, int delta, int minAmount, int maxAmount, int steps) {
         int safeSteps = Math.max(0, steps);
         int newAmount;
 
@@ -131,13 +145,6 @@ public final class FluidAmountHelper {
         return MB_PER_BUCKET;
     }
 
-    private static int getStockTickerFluidRequestStep(boolean shift, boolean control) {
-        if (control) {
-            return 10 * MB_PER_BUCKET;
-        }
-        return MB_PER_BUCKET;
-    }
-
     public static String formatOptionalCompact(int amount, boolean zeroIsInactive) {
         if (amount < 0 || zeroIsInactive && amount == 0) {
             return INACTIVE_AMOUNT_LABEL;
@@ -152,31 +159,36 @@ public final class FluidAmountHelper {
         return "x" + formatPrecise(amount);
     }
 
-    public static int adjustFactoryGaugeAmount(int currentAmount, boolean forward, boolean shift, boolean control,
-        int minAmount, int maxAmount) {
-        int delta;
-
-        if (control) {
-            delta = 1;
-        } else if (shift) {
-            delta = 100;
-        } else {
-            delta = 1000;
+    public static String formatFactoryGaugeValueSetting(int row, int value) {
+        if (value == 0) {
+            return null;
         }
 
-        int newAmount = currentAmount + (forward ? delta : -delta);
-
-        if (forward) {
-            if (currentAmount < MB_PER_TENTH_BUCKET && newAmount >= MB_PER_TENTH_BUCKET && newAmount < MB_PER_BUCKET) {
-                newAmount = MB_PER_TENTH_BUCKET;
-            } else if (currentAmount < MB_PER_BUCKET && newAmount >= MB_PER_BUCKET) {
-                newAmount = MB_PER_BUCKET;
-            }
-        } else if (currentAmount >= MB_PER_BUCKET && newAmount < MB_PER_BUCKET && newAmount >= MB_PER_TENTH_BUCKET) {
-            newAmount = MB_PER_TENTH_BUCKET;
+        if (row == 1) {
+            return Mth.clamp(value, 1, 100) + "B";
         }
 
-        return Mth.clamp(newAmount, minAmount, maxAmount);
+        return Math.max(0, value) * 10 + "mB";
+    }
+
+    public static int toFactoryGaugeAmount(int row, int value) {
+        if (value <= 0) {
+            return 0;
+        }
+
+        if (row == 1) {
+            return Mth.clamp(value, 1, 100) * MB_PER_BUCKET;
+        }
+
+        return Math.max(0, value) * 10;
+    }
+
+    public static int toFactoryGaugeValueSetting(int amount) {
+        if (amount >= MB_PER_BUCKET) {
+            return Mth.clamp(amount / MB_PER_BUCKET, 1, 100);
+        }
+
+        return Math.max(0, amount) / 10;
     }
 
     private static String formatCompact(int amount, int unitSize, String suffix) {

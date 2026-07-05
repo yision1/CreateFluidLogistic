@@ -5,8 +5,8 @@ import com.tterrag.registrate.builders.MenuBuilder.ScreenFactory;
 import com.tterrag.registrate.util.entry.MenuEntry;
 import com.tterrag.registrate.util.nullness.NonNullSupplier;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterMenu;
-import com.yision.fluidlogistics.handpointer.filter.HandPointerFilterScreen;
+import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterMenu;
+import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterScreen;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.MenuAccess;

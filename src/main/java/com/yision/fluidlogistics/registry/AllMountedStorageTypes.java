@@ -3,8 +3,8 @@ package com.yision.fluidlogistics.registry;
 import com.simibubi.create.api.contraption.storage.fluid.MountedFluidStorageType;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.storage.HorizontalMultiFluidTankMountedStorageType;
-import com.yision.fluidlogistics.block.MultiFluidTank.storage.MultiFluidTankMountedStorageType;
+import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.storage.HorizontalMultiFluidTankMountedStorageType;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.storage.MultiFluidTankMountedStorageType;
 import com.tterrag.registrate.util.entry.RegistryEntry;
 
 public class AllMountedStorageTypes {

@@ -1,18 +1,18 @@
 package com.yision.fluidlogistics.config;
 
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.compat.CompatMods;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 
 public final class FeatureToggle {
 
-    // --- Feature constants ---
     public static final ResourceLocation FLUID_TRANSPORTER = FluidLogistics.asResource("fluid_transporter");
-    public static final ResourceLocation FLUID_TRANSPORTER_GET_WATER = FluidLogistics.asResource("fluid_transporter_get_water_from_leaves");
     public static final ResourceLocation SMART_FAUCET = FluidLogistics.asResource("smart_faucet");
     public static final ResourceLocation FAUCET = FluidLogistics.asResource("faucet");
     public static final ResourceLocation MULTI_FLUID_TANK = FluidLogistics.asResource("multi_fluid_tank");
@@ -25,21 +25,20 @@ public final class FeatureToggle {
     public static final ResourceLocation COPPER_BASIN = FluidLogistics.asResource("copper_basin");
     public static final ResourceLocation MECHANICAL_FLUID_GUN = FluidLogistics.asResource("mechanical_fluid_gun");
     public static final ResourceLocation HAND_POINTER = FluidLogistics.asResource("hand_pointer");
-    public static final ResourceLocation FLUID_HATCH = FluidLogistics.asResource("fluid_hatch");
     public static final ResourceLocation ADVANCED_LOGISTICS_NETWORK = FluidLogistics.asResource("advanced_logistics_network");
 
-    // Advanced-logistics-only features (no independent config, mapped to the master switch)
     public static final ResourceLocation FLUID_PACKAGER = FluidLogistics.asResource("fluid_packager");
     public static final ResourceLocation FLUID_REPACKAGER = FluidLogistics.asResource("fluid_repackager");
     public static final ResourceLocation COMPRESSED_STORAGE_TANK = FluidLogistics.asResource("compressed_storage_tank");
-    public static final ResourceLocation RARE_FLUID_PACKAGE = FluidLogistics.asResource("rare_fluid_package");
+    public static final ResourceLocation FLUID_PACKAGE = FluidLogistics.asResource("fluid_package");
+
+    public static final ResourceLocation FLUID_HATCH = FluidLogistics.asResource("fluid_hatch");
 
     private static final Map<ResourceLocation, BooleanSupplier> FEATURE_MAP;
 
     static {
         Map<ResourceLocation, BooleanSupplier> map = new LinkedHashMap<>();
         map.put(FLUID_TRANSPORTER, Config::isFluidTransporterEnabled);
-        map.put(FLUID_TRANSPORTER_GET_WATER,Config::isFluidTransporterGetWaterFromLeaves);
         map.put(SMART_FAUCET, Config::isSmartFaucetEnabled);
         map.put(FAUCET, Config::isFaucetEnabled);
         map.put(MULTI_FLUID_TANK, Config::isMultiFluidTankEnabled);
@@ -52,25 +51,40 @@ public final class FeatureToggle {
         map.put(COPPER_BASIN, Config::isCopperBasinEnabled);
         map.put(MECHANICAL_FLUID_GUN, Config::isMechanicalFluidGunEnabled);
         map.put(HAND_POINTER, Config::isHandPointerEnabled);
-        map.put(FLUID_HATCH, Config::isFluidHatchEnabled);
         map.put(ADVANCED_LOGISTICS_NETWORK, Config::isAdvancedLogisticsNetworkEnabled);
-        // Advanced-logistics-only features share the master switch
         map.put(FLUID_PACKAGER, Config::isAdvancedLogisticsNetworkEnabled);
         map.put(FLUID_REPACKAGER, Config::isAdvancedLogisticsNetworkEnabled);
         map.put(COMPRESSED_STORAGE_TANK, Config::isAdvancedLogisticsNetworkEnabled);
-        map.put(RARE_FLUID_PACKAGE, Config::isAdvancedLogisticsNetworkEnabled);
+        map.put(FLUID_PACKAGE, Config::isAdvancedLogisticsNetworkEnabled);
+        map.put(FLUID_HATCH, Config::isFluidHatchEnabled);
         FEATURE_MAP = Collections.unmodifiableMap(map);
     }
 
     private FeatureToggle() {
     }
 
+    private static volatile Map<ResourceLocation, Boolean> CACHE = Map.of();
+
+    public static void reload() {
+        Map<ResourceLocation, Boolean> next = new HashMap<>();
+        FEATURE_MAP.forEach((key, supplier) -> next.put(key, supplier.getAsBoolean()));
+        CACHE = Map.copyOf(next);
+    }
+
+    public static void onConfigChanged(net.minecraftforge.fml.event.config.ModConfigEvent event) {
+        reload();
+    }
+
     public static boolean isEnabled(ResourceLocation feature) {
+        Boolean cached = CACHE.get(feature);
+        if (cached != null) {
+            return cached;
+        }
         BooleanSupplier supplier = FEATURE_MAP.get(feature);
         return supplier != null ? supplier.getAsBoolean() : true;
     }
 
-    public static boolean isAdvancedLogisticsNetworkEnabled() {
-        return Config.isAdvancedLogisticsNetworkEnabled();
+    public static boolean isFluidHatchAdvertised() {
+        return Config.isFluidHatchEnabled() && !CompatMods.createDragonsPlusLoaded();
     }
 }

@@ -5,7 +5,6 @@
     "fluidlogistics:smart_hopper",
     "fluidlogistics:copper_basin",
     "fluidlogistics:multi_fluid_access_port",
-    "fluidlogistics:fluid_hatch",
     "create:belt",
     "create:depot",
     "create:blaze_burner",
@@ -40,14 +39,6 @@
       "required": false
     },
     {
-      "id": "create_enchantment_industry:blaze_forger",
-      "required": false
-    },
-    {
-      "id": "create_enchantment_industry:blaze_enchanter",
-      "required": false
-    },
-    {
       "id": "kaleidoscope_tavern:pressing_tub",
       "required": false
     },
@@ -62,6 +53,11 @@
     {
       "id": "create_central_kitchen:blaze_stove",
       "required": false
-    }
+    },
+    {
+      "id": "vintageimprovements:vacuum_chamber",
+      "required": false
+    },
+    "fluidlogistics:fluid_hatch"
   ]
 }

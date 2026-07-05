@@ -9,13 +9,14 @@ import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.block.Faucet.AbstractFaucetBlockEntity;
-import com.yision.fluidlogistics.block.MechanicalFluidGun.MechanicalFluidGunBlockEntity;
-import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
-import com.yision.fluidlogistics.block.MultiFluidAccessPort.MultiFluidAccessPortBlockEntity;
-import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlockEntity;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
+import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchBlockEntity;
+import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortBlockEntity;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankBlockEntity;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -52,9 +53,10 @@ public class FluidLogisticsJadePlugin implements IWailaPlugin {
         registration.registerFluidStorage(MultiFluidTankProvider.INSTANCE, MultiFluidTankBlockEntity.class);
         registration.registerFluidStorage(MultiFluidTankProvider.INSTANCE, HorizontalMultiFluidTankBlockEntity.class);
         registration.registerFluidStorage(ContraptionMultiFluidTankProvider.INSTANCE, AbstractContraptionEntity.class);
-        registration.registerBlockDataProvider(MechanicalFluidGunFluidProvider.INSTANCE, MechanicalFluidGunBlockEntity.class);
-        registration.registerBlockDataProvider(MultiFluidAccessPortFluidProvider.INSTANCE, MultiFluidAccessPortBlockEntity.class);
-        registration.registerBlockDataProvider(FaucetFluidProvider.INSTANCE, AbstractFaucetBlockEntity.class);
+        registration.registerBlockDataProvider(ConnectedFluidSourceProvider.INSTANCE, MechanicalFluidGunBlockEntity.class);
+        registration.registerBlockDataProvider(ConnectedFluidSourceProvider.INSTANCE, AbstractFaucetBlockEntity.class);
+        registration.registerBlockDataProvider(ConnectedFluidSourceProvider.INSTANCE, FluidHatchBlockEntity.class);
+        registration.registerBlockDataProvider(ConnectedFluidSourceProvider.INSTANCE, MultiFluidAccessPortBlockEntity.class);
     }
 
     @Override
@@ -63,9 +65,7 @@ public class FluidLogisticsJadePlugin implements IWailaPlugin {
         registration.registerFluidStorageClient(PackageFluidStorageProvider.INSTANCE);
         registration.registerFluidStorageClient(MultiFluidTankProvider.INSTANCE);
         registration.registerFluidStorageClient(ContraptionMultiFluidTankProvider.INSTANCE);
-        registration.registerFluidStorageClient(MechanicalFluidGunFluidProvider.INSTANCE);
-        registration.registerFluidStorageClient(MultiFluidAccessPortFluidProvider.INSTANCE);
-        registration.registerFluidStorageClient(FaucetFluidProvider.INSTANCE);
+        registration.registerFluidStorageClient(ConnectedFluidSourceProvider.INSTANCE);
     }
 
     public enum PackageItemStorageProvider
@@ -178,4 +178,3 @@ public class FluidLogisticsJadePlugin implements IWailaPlugin {
         }
     }
 }
-

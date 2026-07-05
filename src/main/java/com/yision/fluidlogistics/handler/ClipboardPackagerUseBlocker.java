@@ -1,0 +1,64 @@
+package com.yision.fluidlogistics.handler;
+
+import com.simibubi.create.AllBlocks;
+import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.util.PackagerTargetHelper;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+
+@Mod.EventBusSubscriber(modid = FluidLogistics.MODID)
+public class ClipboardPackagerUseBlocker {
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
+
+        if (event.isCanceled() || !shouldBlockClipboardUse(event.getItemStack(), event.getEntity())) {
+            return;
+        }
+
+        if (!isBlockedPackager(event.getLevel(), event.getPos())) {
+            return;
+        }
+
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.FAIL);
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
+
+        if (event.isCanceled() || !shouldBlockClipboardUse(event.getItemStack(), event.getEntity())) {
+            return;
+        }
+
+        HitResult hitResult = event.getEntity().pick(5.0D, 0.0F, false);
+        if (!(hitResult instanceof BlockHitResult blockHitResult)) {
+            return;
+        }
+
+        if (!isBlockedPackager(event.getLevel(), blockHitResult.getBlockPos())) {
+            return;
+        }
+
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.FAIL);
+    }
+
+    private static boolean shouldBlockClipboardUse(ItemStack stack, Player player) {
+        return AllBlocks.CLIPBOARD.isIn(stack) && !player.isShiftKeyDown();
+    }
+
+    private static boolean isBlockedPackager(Level level, BlockPos pos) {
+        return PackagerTargetHelper.isClipboardAddressBlock(level.getBlockState(pos));
+    }
+}

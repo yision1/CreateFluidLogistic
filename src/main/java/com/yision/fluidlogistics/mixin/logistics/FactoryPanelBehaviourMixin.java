@@ -35,7 +35,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBehavio
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.api.IFluidPackager;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 import com.yision.fluidlogistics.util.FluidGaugeHelper;
 import com.yision.fluidlogistics.util.IFluidPromiseLimit;
@@ -45,7 +45,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -229,6 +228,7 @@ public abstract class FactoryPanelBehaviourMixin {
         }
 
         int amountToOrder = Math.min(shortage, availableOnNetwork);
+        amountToOrder = Math.min(amountToOrder, FluidGaugeHelper.getMaxFluidRequestPerBatch());
         if (self instanceof IFluidPromiseLimit promiseLimitData && promiseLimitData.fluidlogistics$hasPromiseLimit()) {
             amountToOrder = Math.min(amountToOrder, promiseLimitData.fluidlogistics$getPromiseLimit() - promised);
         }
@@ -269,14 +269,10 @@ public abstract class FactoryPanelBehaviourMixin {
             return;
         }
 
-        if (value.value() == 0) {
-            cir.setReturnValue(value.row() == 1 ? Component.literal("1B")
-                : CreateLang.translateDirect("gui.factory_panel.inactive"));
-            return;
-        }
-
-        int displayValue = value.row() == 1 ? Math.min(100, Math.max(1, value.value())) : Math.max(0, value.value()) * 10;
-        cir.setReturnValue(Component.literal(displayValue + (value.row() == 1 ? "B" : "mB")));
+        String formatted = FluidAmountHelper.formatFactoryGaugeValueSetting(value.row(), value.value());
+        cir.setReturnValue(formatted == null
+            ? CreateLang.translateDirect("gui.factory_panel.inactive")
+            : Component.literal(formatted));
     }
 
     @Inject(method = "setValueSettings", at = @At("HEAD"))
@@ -299,11 +295,7 @@ public abstract class FactoryPanelBehaviourMixin {
         if (!fluidlogistics$needsConversion.get()) {
             return original;
         }
-        if (fluidlogistics$useBucketsMode.get()) {
-            int clampedBuckets = Mth.clamp(original, 0, 100);
-            return clampedBuckets == 0 ? 1000 : clampedBuckets * 1000;
-        }
-        return original * 10;
+        return FluidAmountHelper.toFactoryGaugeAmount(fluidlogistics$useBucketsMode.get() ? 1 : 0, original);
     }
 
     @Inject(method = "getValueSettings", at = @At("HEAD"), cancellable = true)
@@ -313,8 +305,8 @@ public abstract class FactoryPanelBehaviourMixin {
         }
 
         int count = fluidlogistics$getAmount();
-        boolean useBuckets = count >= 1000;
-        int displayValue = useBuckets ? (count <= 1000 ? 0 : Mth.clamp(count / 1000, 0, 100)) : count / 10;
+        boolean useBuckets = count >= FluidAmountHelper.MB_PER_BUCKET;
+        int displayValue = FluidAmountHelper.toFactoryGaugeValueSetting(count);
         cir.setReturnValue(new ValueSettings(useBuckets ? 1 : (fluidlogistics$isUpTo() ? 0 : 1), displayValue));
     }
 

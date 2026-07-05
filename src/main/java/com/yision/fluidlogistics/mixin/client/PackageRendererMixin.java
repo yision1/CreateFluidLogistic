@@ -8,9 +8,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageRenderer;
-import com.yision.fluidlogistics.item.FluidPackageItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.registry.AllPartialModels;
-import com.yision.fluidlogistics.render.FluidPackageItemRenderer;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
 
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import dev.engine_room.flywheel.lib.transform.TransformStack;

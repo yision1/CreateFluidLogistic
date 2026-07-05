@@ -6,9 +6,9 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.block.HorizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
-import com.yision.fluidlogistics.block.MultiFluidTank.MultiFluidTankBlockEntity;
-import com.yision.fluidlogistics.util.SmartMultiFluidTank;
+import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankBlockEntity;
+import com.yision.fluidlogistics.content.fluids.multiFluidTank.SmartMultiFluidTank;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;

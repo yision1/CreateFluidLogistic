@@ -7,28 +7,30 @@
   "refmap": "fluidlogistics.refmap.json",
   "minVersion": "0.8",
   "mixins": [
-    "logistics.LogisticsManagerMixin",
+    "accessor.ArmBlockEntityAccessor",
+    "accessor.LogisticallyLinkedBehaviourAccessor",
+    "fluids.FluidPropagatorMixin",
     "kinetics.BeltInventoryMixin",
     "kinetics.BeltProcessingBehaviourMixin",
     "kinetics.ChainConveyorBlockEntityMixin",
     "kinetics.ChainConveyorBlockMixin",
     "kinetics.ChainConveyorConnectionPacketMixin",
     "kinetics.SawBlockEntityMixin",
-    "logistics.InventorySummaryMixin",
-    "logistics.PackagerBlockMixin",
-    "logistics.PackagerBlockEntityMixin",
     "logistics.AttributeFilterItemStackMixin",
+    "logistics.FilterItemStackVirtualFluidMixin",
+    "logistics.FactoryPanelBehaviourLegacyLinkCleanupMixin",
     "logistics.FactoryPanelBehaviourMixin",
     "logistics.FactoryPanelRestockThresholdMixin",
     "logistics.FactoryPanelBlockEntityMixin",
-    "logistics.RequestPromiseQueueMixin",
+    "logistics.InventorySummaryMixin",
+    "logistics.LogisticallyLinkedBehaviourLegacyLinkCleanupMixin",
+    "logistics.LogisticsManagerMixin",
     "logistics.PackageEntityMixin",
-    "fluids.FluidPropagatorMixin",
-    "item.PackageItemMixin",
-    "item.ClipboardBlockItemMixin"
+    "logistics.PackagerBlockEntityMixin",
+    "logistics.PackagerBlockMixin",
+    "logistics.RequestPromiseQueueMixin"
   ],
   "client": [
-    "accessor.ArmBlockEntityAccessor",
     "accessor.FrogportChainConveyorOBBAccessor",
     "accessor.FrogportChainConveyorShapeAccessor",
     "client.ChainConveyorRendererMixin",
@@ -39,6 +41,7 @@
     "client.FactoryPanelConnectionHandlerMixin",
     "client.FactoryPanelScreenMixin",
     "client.FactoryPanelSetItemScreenMixin",
+    "client.GoggleOverlayRendererMixin",
     "client.PackageRendererMixin",
     "client.PackageVisualMixin",
     "accessor.RedstoneRequesterScreenAccessor",
@@ -46,12 +49,12 @@
     "accessor.StockKeeperRequestScreenAccessor",
     "client.StockKeeperTransferHandlerMixin",
     "client.StockKeeperRequestScreenMixin",
-    "client.ValueBoxRendererMixin"
+    "item.PackageItemMixin"
   ],
   "injectors": {
     "defaultRequire": 1
   },
   "mixinextras": {
-    "minVersion": "0.4.1"
+    "minVersion": "0.5.0"
   }
 }

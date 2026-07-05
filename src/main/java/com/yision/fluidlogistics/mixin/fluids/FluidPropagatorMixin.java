@@ -6,7 +6,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.simibubi.create.content.fluids.FluidPropagator;
-import com.yision.fluidlogistics.block.FluidPump.FluidPumpNetworkUpdater;
+import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpNetworkUpdater;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LevelAccessor;

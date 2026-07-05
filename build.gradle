@@ -17,7 +17,12 @@ mixin {
     config "${mod_id}.mixins.json"
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    withSourcesJar()
+}
+
+def sourcesJarTask = tasks.named("sourcesJar", Jar)
 
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 println "Mod ID: ${mod_id}, Version: ${mod_version}"
@@ -53,19 +58,13 @@ legacyForge {
 
         client {
             client()
-            systemProperty 'forge.enabledGameTestNamespaces', mod_id
         }
 
         server {
             server()
-            systemProperty 'forge.enabledGameTestNamespaces', mod_id
             programArgument '--nogui'
         }
 
-        gameTestServer {
-            type = 'gameTestServer'
-            systemProperty 'forge.enabledGameTestNamespaces', mod_id
-        }
 
         data {
             data()
@@ -145,7 +144,7 @@ dependencies {
     modRuntimeOnly("mezz.jei:jei-${jei_minecraft_version}-forge:${jei_version}")
     modCompileOnly("dev.emi:emi-forge:${emi_version}:api")
     modImplementation("curse.maven:jade-324717:${jade_id}")
-    modCompileOnly("curse.maven:kaleidoscope-tavern-1475175:${kaleidoscope_tavern_file_id}")
+    modCompileOnly("maven.modrinth:r9RZvhiJ:${kaleidoscope_tavern_version}")
 
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
@@ -244,6 +243,11 @@ publisher {
     setArtifact(releaseArtifact.get().asFile)
     setJavaVersions([JavaVersion.VERSION_17])
 
+    addAdditionalFile {
+        artifact sourcesJarTask
+        displayName "Create: FluidLogistic ${project.mod_version} Sources"
+    }
+
     modrinthDepends {
         required "create"
     }
@@ -256,4 +260,10 @@ publisher {
 
 tasks.named('publishMod') {
     dependsOn 'reobfJar'
+}
+
+["publishMod", "publishCurseforge", "publishModrinth"].each { taskName ->
+    tasks.named(taskName).configure {
+        dependsOn sourcesJarTask
+    }
 }

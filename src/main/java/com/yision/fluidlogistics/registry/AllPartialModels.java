@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
 import net.minecraft.core.Direction;
@@ -27,20 +28,25 @@ public class AllPartialModels {
     public static final PartialModel MECHANICAL_FLUID_GUN_GUNPOINT_MIDDLE = block("mechanical_fluid_gun/middle");
     public static final PartialModel MECHANICAL_FLUID_GUN_GUNPOINT_BOTTOM = block("mechanical_fluid_gun/bottom");
 
-    public static final PartialModel FLUID_PACKAGE = item("rare_fluid_package");
-    public static final PartialModel FLUID_PACKAGE_2 = item("rare_fluid_package_1");
-    public static final PartialModel FLUID_PACKAGE_RIGGING = rigging("12x10");
+    public static final PartialModel FLUID_PACKAGE = item("fluid_package");
+    public static final PartialModel FLUID_PACKAGE_EXPOSED = item("fluid_package_exposed");
+    public static final PartialModel FLUID_PACKAGE_OXIDIZED = item("fluid_package_oxidized");
+    public static final PartialModel FLUID_PACKAGE_WEATHERED = item("fluid_package_weathered");
+    public static final PartialModel FLUID_PACKAGE_RIGGING =
+        PartialModel.of(FluidPackageItem.FLUID_STYLE.getRiggingModel());
 
-    private static final ResourceLocation FLUID_PACKAGE_ID = FluidLogistics.asResource("rare_fluid_package");
-    private static final ResourceLocation FLUID_PACKAGE_2_ID = FluidLogistics.asResource("rare_fluid_package_1");
+    private static final ResourceLocation FLUID_PACKAGE_ID = FluidLogistics.asResource("fluid_package");
+    private static final ResourceLocation FLUID_PACKAGE_EXPOSED_ID = FluidLogistics.asResource("fluid_package_exposed");
+    private static final ResourceLocation FLUID_PACKAGE_OXIDIZED_ID = FluidLogistics.asResource("fluid_package_oxidized");
+    private static final ResourceLocation FLUID_PACKAGE_WEATHERED_ID = FluidLogistics.asResource("fluid_package_weathered");
 
     private static boolean registered = false;
 
     static {
-        FAUCET_SOURCE_INTERFACE.put(Direction.NORTH, block("faucet/source_interface/north"));
-        FAUCET_SOURCE_INTERFACE.put(Direction.SOUTH, block("faucet/source_interface/south"));
-        FAUCET_SOURCE_INTERFACE.put(Direction.EAST, block("faucet/source_interface/east"));
-        FAUCET_SOURCE_INTERFACE.put(Direction.WEST, block("faucet/source_interface/west"));
+        FAUCET_SOURCE_INTERFACE.put(Direction.NORTH, block("source_interface/north"));
+        FAUCET_SOURCE_INTERFACE.put(Direction.SOUTH, block("source_interface/south"));
+        FAUCET_SOURCE_INTERFACE.put(Direction.EAST, block("source_interface/east"));
+        FAUCET_SOURCE_INTERFACE.put(Direction.WEST, block("source_interface/west"));
     }
 
     private static PartialModel block(String path) {
@@ -51,10 +57,6 @@ public class AllPartialModels {
         return PartialModel.of(FluidLogistics.asResource("item/" + path));
     }
 
-    private static PartialModel rigging(String size) {
-        return PartialModel.of(ResourceLocation.fromNamespaceAndPath("create", "item/package/rigging_" + size));
-    }
-
     public static List<ResourceLocation> customModelLocations() {
         return List.of(
                 FLUID_PACKAGER_TRAY.modelLocation(),
@@ -62,7 +64,9 @@ public class AllPartialModels {
                 FLUID_PACKAGER_HATCH_CLOSED.modelLocation(),
                 FLUID_REPACKAGER_TRAY.modelLocation(),
                 FLUID_PACKAGE.modelLocation(),
-                FLUID_PACKAGE_2.modelLocation(),
+                FLUID_PACKAGE_EXPOSED.modelLocation(),
+                FLUID_PACKAGE_OXIDIZED.modelLocation(),
+                FLUID_PACKAGE_WEATHERED.modelLocation(),
                 FAUCET_SOURCE_INTERFACE.get(Direction.NORTH).modelLocation(),
                 FAUCET_SOURCE_INTERFACE.get(Direction.SOUTH).modelLocation(),
                 FAUCET_SOURCE_INTERFACE.get(Direction.EAST).modelLocation(),
@@ -82,8 +86,15 @@ public class AllPartialModels {
 
         com.simibubi.create.AllPartialModels.PACKAGES.put(FLUID_PACKAGE_ID, FLUID_PACKAGE);
         com.simibubi.create.AllPartialModels.PACKAGE_RIGGING.put(FLUID_PACKAGE_ID, FLUID_PACKAGE_RIGGING);
-        com.simibubi.create.AllPartialModels.PACKAGES.put(FLUID_PACKAGE_2_ID, FLUID_PACKAGE_2);
-        com.simibubi.create.AllPartialModels.PACKAGE_RIGGING.put(FLUID_PACKAGE_2_ID, FLUID_PACKAGE_RIGGING);
+
+        com.simibubi.create.AllPartialModels.PACKAGES.put(FLUID_PACKAGE_EXPOSED_ID, FLUID_PACKAGE_EXPOSED);
+        com.simibubi.create.AllPartialModels.PACKAGE_RIGGING.put(FLUID_PACKAGE_EXPOSED_ID, FLUID_PACKAGE_RIGGING);
+
+        com.simibubi.create.AllPartialModels.PACKAGES.put(FLUID_PACKAGE_OXIDIZED_ID, FLUID_PACKAGE_OXIDIZED);
+        com.simibubi.create.AllPartialModels.PACKAGE_RIGGING.put(FLUID_PACKAGE_OXIDIZED_ID, FLUID_PACKAGE_RIGGING);
+
+        com.simibubi.create.AllPartialModels.PACKAGES.put(FLUID_PACKAGE_WEATHERED_ID, FLUID_PACKAGE_WEATHERED);
+        com.simibubi.create.AllPartialModels.PACKAGE_RIGGING.put(FLUID_PACKAGE_WEATHERED_ID, FLUID_PACKAGE_RIGGING);
     }
 
     public static PartialModel getFluidPackageModel(ItemStack stack) {

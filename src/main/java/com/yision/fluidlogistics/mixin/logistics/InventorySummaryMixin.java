@@ -17,7 +17,7 @@ import com.google.common.collect.Lists;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.foundation.fluid.FluidHelper;
-import com.yision.fluidlogistics.item.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;

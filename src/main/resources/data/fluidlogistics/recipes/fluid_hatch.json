@@ -2,8 +2,7 @@
   "type": "minecraft:crafting_shapeless",
   "conditions": [
     {
-      "type": "fluidlogistics:feature_enabled",
-      "feature": "fluidlogistics:fluid_hatch"
+      "type": "fluidlogistics:fluid_hatch_advertised"
     }
   ],
   "category": "misc",
@@ -12,7 +11,7 @@
       "tag": "forge:ingots/copper"
     },
     {
-      "item": "create:item_drain"
+      "item": "create:item_hatch"
     }
   ],
   "result": {

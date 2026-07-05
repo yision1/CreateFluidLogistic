@@ -6,10 +6,9 @@ import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.foundation.networking.SimplePacketBase;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlock;
-import com.yision.fluidlogistics.block.FluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.util.ClipboardAddressUtil;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
+import com.yision.fluidlogistics.util.PackagerTargetHelper;
 
 import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
@@ -53,10 +52,6 @@ public class ClipboardSetAddressPacket extends SimplePacketBase {
     @Override
     public boolean handle(Context context) {
         context.enqueueWork(() -> {
-            if (!com.yision.fluidlogistics.config.Config.isAdvancedLogisticsNetworkEnabled()) {
-                return;
-            }
-
             ServerPlayer player = context.getSender();
             if (player == null || !player.mayBuild()) {
                 return;
@@ -77,13 +72,11 @@ public class ClipboardSetAddressPacket extends SimplePacketBase {
             }
 
             BlockState state = level.getBlockState(pos);
-            boolean isCreatePackager = AllBlocks.PACKAGER.has(state);
-            boolean isFluidPackager = com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
-            if (!isCreatePackager && !isFluidPackager) {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (!PackagerTargetHelper.isClipboardAddressTarget(blockEntity, state)) {
                 return;
             }
 
-            BlockEntity blockEntity = level.getBlockEntity(pos);
             if (!(blockEntity instanceof IPackagerOverrideData data)) {
                 return;
             }
@@ -103,8 +96,7 @@ public class ClipboardSetAddressPacket extends SimplePacketBase {
                 return;
             }
 
-            boolean linkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED)
-                || state.hasProperty(FluidPackagerBlock.LINKED) && state.getValue(FluidPackagerBlock.LINKED);
+            boolean linkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
             if (linkedToNetwork) {
                 fluidlogistics$sendStatus(player, STATUS_INVALID_COLOR, "logistically_linked.protected");
                 fluidlogistics$sendFeedback(level, pos, false);
@@ -117,10 +109,6 @@ public class ClipboardSetAddressPacket extends SimplePacketBase {
                 packager.signBasedAddress = address;
                 packager.setChanged();
                 packager.notifyUpdate();
-            } else if (blockEntity instanceof FluidPackagerBlockEntity fluidPackager) {
-                fluidPackager.signBasedAddress = address;
-                fluidPackager.setChanged();
-                fluidPackager.notifyUpdate();
             }
 
             fluidlogistics$sendStatus(player, STATUS_CONNECTABLE_COLOR,
