@@ -198,6 +198,9 @@ public class InfiniteFluidTankBlockEntity extends SmartBlockEntity implements IH
 
 	@Override
 	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
+		if (!InfiniteFluidSupplyRules.isInfiniteSourceEnabled() && !tankInventory.getFluid().isEmpty())
+			return disabledInfiniteSourceFluidTooltip(tooltip, isPlayerSneaking);
+
 		if (isInfiniteMode()) {
 			containedFluidTooltip(tooltip, isPlayerSneaking, tankInventory);
 			CreateLang.translate("hint.hose_pulley.title")
@@ -205,6 +208,10 @@ public class InfiniteFluidTankBlockEntity extends SmartBlockEntity implements IH
 				.forGoggles(tooltip);
 			return true;
 		}
+		return containedFluidTooltip(tooltip, isPlayerSneaking, tankInventory);
+	}
+
+	private boolean disabledInfiniteSourceFluidTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
 		return containedFluidTooltip(tooltip, isPlayerSneaking, tankInventory);
 	}
 

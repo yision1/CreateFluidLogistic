@@ -26,7 +26,6 @@ repositories {
     }
     maven { url = "https://maven.theillusivec4.top/" }
     maven { url = "https://maven.dragons.plus/releases" }
-    maven { url = "https://www.cursemaven.com" }
     maven { url = "https://api.modrinth.com/maven" }
     maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven" }
     exclusiveContent {
@@ -47,7 +46,12 @@ base {
     archivesName = mod_id
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+
+def sourcesJarTask = tasks.named("sourcesJar", Jar)
 
 neoForge {
     version = project.neo_version
@@ -60,18 +64,11 @@ neoForge {
     runs {
         client {
             client()
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
         server {
             server()
             programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        gameTestServer {
-            type = "gameTestServer"
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
         data {
@@ -116,12 +113,10 @@ dependencies {
     compileOnly("dev.emi:emi-neoforge:${emi_version}:api")
     localImplementation("maven.modrinth:geckolib:${geckolib_version}")
     compileOnly("maven.modrinth:jade:${jade_version}+neoforge")
-    compileOnly("curse.maven:create-enchantment-industry-688768:7970748")
+    compileOnly("maven.modrinth:create-enchantment-industry:${create_enchantment_industry_version}")
     compileOnly("plus.dragons.createdragonsplus:create-dragons-plus-${minecraft_version}:1.10.0")
     compileOnly("dev.ryanhcode.sable:sable-common-${minecraft_version}:${sable_version}")
-    compileOnly("curse.maven:kaleidoscope-tavern-1475175:${kaleidoscope_tavern_file_id}")
-    testImplementation(platform("org.junit:junit-bom:5.12.2"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
+    compileOnly("maven.modrinth:r9RZvhiJ:${kaleidoscope_tavern_version}")
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
@@ -196,6 +191,11 @@ publisher {
     setArtifact(jar.archiveFile.get())
     setJavaVersions([JavaVersion.VERSION_21])
 
+    addAdditionalFile {
+        artifact sourcesJarTask
+        displayName "Create: FluidLogistic ${project.mod_version} Sources"
+    }
+
     modrinthDepends {
         required "create"
     }
@@ -203,5 +203,11 @@ publisher {
     curseDepends {
         required "create"
         optional "create-mobile-packages"
+    }
+}
+
+["publishMod", "publishCurseforge", "publishModrinth"].each { taskName ->
+    tasks.named(taskName).configure {
+        dependsOn sourcesJarTask
     }
 }

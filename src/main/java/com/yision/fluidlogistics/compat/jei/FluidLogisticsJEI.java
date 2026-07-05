@@ -16,7 +16,6 @@ import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
 import mezz.jei.api.registration.IAdvancedRegistration;
 import mezz.jei.api.registration.IGuiHandlerRegistration;
-import mezz.jei.api.registration.IRecipeTransferRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.resources.ResourceLocation;
@@ -54,10 +53,6 @@ public class FluidLogisticsJEI implements IModPlugin {
     public void registerAdvanced(IAdvancedRegistration registration) {
         registration.addRecipeManagerPlugin(new VirtualFluidTankRecipeLookupPlugin(
             registration.getJeiHelpers(), FluidLogisticsJEI::getRuntime));
-    }
-
-    @Override
-    public void registerRecipeTransferHandlers(IRecipeTransferRegistration registration) {
     }
 
     @Override

@@ -24,7 +24,7 @@ public class HorizontalMultiFluidTankRenderer extends SafeBlockEntityRenderer<Ho
         if (!be.window) {
             return;
         }
-        if (be.tankInventory.isEmpty()) {
+        if (be.getTankInventory().isEmpty()) {
             return;
         }
 
@@ -37,7 +37,7 @@ public class HorizontalMultiFluidTankRenderer extends SafeBlockEntityRenderer<Ho
         float minPuddleHeight = 1 / 16f;
         float totalHeight = be.getWidth() - 2 * tankHullSize - minPuddleHeight;
 
-        SmartMultiFluidTank tank = be.tankInventory;
+        SmartMultiFluidTank tank = be.getTankInventory();
         if (tank.isEmpty()) return;
         FluidStack[] fluidStacks = tank.getFluids();
         float accHeight = 0;

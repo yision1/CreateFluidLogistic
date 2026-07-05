@@ -10,6 +10,7 @@ import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.Mechanical
 import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlockEntity;
 import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchBlockEntity;
 import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortBlockEntity;
+import com.yision.fluidlogistics.util.MergedFluidDisplayHandler;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -121,84 +122,5 @@ public enum ConnectedFluidSourceProvider
 		}
 		MergedFluidDisplayHandler display = new MergedFluidDisplayHandler(source);
 		return display.getTanks() == 0 ? null : display;
-	}
-
-	private static final class MergedFluidDisplayHandler implements IFluidHandler {
-		private final List<DisplayedFluid> fluids = new ArrayList<>();
-
-		MergedFluidDisplayHandler(IFluidHandler source) {
-			for (int tank = 0; tank < source.getTanks(); tank++) {
-				FluidStack fluid = source.getFluidInTank(tank);
-				if (fluid.isEmpty()) {
-					continue;
-				}
-				mergeDisplayedFluid(fluid, source.getTankCapacity(tank));
-			}
-		}
-
-		private void mergeDisplayedFluid(FluidStack additionalFluid, int additionalCapacity) {
-			for (DisplayedFluid entry : fluids) {
-				if (FluidStack.isSameFluidSameComponents(entry.fluid, additionalFluid)) {
-					entry.merge(additionalFluid, additionalCapacity);
-					return;
-				}
-			}
-			fluids.add(new DisplayedFluid(additionalFluid, additionalCapacity));
-		}
-
-		@Override
-		public int getTanks() {
-			return fluids.size();
-		}
-
-		@Override
-		public FluidStack getFluidInTank(int tank) {
-			return tank >= 0 && tank < fluids.size() ? fluids.get(tank).fluid.copy() : FluidStack.EMPTY;
-		}
-
-		@Override
-		public int getTankCapacity(int tank) {
-			return tank >= 0 && tank < fluids.size() ? fluids.get(tank).capacity : 0;
-		}
-
-		@Override
-		public boolean isFluidValid(int tank, FluidStack stack) {
-			return false;
-		}
-
-		@Override
-		public int fill(FluidStack resource, FluidAction action) {
-			return 0;
-		}
-
-		@Override
-		public FluidStack drain(FluidStack resource, FluidAction action) {
-			return FluidStack.EMPTY;
-		}
-
-		@Override
-		public FluidStack drain(int maxDrain, FluidAction action) {
-			return FluidStack.EMPTY;
-		}
-
-		private static int saturatedAdd(int a, int b) {
-			long sum = (long) a + b;
-			return sum > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) sum;
-		}
-
-		private static final class DisplayedFluid {
-			final FluidStack fluid;
-			int capacity;
-
-			DisplayedFluid(FluidStack fluid, int capacity) {
-				this.fluid = fluid.copy();
-				this.capacity = capacity;
-			}
-
-			void merge(FluidStack additionalFluid, int additionalCapacity) {
-				fluid.setAmount(saturatedAdd(fluid.getAmount(), additionalFluid.getAmount()));
-				capacity = saturatedAdd(capacity, additionalCapacity);
-			}
-		}
 	}
 }

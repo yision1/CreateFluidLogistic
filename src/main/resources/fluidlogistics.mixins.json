@@ -7,7 +7,6 @@
     "mixins": [
         "accessor.ArmBlockEntityAccessor",
         "accessor.LogisticallyLinkedBehaviourAccessor",
-        "accessor.StockTickerBlockEntityAccessor",
         "fluids.FluidPropagatorMixin",
         "kinetics.BeltInventoryMixin",
         "kinetics.BeltProcessingBehaviourMixin",
