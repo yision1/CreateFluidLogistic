@@ -1,59 +1,25 @@
 package com.yision.fluidlogistics.content.fluids.multiFluidTank;
 
-import com.simibubi.create.api.connectivity.ConnectivityHandler;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
-import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
-import com.simibubi.create.content.fluids.transfer.GenericItemFilling;
-import com.simibubi.create.foundation.block.IBE;
-import com.simibubi.create.foundation.fluid.FluidHelper;
-import com.simibubi.create.foundation.fluid.FluidHelper.FluidExchange;
+import com.yision.fluidlogistics.registry.AllBlockEntities;
+
 import net.createmod.catnip.lang.Lang;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
-import net.minecraft.util.StringRepresentable;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.item.context.UseOnContext;
-import net.minecraft.world.level.BlockGetter;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.level.material.Fluid;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import net.neoforged.neoforge.capabilities.Capabilities;
-import net.neoforged.neoforge.common.util.DeferredSoundType;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
+import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.context.UseOnContext;
+import net.minecraft.world.InteractionResult;
 
-import com.yision.fluidlogistics.registry.AllBlockEntities;
-
-public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<MultiFluidTankBlockEntity> {
+public class MultiFluidTankBlock extends AbstractMultiFluidTankBlock<MultiFluidTankBlockEntity> {
 
     public static final BooleanProperty TOP = BooleanProperty.create("top");
     public static final BooleanProperty BOTTOM = BooleanProperty.create("bottom");
@@ -61,11 +27,6 @@ public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<Multi
 
     public static MultiFluidTankBlock regular(Properties properties) {
         return new MultiFluidTankBlock(properties);
-    }
-
-    @Override
-    public void setPlacedBy(Level level, BlockPos pos, BlockState state, LivingEntity placer, ItemStack stack) {
-        super.setPlacedBy(level, pos, state, placer, stack);
     }
 
     protected MultiFluidTankBlock(Properties properties) {
@@ -76,21 +37,13 @@ public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<Multi
     }
 
     @Override
-    public BlockState getStateForPlacement(BlockPlaceContext context) {
-        return super.getStateForPlacement(context);
-    }
-
-    public static boolean isTank(BlockState state) {
-        return state.getBlock() instanceof MultiFluidTankBlock;
+    protected String silenceSoundTag() {
+        return "SilenceTankSound";
     }
 
     @Override
-    public void onPlace(BlockState state, Level world, BlockPos pos, BlockState oldState, boolean moved) {
-        if (oldState.getBlock() == state.getBlock())
-            return;
-        if (moved)
-            return;
-        withBlockEntityDo(world, pos, MultiFluidTankBlockEntity::scheduleConnectivityUpdate);
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        return super.getStateForPlacement(context);
     }
 
     @Override
@@ -98,9 +51,13 @@ public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<Multi
         builder.add(TOP, BOTTOM, SHAPE);
     }
 
+    public static boolean isTank(BlockState state) {
+        return state.getBlock() instanceof MultiFluidTankBlock;
+    }
+
     @Override
-    public int getLightEmission(BlockState state, BlockGetter world, BlockPos pos) {
-        return 0;
+    protected boolean isOwnBlockEntity(BlockEntity be) {
+        return be instanceof MultiFluidTankBlockEntity;
     }
 
     @Override
@@ -110,118 +67,8 @@ public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<Multi
     }
 
     @Override
-    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
-                                              Player player, InteractionHand hand, BlockHitResult hitResult) {
-        boolean onClient = level.isClientSide;
-
-        if (stack.isEmpty())
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-
-        FluidExchange exchange = null;
-        MultiFluidTankBlockEntity be = ConnectivityHandler.partAt(getBlockEntityType(), level, pos);
-        if (be == null)
-            return ItemInteractionResult.FAIL;
-
-        IFluidHandler tankCapability = level.getCapability(Capabilities.FluidHandler.BLOCK, be.getBlockPos(), null);
-        if (tankCapability == null)
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-        FluidStack prevFluidInTank = tankCapability.getFluidInTank(0).copy();
-
-        if (FluidHelper.tryEmptyItemIntoBE(level, player, hand, stack, be))
-            exchange = FluidExchange.ITEM_TO_TANK;
-        else if (FluidHelper.tryFillItemFromBE(level, player, hand, stack, be))
-            exchange = FluidExchange.TANK_TO_ITEM;
-
-        if (exchange == null) {
-            if (GenericItemEmptying.canItemBeEmptied(level, stack)
-                    || GenericItemFilling.canItemBeFilled(level, stack))
-                return ItemInteractionResult.SUCCESS;
-            return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
-        }
-
-        SoundEvent soundevent = null;
-        BlockState fluidState = null;
-        FluidStack fluidInTank = tankCapability.getFluidInTank(0);
-
-        if (exchange == FluidExchange.ITEM_TO_TANK) {
-            Fluid fluid = fluidInTank.getFluid();
-            fluidState = fluid.defaultFluidState().createLegacyBlock();
-            soundevent = FluidHelper.getEmptySound(fluidInTank);
-        }
-
-        if (exchange == FluidExchange.TANK_TO_ITEM) {
-            Fluid fluid = prevFluidInTank.getFluid();
-            fluidState = fluid.defaultFluidState().createLegacyBlock();
-            soundevent = FluidHelper.getFillSound(prevFluidInTank);
-        }
-
-        if (soundevent != null && !onClient) {
-            float pitch = Mth.clamp(
-                    1 - (1f * fluidInTank.getAmount() / (MultiFluidTankBlockEntity.getCapacityMultiplier() * 16)),
-                    0, 1);
-            pitch /= 1.5f;
-            pitch += .5f;
-            pitch += (level.random.nextFloat() - .5f) / 4f;
-            level.playSound(null, pos, soundevent, SoundSource.BLOCKS, .5f, pitch);
-        }
-
-        if (!FluidStack.isSameFluidSameComponents(fluidInTank, prevFluidInTank)) {
-            MultiFluidTankBlockEntity controllerBE = be.getControllerBE();
-            if (controllerBE != null) {
-                if (fluidState != null && onClient) {
-                    BlockParticleOption blockParticleData = new BlockParticleOption(ParticleTypes.BLOCK, fluidState);
-                    float fluidLevel = (float) fluidInTank.getAmount() / tankCapability.getTankCapacity(0);
-
-                    boolean reversed = fluidInTank.getFluid().getFluidType().isLighterThanAir();
-                    if (reversed)
-                        fluidLevel = 1 - fluidLevel;
-
-                    Vec3 vec = hitResult.getLocation();
-                    vec = new Vec3(vec.x, controllerBE.getBlockPos().getY() + fluidLevel * (controllerBE.getHeight() - .5f) + .25f, vec.z);
-                    Vec3 motion = player.position().subtract(vec).scale(1 / 20f);
-                    vec = vec.add(motion);
-                    level.addParticle(blockParticleData, vec.x, vec.y, vec.z, motion.x, motion.y, motion.z);
-                    return ItemInteractionResult.SUCCESS;
-                }
-
-                controllerBE.sendDataImmediately();
-                controllerBE.setChanged();
-            }
-        }
-
-        return ItemInteractionResult.SUCCESS;
-    }
-
-    static final VoxelShape CAMPFIRE_SMOKE_CLIP = Block.box(0, 4, 0, 16, 16, 16);
-
-    @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos,
-                                        CollisionContext context) {
-        if (context == CollisionContext.empty())
-            return CAMPFIRE_SMOKE_CLIP;
-        return state.getShape(level, pos);
-    }
-
-    @Override
-    public VoxelShape getBlockSupportShape(BlockState state, BlockGetter reader, BlockPos pos) {
-        return Shapes.block();
-    }
-
-    @Override
-    public BlockState updateShape(BlockState state, Direction direction, BlockState neighborState,
-                                  LevelAccessor level, BlockPos currentPos, BlockPos neighborPos) {
-        return state;
-    }
-
-    @Override
-    public void onRemove(BlockState state, Level world, BlockPos pos, BlockState newState, boolean isMoving) {
-        if (state.hasBlockEntity() && (state.getBlock() != newState.getBlock() || !newState.hasBlockEntity())) {
-            BlockEntity be = world.getBlockEntity(pos);
-            if (!(be instanceof MultiFluidTankBlockEntity tankBE))
-                return;
-            world.removeBlockEntity(pos);
-            ConnectivityHandler.splitMulti(tankBE);
-        }
+    protected float particleHeight(MultiFluidTankBlockEntity controllerBE) {
+        return controllerBE.getHeight() - .5f;
     }
 
     @Override
@@ -326,9 +173,6 @@ public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<Multi
             return BY_NAME.getOrDefault(value.toLowerCase(java.util.Locale.ROOT), FULL);
         }
 
-        /**
-         * 多结构合并时采用固定优先级 FULL > SINGLE > NONE。
-         */
         public static WindowStyle merge(WindowStyle a, WindowStyle b) {
             if (a == FULL || b == FULL)
                 return FULL;
@@ -336,30 +180,5 @@ public class MultiFluidTankBlock extends Block implements IWrenchable, IBE<Multi
                 return SINGLE;
             return NONE;
         }
-    }
-
-    public static final SoundType SILENCED_METAL =
-            new DeferredSoundType(0.1F, 1.5F, () -> SoundEvents.METAL_BREAK, () -> SoundEvents.METAL_STEP,
-                    () -> SoundEvents.METAL_PLACE, () -> SoundEvents.METAL_HIT, () -> SoundEvents.METAL_FALL);
-
-    @Override
-    public SoundType getSoundType(BlockState state, LevelReader world, BlockPos pos, Entity entity) {
-        SoundType soundType = super.getSoundType(state, world, pos, entity);
-        if (entity != null && entity.getPersistentData()
-                .contains("SilenceTankSound"))
-            return SILENCED_METAL;
-        return soundType;
-    }
-
-    @Override
-    public boolean hasAnalogOutputSignal(BlockState state) {
-        return true;
-    }
-
-    @Override
-    public int getAnalogOutputSignal(BlockState blockState, Level worldIn, BlockPos pos) {
-        return getBlockEntityOptional(worldIn, pos).map(MultiFluidTankBlockEntity::getControllerBE)
-                .map(MultiFluidTankBlockEntity::getComparatorOutput)
-                .orElse(0);
     }
 }
