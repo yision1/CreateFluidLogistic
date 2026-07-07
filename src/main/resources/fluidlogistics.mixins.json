@@ -39,8 +39,6 @@
         "client.FactoryPanelScreenMixin",
         "client.FactoryPanelSetItemScreenMixin",
         "client.GoggleOverlayRendererMixin",
-        "client.PackageRendererMixin",
-        "client.PackageVisualMixin",
         "client.RedstoneRequesterScreenMixin",
         "client.StockKeeperTransferHandlerMixin",
         "client.StockKeeperRequestScreenMixin",

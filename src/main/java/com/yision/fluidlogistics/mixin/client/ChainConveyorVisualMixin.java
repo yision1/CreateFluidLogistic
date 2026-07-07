@@ -7,7 +7,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.Share;
-import com.llamalad7.mixinextras.sugar.ref.LocalIntRef;
 import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorPackage;
@@ -105,7 +104,10 @@ public class ChainConveyorVisualMixin {
     private TransformedInstance[] fluidlogistics$setupFluidBuffers(TransformedInstance[] original,
                                                                    @Local(argsOnly = true) ChainConveyorPackage box,
                                                                    @Share("fluid") LocalRef<FluidStack> fluid,
-                                                                   @Share("fluidBufferIndex") LocalIntRef fluidBufferIndex) {
+                                                                   @Share("fluidBuffers") LocalRef<TransformedInstance[]> fluidBuffers) {
+        fluid.set(null);
+        fluidBuffers.set(null);
+
         if (fluidlogistics$fluidVisual == null) {
             return original;
         }
@@ -115,10 +117,14 @@ public class ChainConveyorVisualMixin {
 
         if (fluid.get().isEmpty()) return original;
 
-        fluidBufferIndex.set(0);
-
         TransformedInstance[] buffers = fluidlogistics$fluidVisual.setupBuffers(fluid.get(), original.length);
+        if (buffers == null) return original;
+
         System.arraycopy(original, 0, buffers, 0, original.length);
+
+        TransformedInstance[] addedBuffers = new TransformedInstance[buffers.length - original.length];
+        System.arraycopy(buffers, original.length, addedBuffers, 0, addedBuffers.length);
+        fluidBuffers.set(addedBuffers);
 
         return buffers;
     }
@@ -134,7 +140,7 @@ public class ChainConveyorVisualMixin {
             TransformedInstance instance, int light, Operation<dev.engine_room.flywheel.lib.instance.ColoredLitInstance> original,
             @Local(ordinal = 0) TransformedInstance rigBuffer,
             @Local(ordinal = 1) TransformedInstance boxBuffer,
-            @Share("fluidBufferIndex") LocalIntRef fluidBufferIndex,
+            @Share("fluidBuffers") LocalRef<TransformedInstance[]> fluidBuffers,
             @Share("fluid") LocalRef<FluidStack> fluid) {
         if (fluidlogistics$fluidVisual == null) {
             return original.call(instance, light);
@@ -142,14 +148,34 @@ public class ChainConveyorVisualMixin {
         if (instance == rigBuffer || instance == boxBuffer) {
             return original.call(instance, light);
         }
+        if (fluid.get() == null || fluid.get().isEmpty()) {
+            return original.call(instance, light);
+        }
 
-        fluidlogistics$fluidVisual.setupBuffer(fluid.get(), Config.getFluidPerPackage(), instance, fluidBufferIndex.get(),
+        int fluidBufferIndex = fluidlogistics$getFluidBufferIndex(fluidBuffers.get(), instance);
+        if (fluidBufferIndex == -1) {
+            return original.call(instance, light);
+        }
+
+        fluidlogistics$fluidVisual.setupBuffer(fluid.get(), Config.getFluidPerPackage(), instance, fluidBufferIndex,
             FluidPackageItemRenderer.FLUID_MIN_XZ,
             FluidPackageItemRenderer.FLUID_MAX_XZ,
             FluidPackageItemRenderer.FLUID_MIN_Y,
             FluidPackageItemRenderer.FLUID_MAX_Y);
-        fluidBufferIndex.set(fluidBufferIndex.get() + 1);
 
         return original.call(instance, light);
+    }
+
+    @Unique
+    private static int fluidlogistics$getFluidBufferIndex(TransformedInstance[] buffers, TransformedInstance instance) {
+        if (buffers == null) {
+            return -1;
+        }
+        for (int i = 0; i < buffers.length; i++) {
+            if (buffers[i] == instance) {
+                return i;
+            }
+        }
+        return -1;
     }
 }

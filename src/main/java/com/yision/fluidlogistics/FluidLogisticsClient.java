@@ -5,6 +5,7 @@ import com.simibubi.create.content.contraptions.wrench.RadialWrenchMenu;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.FrogportSelectionHandler;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerModeManager;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerInteractionHandler;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageClientRendering;
 import net.createmod.catnip.render.DefaultSuperRenderTypeBuffer;
 import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import com.yision.fluidlogistics.ponder.FluidLogisticsPonderPlugin;
@@ -21,12 +22,14 @@ import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
@@ -50,9 +53,15 @@ public class FluidLogisticsClient {
         event.enqueueWork(() -> {
             RadialWrenchMenu
                 .registerBlacklistedBlock(AllBlocks.MECHANICAL_FLUID_GUN.getId());
+            FluidPackageClientRendering.registerFlywheelVisualizer();
         });
         FluidLogistics.LOGGER.info("HELLO FROM CLIENT SETUP");
         FluidLogistics.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    static void onRegisterEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        FluidPackageClientRendering.registerEntityRenderers(event);
     }
 
     @SubscribeEvent
