@@ -81,12 +81,11 @@ public class AllItems {
             .register();
 
     public static ItemStack createFluidPackage() {
-        Item fluidPackage = switch (ThreadLocalRandom.current().nextInt(4)) {
-            case 1 -> FLUID_PACKAGE_EXPOSED.get();
-            case 2 -> FLUID_PACKAGE_OXIDIZED.get();
-            case 3 -> FLUID_PACKAGE_WEATHERED.get();
-            default -> FLUID_PACKAGE.get();
-        };
+        int roll = ThreadLocalRandom.current().nextInt(100);
+        Item fluidPackage = roll < 40 ? FLUID_PACKAGE.get()
+            : roll < 70 ? FLUID_PACKAGE_EXPOSED.get()
+            : roll < 90 ? FLUID_PACKAGE_WEATHERED.get()
+            : FLUID_PACKAGE_OXIDIZED.get();
         return new ItemStack(fluidPackage);
     }
 

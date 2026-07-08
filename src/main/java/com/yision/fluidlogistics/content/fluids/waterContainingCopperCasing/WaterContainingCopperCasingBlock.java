@@ -7,6 +7,7 @@ import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.renderer.SafeBlockEntityRenderer;
 import com.simibubi.create.foundation.fluid.FluidHelper;
+import com.yision.fluidlogistics.render.FluidItemRenderHelper;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import java.util.List;
 import net.createmod.catnip.platform.NeoForgeCatnipServices;
@@ -20,6 +21,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemUtils;
 import net.minecraft.world.item.Items;
@@ -112,8 +114,14 @@ public class WaterContainingCopperCasingBlock extends Block implements IWrenchab
         }
 
         public static void renderFluid(PoseStack ms, MultiBufferSource buffer, int light) {
+            renderFluid(ms, buffer, light, null);
+        }
+
+        public static void renderFluid(PoseStack ms, MultiBufferSource buffer, int light,
+            ItemDisplayContext displayContext) {
             NeoForgeCatnipServices.FLUID_RENDERER.renderFluidBox(RENDERED_WATER, FLUID_MIN, FLUID_MIN, FLUID_MIN,
-                FLUID_MAX, FLUID_MAX, FLUID_MAX, buffer, ms, light, true, true);
+                FLUID_MAX, FLUID_MAX, FLUID_MAX, FluidItemRenderHelper.getFluidBuilder(buffer, displayContext), ms,
+                light, true, true);
         }
     }
 }
