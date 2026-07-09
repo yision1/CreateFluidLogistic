@@ -2,11 +2,11 @@ package com.yision.fluidlogistics.content.equipment.mechanicalFluidGun;
 
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllSoundEvents;
-import com.simibubi.create.api.behaviour.spouting.CauldronSpoutingBehavior;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlockEntity;
-import com.yision.fluidlogistics.content.fluids.faucet.FaucetFilling;
 import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchFluidHandlerForwarder;
+import com.yision.fluidlogistics.foundation.fluid.CauldronFills;
+import com.yision.fluidlogistics.foundation.fluid.FluidSourceScans;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -52,31 +52,14 @@ class MechanicalFluidGunFillOperations {
 
 	static FluidStack findFillableFluidForItem(MechanicalFluidGunContext ctx, IFluidHandler sourceHandler,
 											   ItemStack item) {
-		for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
-			FluidStack candidate = sourceHandler.getFluidInTank(tank);
-			if (candidate.isEmpty() || !ctx.testFilter(candidate)) continue;
-			int requiredAmount = FaucetFilling.getRequiredAmountForItem(ctx.level(), item, candidate.copy());
-			if (requiredAmount > 0 && requiredAmount <= candidate.getAmount()) {
-				return candidate.copy();
-			}
-		}
-		return FluidStack.EMPTY;
+		return FluidSourceScans.findForItem(ctx.level(), sourceHandler, ctx::testFilter, item, false);
 	}
 
 	static FluidStack findFillableFluidForContainer(MechanicalFluidGunContext ctx, IFluidHandler sourceHandler,
 															IFluidHandler targetHandler, BlockPos targetPos) {
-		for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
-			FluidStack candidate = sourceHandler.getFluidInTank(tank);
-			if (candidate.isEmpty() || !ctx.testFilter(candidate)) continue;
-
-			FluidStack preview = candidate.copyWithAmount(Math.min(candidate.getAmount(), TRANSFER_RATE));
-			int accepted = targetHandler.fill(preview, IFluidHandler.FluidAction.SIMULATE);
-			if (accepted <= 0) continue;
-
-			if (!ctx.canFillFluidContainer(targetPos, targetHandler, preview)) continue;
-
-			return preview.copyWithAmount(Math.min(preview.getAmount(), accepted));
-		}
+		FluidStack fillable = FluidSourceScans.findForContainer(sourceHandler, ctx::testFilter, targetHandler,
+			TRANSFER_RATE, candidate -> ctx.canFillFluidContainer(targetPos, targetHandler, candidate), false);
+		if (!fillable.isEmpty()) return fillable;
 		ctx.finishFluidContainerFill(targetPos);
 		return FluidStack.EMPTY;
 	}
@@ -107,30 +90,7 @@ class MechanicalFluidGunFillOperations {
 
 	static FluidStack findFillableFluidForCauldron(MechanicalFluidGunContext ctx, IFluidHandler sourceHandler,
 												   BlockState targetState) {
-		for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
-			FluidStack candidate = sourceHandler.getFluidInTank(tank);
-			if (candidate.isEmpty() || !ctx.testFilter(candidate)) continue;
-			if (canFillCauldron(targetState, candidate)) {
-				return candidate.copyWithAmount(Math.min(candidate.getAmount(), 1000));
-			}
-		}
-		return FluidStack.EMPTY;
-	}
-
-	static boolean canFillCauldron(BlockState targetState, FluidStack availableFluid) {
-		if (availableFluid.isEmpty()) return false;
-		if (availableFluid.getFluid() == net.minecraft.world.level.material.Fluids.WATER) {
-			if (targetState.is(Blocks.CAULDRON)) return availableFluid.getAmount() >= 250;
-			if (targetState.is(Blocks.WATER_CAULDRON) && targetState.hasProperty(LayeredCauldronBlock.LEVEL)) {
-				int currentLevel = targetState.getValue(LayeredCauldronBlock.LEVEL);
-				return currentLevel < LayeredCauldronBlock.MAX_FILL_LEVEL && availableFluid.getAmount() >= 250;
-			}
-			return false;
-		}
-		if (!targetState.is(Blocks.CAULDRON)) return false;
-		var cauldronInfo = CauldronSpoutingBehavior.CAULDRON_INFO
-			.get(availableFluid.getFluid());
-		return cauldronInfo != null && availableFluid.getAmount() >= cauldronInfo.amount();
+		return FluidSourceScans.findForCauldron(sourceHandler, ctx::testFilter, targetState, 1000, false);
 	}
 
 	static boolean tryFillContainerWithActiveTarget(MechanicalFluidGunContext ctx, MechanicalFluidGunVisuals visuals,
@@ -148,6 +108,13 @@ class MechanicalFluidGunFillOperations {
 		FluidStack availableFluid = findFillableFluidForContainer(ctx, sourceHandler, targetHandler, absTarget);
 		if (availableFluid.isEmpty()) return false;
 
+		return tryFillContainer(ctx, visuals, absTarget, sourceHandler, targetHandler, availableFluid);
+	}
+
+	static boolean tryFillContainer(MechanicalFluidGunContext ctx, MechanicalFluidGunVisuals visuals,
+									BlockPos absTarget, IFluidHandler sourceHandler, IFluidHandler targetHandler,
+									FluidStack availableFluid) {
+		Level level = ctx.level();
 		FluidStack toTransfer = availableFluid.copyWithAmount(Math.min(availableFluid.getAmount(), TRANSFER_RATE));
 		int filled = targetHandler.fill(toTransfer, IFluidHandler.FluidAction.SIMULATE);
 		if (filled <= 0) return false;
@@ -184,53 +151,20 @@ class MechanicalFluidGunFillOperations {
 		IFluidHandler sourceHandler = ctx.sourceHandler();
 		if (sourceHandler == null) return false;
 
+		int targetLevel = 0;
 		if (availableFluid.getFluid() == net.minecraft.world.level.material.Fluids.WATER) {
-			if (targetState.is(Blocks.CAULDRON)) {
-				return fillWaterCauldronLevel(ctx, visuals, targetPos, 1);
-			}
-			if (targetState.is(Blocks.WATER_CAULDRON) && targetState.hasProperty(LayeredCauldronBlock.LEVEL)) {
-				int currentLevel = targetState.getValue(LayeredCauldronBlock.LEVEL);
-				if (currentLevel < LayeredCauldronBlock.MAX_FILL_LEVEL) {
-					return fillWaterCauldronLevel(ctx, visuals, targetPos, currentLevel + 1);
-				}
-			}
-			return false;
+			targetLevel = targetState.is(Blocks.WATER_CAULDRON) && targetState.hasProperty(LayeredCauldronBlock.LEVEL)
+				? targetState.getValue(LayeredCauldronBlock.LEVEL) + 1
+				: 1;
 		}
-
-		if (!targetState.is(Blocks.CAULDRON)) return false;
-
-		var cauldronInfo = CauldronSpoutingBehavior.CAULDRON_INFO
-			.get(availableFluid.getFluid());
-		if (cauldronInfo == null || availableFluid.getAmount() < cauldronInfo.amount()) return false;
-
-		FluidStack drained = sourceHandler.drain(availableFluid.copyWithAmount(cauldronInfo.amount()), IFluidHandler.FluidAction.EXECUTE);
-		if (drained.isEmpty() || drained.getAmount() < cauldronInfo.amount()) return false;
+		FluidStack drained = CauldronFills.fill(level, sourceHandler, targetPos, targetState, availableFluid);
+		if (drained.isEmpty()) return false;
 
 		Vec3 aimPoint = MechanicalFluidGunTarget.getTargetCenter(level, targetPos);
-		level.setBlockAndUpdate(targetPos, cauldronInfo.cauldron());
 		visuals.startSpraying(drained, ctx.speed());
 		visuals.spawnServerSprayParticles(level, ctx.gunPos(), aimPoint);
-		level.playSound(null, targetPos, SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 0.5f, 1.0f);
-		ctx.notifyGunUpdate();
-		return true;
-	}
-
-	static boolean fillWaterCauldronLevel(MechanicalFluidGunContext ctx, MechanicalFluidGunVisuals visuals,
-										  BlockPos targetPos, int targetLevel) {
-		IFluidHandler sourceHandler = ctx.sourceHandler();
-		if (sourceHandler == null) return false;
-
-		FluidStack drained = sourceHandler.drain(
-			new FluidStack(net.minecraft.world.level.material.Fluids.WATER, 250),
-			IFluidHandler.FluidAction.EXECUTE);
-		if (drained.isEmpty() || drained.getAmount() < 250) return false;
-
-		Vec3 aimPoint = MechanicalFluidGunTarget.getTargetCenter(ctx.level(), targetPos);
-		ctx.level().setBlockAndUpdate(targetPos,
-			Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, targetLevel));
-		visuals.startSpraying(drained, ctx.speed());
-		visuals.spawnServerSprayParticles(ctx.level(), ctx.gunPos(), aimPoint);
-		ctx.level().playSound(null, targetPos, SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 0.5f, 0.8f + targetLevel * 0.1f);
+		level.playSound(null, targetPos, SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 0.5f,
+			targetLevel > 0 ? 0.8f + targetLevel * 0.1f : 1.0f);
 		ctx.notifyGunUpdate();
 		return true;
 	}

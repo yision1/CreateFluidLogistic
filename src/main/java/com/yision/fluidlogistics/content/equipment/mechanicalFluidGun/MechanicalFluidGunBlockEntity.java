@@ -1,6 +1,8 @@
 package com.yision.fluidlogistics.content.equipment.mechanicalFluidGun;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.api.contraption.transformable.TransformableBlockEntity;
@@ -11,6 +13,7 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollOptionBehaviour;
 import com.simibubi.create.foundation.item.TooltipHelper;
+import com.yision.fluidlogistics.foundation.fluid.CachedFluidInterface;
 import dev.engine_room.flywheel.lib.transform.TransformStack;
 
 import net.createmod.catnip.animation.LerpedFloat;
@@ -49,9 +52,12 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 	private MechanicalFluidGunItemFilling itemFilling;
 	private MechanicalFluidGunBeltHandler beltHandler;
 	private MechanicalFluidGunProcessor processor;
+	private final CachedFluidInterface sourceCache = new CachedFluidInterface();
 
 	private ScrollOptionBehaviour<MechanicalFluidGunScheduleMode> scheduleMode;
 	BeltProcessingBehaviour beltProcessing;
+
+	private final Set<BlockPos> indexedTargets = new HashSet<>();
 
 	public MechanicalFluidGunBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -104,11 +110,41 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 	}
 
 	@Override
+	public void onLoad() {
+		super.onLoad();
+		refreshTargetIndex();
+	}
+
+	@Override
 	public void initialize() {
 		super.initialize();
+		refreshTargetIndex();
 		if (level != null && level.isClientSide) {
 			updateVisuals();
 		}
+	}
+
+	@Override
+	public void invalidate() {
+		super.invalidate();
+		sourceCache.invalidate();
+		if (level != null && !indexedTargets.isEmpty()) {
+			MechanicalFluidGunTargetIndex.update(level, worldPosition, indexedTargets, Set.of());
+			indexedTargets.clear();
+		}
+	}
+
+	private void refreshTargetIndex() {
+		if (level == null)
+			return;
+		Set<BlockPos> current = new HashSet<>();
+		if (!isRemoved()) {
+			for (MechanicalFluidGunTargetConfig target : targets.getTargets())
+				current.add(target.absoluteFrom(worldPosition));
+		}
+		MechanicalFluidGunTargetIndex.update(level, worldPosition, indexedTargets, current);
+		indexedTargets.clear();
+		indexedTargets.addAll(current);
 	}
 
 	@Override
@@ -286,9 +322,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 		if (level == null) return null;
 		Direction sourceSide = MechanicalFluidGunMount.getMountFace(getBlockState());
 		BlockPos sourcePos = worldPosition.relative(sourceSide.getOpposite());
-		IFluidHandler sided = level.getCapability(Capabilities.FluidHandler.BLOCK, sourcePos, sourceSide);
-		if (sided != null) return sided;
-		return level.getCapability(Capabilities.FluidHandler.BLOCK, sourcePos, null);
+		return sourceCache.get(level, sourcePos, sourceSide);
 	}
 
 	public boolean shouldRenderSourceInterface() {
@@ -298,6 +332,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 
 	public void setTargets(List<MechanicalFluidGunTargetConfig> newTargets) {
 		targets.setTargets(newTargets);
+		refreshTargetIndex();
 		cycle.reset();
 		cycle.resetScheduledTarget();
 		cycle.setTransferCooldown(0);
@@ -310,6 +345,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 
 	public void clearTarget() {
 		targets.clear();
+		refreshTargetIndex();
 		cycle.reset();
 		cycle.resetScheduledTarget();
 		cycle.clearContainerFillCooldowns();
@@ -376,6 +412,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 		super.read(tag, registries, clientPacket);
 		redstoneLocked = tag.getBoolean("Powered");
 		targets.read(tag);
+		refreshTargetIndex();
 		cycle.read(tag);
 		visuals.read(tag, registries);
 		itemFilling.read(tag, registries);
@@ -391,6 +428,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 	@Override
 	public void transform(BlockEntity be, StructureTransform transform) {
 		targets.transform(transform);
+		refreshTargetIndex();
 		notifyUpdate();
 	}
 

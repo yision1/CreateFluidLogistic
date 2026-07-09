@@ -1,12 +1,11 @@
 package com.yision.fluidlogistics.content.fluids.faucet;
 
 import com.mojang.serialization.MapCodec;
-import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlock;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 
-public class SmartFaucetBlock extends AbstractFaucetBlock<SmartFaucetBlockEntity> {
+public class SmartFaucetBlock extends FaucetBlock {
 
     public static final MapCodec<SmartFaucetBlock> CODEC = simpleCodec(SmartFaucetBlock::new);
 
@@ -20,12 +19,7 @@ public class SmartFaucetBlock extends AbstractFaucetBlock<SmartFaucetBlockEntity
     }
 
     @Override
-    public Class<SmartFaucetBlockEntity> getBlockEntityClass() {
-        return SmartFaucetBlockEntity.class;
-    }
-
-    @Override
-    public BlockEntityType<? extends SmartFaucetBlockEntity> getBlockEntityType() {
+    public BlockEntityType<? extends FaucetBlockEntity> getBlockEntityType() {
         return AllBlockEntities.SMART_FAUCET.get();
     }
 }

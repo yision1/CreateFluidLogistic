@@ -23,8 +23,6 @@ import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidA
 import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortRenderer;
 import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankBlockEntity;
 import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankRenderer;
-import com.yision.fluidlogistics.content.fluids.faucet.SmartFaucetBlockEntity;
-import com.yision.fluidlogistics.content.fluids.faucet.SmartFaucetRenderer;
 import com.yision.fluidlogistics.content.logistics.smartHopper.SmartHopperBlockEntity;
 import com.yision.fluidlogistics.content.logistics.smartHopper.SmartHopperRenderer;
 import com.yision.fluidlogistics.content.fluids.waterContainingCopperCasing.WaterContainingCopperCasingBlock;
@@ -64,10 +62,10 @@ public class AllBlockEntities {
             .renderer(() -> FaucetRenderer::new)
             .register();
 
-    public static final BlockEntityEntry<SmartFaucetBlockEntity> SMART_FAUCET = REGISTRATE
-            .blockEntity("smart_faucet", SmartFaucetBlockEntity::new)
+    public static final BlockEntityEntry<FaucetBlockEntity> SMART_FAUCET = REGISTRATE
+            .blockEntity("smart_faucet", FaucetBlockEntity::new)
             .validBlocks(AllBlocks.SMART_FAUCET)
-            .renderer(() -> SmartFaucetRenderer::new)
+            .renderer(() -> FaucetRenderer::new)
             .register();
 
     public static final BlockEntityEntry<MultiFluidTankBlockEntity> MULTI_FLUID_TANK = REGISTRATE

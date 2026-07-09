@@ -25,14 +25,14 @@ public class FaucetGenerator extends SpecialBlockStateGen {
 
     @Override
     protected int getYRotation(BlockState state) {
-        Direction facing = state.getValue(AbstractFaucetBlock.FACING);
+        Direction facing = state.getValue(FaucetBlock.FACING);
         return horizontalAngle(facing) + 180;
     }
 
     @Override
     public <T extends Block> ModelFile getModel(DataGenContext<Block, T> ctx, RegistrateBlockstateProvider prov,
         BlockState state) {
-        String path = state.getValue(AbstractFaucetBlock.OPEN) ? openModel : closedModel;
+        String path = state.getValue(FaucetBlock.OPEN) ? openModel : closedModel;
         return prov.models().getExistingFile(prov.modLoc("block/" + path));
     }
 }
