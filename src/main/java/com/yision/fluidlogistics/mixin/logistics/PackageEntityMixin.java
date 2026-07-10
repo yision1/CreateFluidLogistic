@@ -5,10 +5,13 @@ import java.util.List;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageItem;
@@ -32,11 +35,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -47,6 +47,9 @@ public abstract class PackageEntityMixin implements IHaveGoggleInformation {
 
     @Shadow
     public ItemStack box;
+
+    @Unique
+    private boolean fluidlogistics$selectedDroppedFluid;
 
     @Inject(
         method = "onInsideBlock",
@@ -62,50 +65,40 @@ public abstract class PackageEntityMixin implements IHaveGoggleInformation {
         }
     }
 
-    @Inject(method = "dropAllDeathLoot", at = @At("HEAD"), cancellable = true)
-    private void fluidlogistics$dropFluidAwarePackageContents(ServerLevel level, DamageSource damageSource,
+    @Inject(method = "dropAllDeathLoot", at = @At("HEAD"))
+    private void fluidlogistics$resetDroppedFluidSelection(ServerLevel level, DamageSource damageSource,
             CallbackInfo ci) {
-        ci.cancel();
+        fluidlogistics$selectedDroppedFluid = false;
+    }
+
+    @WrapOperation(
+        method = "dropAllDeathLoot",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/server/level/ServerLevel;addFreshEntity(Lnet/minecraft/world/entity/Entity;)Z"
+        )
+    )
+    private boolean fluidlogistics$dropFluidAwarePackageTank(ServerLevel level, Entity entity,
+            Operation<Boolean> original) {
+        if (!(entity instanceof ItemEntity itemEntity)) {
+            return original.call(level, entity);
+        }
+
+        ItemStack itemStack = itemEntity.getItem();
+        if (!(itemStack.getItem() instanceof CompressedTankItem)) {
+            return original.call(level, entity);
+        }
 
         PackageEntity packageEntity = (PackageEntity) (Object) this;
-        ItemStackHandler contents = PackageItem.getContents(box);
-        boolean selectedFluid = false;
-
-        for (int i = 0; i < contents.getSlots(); i++) {
-            ItemStack itemStack = contents.getStackInSlot(i);
-
-            if (itemStack.isEmpty()) {
-                continue;
-            }
-
-            if (itemStack.getItem() instanceof SpawnEggItem spawnEggItem) {
-                EntityType<?> entityType = spawnEggItem.getType(itemStack);
-                Entity entity =
-                        entityType.spawn(level, itemStack, null, packageEntity.blockPosition(), MobSpawnType.SPAWN_EGG, false, false);
-                if (entity != null) {
-                    itemStack.shrink(1);
-                }
-            }
-
-            if (itemStack.isEmpty()) {
-                continue;
-            }
-
-            if (itemStack.getItem() instanceof CompressedTankItem) {
-                if (CompatMods.createEnchantmentIndustryLoaded()
-                    && CreateEnchantmentIndustryCompat.tryDropExperienceFromTank(level, packageEntity.position(), itemStack)) {
-                    continue;
-                }
-
-                if (!selectedFluid) {
-                    selectedFluid = fluidlogistics$tryPlaceFluidFromTank(level, itemStack);
-                }
-                continue;
-            }
-
-            level.addFreshEntity(new ItemEntity(level, packageEntity.getX(), packageEntity.getY(),
-                    packageEntity.getZ(), itemStack.copy()));
+        if (CompatMods.createEnchantmentIndustryLoaded()
+            && CreateEnchantmentIndustryCompat.tryDropExperienceFromTank(level, packageEntity.position(), itemStack)) {
+            return true;
         }
+
+        if (!fluidlogistics$selectedDroppedFluid) {
+            fluidlogistics$selectedDroppedFluid = fluidlogistics$tryPlaceFluidFromTank(level, itemStack);
+        }
+        return true;
     }
 
     @Override
