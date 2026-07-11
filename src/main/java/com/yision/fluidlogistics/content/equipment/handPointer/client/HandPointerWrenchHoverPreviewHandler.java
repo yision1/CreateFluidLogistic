@@ -5,17 +5,17 @@ import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPoint;
 import com.simibubi.create.content.logistics.depot.EjectorBlockEntity;
 import com.simibubi.create.content.logistics.packagePort.PackagePortBlockEntity;
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget;
+import com.simibubi.create.content.logistics.packagePort.PackagePortTargetSelectionHandler;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.client.MechanicalFluidGunWrenchTargetHandler;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlock;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlockEntity;
 import com.yision.fluidlogistics.mixin.accessor.ArmBlockEntityAccessor;
 
-import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.outliner.Outliner;
 import net.createmod.catnip.theme.Color;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -108,7 +108,10 @@ public final class HandPointerWrenchHoverPreviewHandler {
             .lineWidth(POINT_LINE_WIDTH)
             .disableLineNormals();
 
-        animateConnection(mc, Vec3.atBottomCenterOf(pos), targetLocation, VALID_TARGET_COLOR);
+        Vec3 source = ppbe instanceof CopperFrogportBlockEntity
+            ? CopperFrogportBlock.getConnectionSource(pos, ppbe.getBlockState())
+            : Vec3.atBottomCenterOf(pos);
+        PackagePortTargetSelectionHandler.animateConnection(mc, source, targetLocation, VALID_TARGET_COLOR);
         return true;
     }
 
@@ -193,17 +196,4 @@ public final class HandPointerWrenchHoverPreviewHandler {
         return ARM_POINT_KEY_PREFIX + armPos.asLong() + "_" + pointPos.asLong();
     }
 
-    private static void animateConnection(Minecraft mc, Vec3 source, Vec3 target, Color color) {
-        DustParticleOptions data = new DustParticleOptions(color.asVectorF(), 1.0F);
-        ClientLevel world = mc.level;
-        double totalFlyingTicks = 10;
-        int segments = (((int) totalFlyingTicks) / 3) + 1;
-        double tickOffset = totalFlyingTicks / segments;
-
-        for (int i = 0; i < segments; i++) {
-            double ticks = ((AnimationTickHolder.getRenderTime() / 3) % tickOffset) + i * tickOffset;
-            Vec3 vec = source.lerp(target, ticks / totalFlyingTicks);
-            world.addParticle(data, vec.x, vec.y, vec.z, 0, 0, 0);
-        }
-    }
 }

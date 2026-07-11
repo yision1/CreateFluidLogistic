@@ -19,6 +19,10 @@ public class AllPartialModels {
     public static final PartialModel FLUID_PACKAGER_HATCH_OPEN = block("fluid_packager/hatch_open");
     public static final PartialModel FLUID_PACKAGER_HATCH_CLOSED = block("fluid_packager/hatch_closed");
     public static final PartialModel FLUID_REPACKAGER_TRAY = block("fluid_repackager/tray");
+    public static final PartialModel COPPER_FROGPORT_BODY = block("copper_frogport/body");
+    public static final PartialModel COPPER_FROGPORT_HEAD = block("copper_frogport/head");
+    public static final PartialModel COPPER_FROGPORT_HEAD_GOGGLES = block("copper_frogport/head_goggles");
+    public static final PartialModel COPPER_FROGPORT_TONGUE = block("copper_frogport/tongue");
     public static final Map<Direction, PartialModel> FAUCET_SOURCE_INTERFACE = new EnumMap<>(Direction.class);
 
     public static final PartialModel MECHANICAL_FLUID_GUN_BASE = block("mechanical_fluid_gun/base");
@@ -67,6 +71,10 @@ public class AllPartialModels {
                 FLUID_PACKAGER_HATCH_OPEN.modelLocation(),
                 FLUID_PACKAGER_HATCH_CLOSED.modelLocation(),
                 FLUID_REPACKAGER_TRAY.modelLocation(),
+                COPPER_FROGPORT_BODY.modelLocation(),
+                COPPER_FROGPORT_HEAD.modelLocation(),
+                COPPER_FROGPORT_HEAD_GOGGLES.modelLocation(),
+                COPPER_FROGPORT_TONGUE.modelLocation(),
                 FLUID_PACKAGE.modelLocation(),
                 FLUID_PACKAGE_EXPOSED.modelLocation(),
                 FLUID_PACKAGE_OXIDIZED.modelLocation(),

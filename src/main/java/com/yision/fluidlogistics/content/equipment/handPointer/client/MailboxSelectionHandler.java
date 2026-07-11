@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget;
+import com.simibubi.create.content.logistics.packagePort.PackagePortTargetSelectionHandler;
 import com.simibubi.create.content.logistics.packagePort.postbox.PostboxBlockEntity;
 import com.simibubi.create.content.trains.station.StationBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
@@ -11,13 +12,11 @@ import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerMailboxStationConnectionPacket;
 
-import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.outliner.Outliner;
 import net.createmod.catnip.platform.CatnipServices;
 import net.createmod.catnip.theme.Color;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
@@ -32,6 +31,8 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public class MailboxSelectionHandler {
     private static final int STATUS_CONNECTABLE_COLOR = 0x9EF173;
     private static final int STATUS_INVALID_COLOR = 0xFF6171;
+    private static final Color VALID_CONNECTION_COLOR = new Color(0x9EDE73);
+    private static final Color INVALID_CONNECTION_COLOR = new Color(0xFF7171);
 
     private static final String STATION_HIGHLIGHT = "HandPointerStationHighlight";
     private static final String MAILBOX_HIGHLIGHT_PREFIX = "HandPointerMailboxHighlight_";
@@ -115,9 +116,7 @@ public class MailboxSelectionHandler {
             return;
         }
 
-        double range = 6;
-        if (mc.hitResult == null || mc.hitResult.getType() != HitResult.Type.BLOCK
-            || mc.hitResult.getLocation().distanceToSqr(mc.player.getEyePosition()) > range * range) {
+        if (mc.hitResult == null || mc.hitResult.getType() != HitResult.Type.BLOCK) {
             selectedStationPos = null;
             return;
         }
@@ -164,9 +163,14 @@ public class MailboxSelectionHandler {
                 .lineWidth(0.0625F);
         }
 
-        int color = alreadyConnected || outOfRange ? 0xFF6171 : 0x9EF173;
+        Color color = alreadyConnected || outOfRange ? INVALID_CONNECTION_COLOR : VALID_CONNECTION_COLOR;
         for (BlockPos mailboxPos : selectedMailboxes) {
-            animateConnection(mc, Vec3.atCenterOf(mailboxPos), Vec3.atCenterOf(selectedStationPos), new Color(color));
+            PackagePortTargetSelectionHandler.animateConnection(
+                mc,
+                Vec3.atBottomCenterOf(mailboxPos),
+                Vec3.atCenterOf(selectedStationPos),
+                color
+            );
         }
         updateConnectionStatus(mc, alreadyConnected, outOfRange);
     }
@@ -229,11 +233,10 @@ public class MailboxSelectionHandler {
             return false;
         }
 
-        Vec3 stationCenter = Vec3.atBottomCenterOf(selectedStationPos);
+        Vec3 stationCenter = Vec3.atCenterOf(selectedStationPos);
         for (BlockPos mailboxPos : selectedMailboxes) {
-            if (!stationCenter.closerThan(
-                Vec3.atBottomCenterOf(mailboxPos),
-                AllConfigs.server().logistics.packagePortRange.get())) {
+            if (stationCenter.distanceTo(Vec3.atBottomCenterOf(mailboxPos))
+                > AllConfigs.server().logistics.packagePortRange.get()) {
                 return true;
             }
         }
@@ -266,16 +269,4 @@ public class MailboxSelectionHandler {
         return MAILBOX_HIGHLIGHT_PREFIX + mailboxPos.asLong();
     }
 
-    private static void animateConnection(Minecraft mc, Vec3 source, Vec3 target, Color color) {
-        DustParticleOptions data = new DustParticleOptions(color.asVectorF(), 1.0F);
-        double totalFlyingTicks = 10;
-        int segments = (((int) totalFlyingTicks) / 3) + 1;
-        double tickOffset = totalFlyingTicks / segments;
-
-        for (int i = 0; i < segments; i++) {
-            double ticks = ((AnimationTickHolder.getRenderTime() / 3) % tickOffset) + i * tickOffset;
-            Vec3 vec = source.lerp(target, ticks / totalFlyingTicks);
-            mc.level.addParticle(data, vec.x, vec.y, vec.z, 0, 0, 0);
-        }
-    }
 }

@@ -11,6 +11,8 @@ import com.simibubi.create.content.logistics.packagePort.PackagePortBlockEntity;
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget.ChainConveyorFrogportTarget;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperChainConveyorFrogportTarget;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlockEntity;
 
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.createmod.catnip.platform.CatnipServices;
@@ -100,8 +102,11 @@ public record HandPointerFrogportConnectionPacket(
                 return;
             }
 
-            ChainConveyorFrogportTarget newTarget =
-                new ChainConveyorFrogportTarget(chainConveyorPos.subtract(frogportPos), chainPosition, connection, false);
+            ChainConveyorFrogportTarget newTarget = frogport instanceof CopperFrogportBlockEntity
+                ? new CopperChainConveyorFrogportTarget(
+                    chainConveyorPos.subtract(frogportPos), chainPosition, connection, false)
+                : new ChainConveyorFrogportTarget(
+                    chainConveyorPos.subtract(frogportPos), chainPosition, connection, false);
             if (!newTarget.canSupport(frogport)) {
                 return;
             }
@@ -112,7 +117,6 @@ public record HandPointerFrogportConnectionPacket(
                 AllConfigs.server().logistics.packagePortRange.get() + 2)) {
                 return;
             }
-
             pendingUpdates.add(new PendingFrogportUpdate(frogportPos, frogport, newTarget));
         }
 

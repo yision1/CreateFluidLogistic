@@ -7,12 +7,18 @@ import com.tterrag.registrate.util.nullness.NonNullSupplier;
 import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterMenu;
 import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterScreen;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportScreen;
+
+import com.simibubi.create.content.logistics.packagePort.PackagePortMenu;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.MenuAccess;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
 public class AllMenuTypes {
+
+    public static final MenuEntry<PackagePortMenu> COPPER_FROGPORT =
+        register("copper_frogport", PackagePortMenu::new, () -> CopperFrogportScreen::new);
 
     public static final MenuEntry<HandPointerFilterMenu> HAND_POINTER_FILTER =
         register("hand_pointer_filter", HandPointerFilterMenu::new, () -> HandPointerFilterScreen::new);

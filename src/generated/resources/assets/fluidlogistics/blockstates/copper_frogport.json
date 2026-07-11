@@ -1,0 +1,29 @@
+{
+  "variants": {
+    "attached_direction=down": {
+      "model": "fluidlogistics:block/copper_frogport/block"
+    },
+    "attached_direction=east": {
+      "model": "fluidlogistics:block/copper_frogport/block",
+      "x": 90,
+      "y": 270
+    },
+    "attached_direction=north": {
+      "model": "fluidlogistics:block/copper_frogport/block",
+      "x": 270
+    },
+    "attached_direction=south": {
+      "model": "fluidlogistics:block/copper_frogport/block",
+      "x": 90
+    },
+    "attached_direction=up": {
+      "model": "fluidlogistics:block/copper_frogport/block",
+      "x": 180
+    },
+    "attached_direction=west": {
+      "model": "fluidlogistics:block/copper_frogport/block",
+      "x": 90,
+      "y": 90
+    }
+  }
+}

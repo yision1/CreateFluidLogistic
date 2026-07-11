@@ -1,5 +1,6 @@
 {
   "values": [
+    "fluidlogistics:copper_frogport",
     "fluidlogistics:fluid_transporter",
     "fluidlogistics:fluid_packager",
     "fluidlogistics:fluid_repackager",

@@ -4,6 +4,9 @@ import com.simibubi.create.content.kinetics.base.ShaftVisual;
 import com.simibubi.create.foundation.blockEntity.renderer.SmartBlockEntityRenderer;
 import com.tterrag.registrate.util.entry.BlockEntityEntry;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlockEntity;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportRenderer;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportVisual;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerRenderer;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerVisual;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidRepackagerBlockEntity;
@@ -35,6 +38,13 @@ import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchBlockEntity
 import static com.yision.fluidlogistics.FluidLogistics.REGISTRATE;
 
 public class AllBlockEntities {
+
+    public static final BlockEntityEntry<CopperFrogportBlockEntity> COPPER_FROGPORT = REGISTRATE
+            .blockEntity("copper_frogport", CopperFrogportBlockEntity::new)
+            .visual(() -> CopperFrogportVisual::new, true)
+            .validBlocks(AllBlocks.COPPER_FROGPORT)
+            .renderer(() -> CopperFrogportRenderer::new)
+            .register();
 
     public static final BlockEntityEntry<FluidTransporterBlockEntity> FLUID_TRANSPORTER = REGISTRATE
             .blockEntity("fluid_transporter", FluidTransporterBlockEntity::new)

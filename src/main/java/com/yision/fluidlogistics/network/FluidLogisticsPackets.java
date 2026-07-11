@@ -6,6 +6,7 @@ import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidFilter
 import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidAdditionalStockPacket;
 import com.yision.fluidlogistics.content.fluids.faucet.network.FaucetDripParticlePacket;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.network.MechanicalFluidGunPackets;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportPlacementRequestPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerPackagerTogglePacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerOpenFilterMenuPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerMailboxStationConnectionPacket;
@@ -27,6 +28,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 public enum FluidLogisticsPackets implements BasePacketPayload.PacketTypeProvider {
     CLIPBOARD_SET_ADDRESS(ClipboardSetAddressPacket.class, ClipboardSetAddressPacket.STREAM_CODEC),
+    COPPER_FROGPORT_PLACEMENT_REQUEST(CopperFrogportPlacementRequestPacket.class, CopperFrogportPlacementRequestPacket.STREAM_CODEC),
     FACTORY_PANEL_SET_FLUID_FILTER(FactoryPanelSetFluidFilterPacket.class, FactoryPanelSetFluidFilterPacket.STREAM_CODEC),
     FACTORY_PANEL_SET_FLUID_ADDITIONAL_STOCK(FactoryPanelSetFluidAdditionalStockPacket.class, FactoryPanelSetFluidAdditionalStockPacket.STREAM_CODEC),
     FACTORY_PANEL_SET_FLUID_PROMISE_LIMIT(FactoryPanelSetFluidPromiseLimitPacket.class, FactoryPanelSetFluidPromiseLimitPacket.STREAM_CODEC),

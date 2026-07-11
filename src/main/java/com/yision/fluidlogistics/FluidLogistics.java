@@ -12,6 +12,7 @@ import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.fluids.waterContainingCopperCasing.WaterContainingCopperCasingFluidHandler;
 import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpNetworkUpdater;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlockEntity;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidRepackagerBlockEntity;
 import com.yision.fluidlogistics.content.logistics.fluidTransporter.FluidTransporterBlockEntity;
 import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
@@ -39,6 +40,7 @@ import com.yision.fluidlogistics.registry.AllConditionCodecs;
 import com.yision.fluidlogistics.registry.AllFluidAttributeTypes;
 import com.yision.fluidlogistics.registry.FluidLogisticsUnpackingHandlers;
 import com.yision.fluidlogistics.registry.AllFluidLogisticsParticleTypes;
+import com.yision.fluidlogistics.registry.FluidLogisticsPackagePortTargetTypes;
 import com.yision.fluidlogistics.config.FeatureToggle;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -101,6 +103,7 @@ public class FluidLogistics {
         AllDataComponents.register(modEventBus);
         AllFluidAttributeTypes.REGISTER.register(modEventBus);
         AllFluidLogisticsParticleTypes.register(modEventBus);
+        FluidLogisticsPackagePortTargetTypes.register(modEventBus);
         AllBlocks.register();
         AllBlockEntities.register();
         AllItems.register();
@@ -132,6 +135,7 @@ public class FluidLogistics {
     }
 
     private void registerCapabilities(final RegisterCapabilitiesEvent event) {
+        CopperFrogportBlockEntity.registerCapabilities(event);
         FluidTransporterBlockEntity.registerCapabilities(event);
         FluidPackagerBlockEntity.registerCapabilities(event);
         FluidRepackagerBlockEntity.registerCapabilities(event);

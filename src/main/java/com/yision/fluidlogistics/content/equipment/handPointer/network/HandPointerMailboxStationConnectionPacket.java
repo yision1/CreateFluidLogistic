@@ -96,7 +96,7 @@ public record HandPointerMailboxStationConnectionPacket(
             Vec3 targetLocation = target.getExactTargetLocation(postbox, level, mailboxPos);
             if (targetLocation == Vec3.ZERO || !targetLocation.closerThan(
                 Vec3.atBottomCenterOf(mailboxPos),
-                AllConfigs.server().logistics.packagePortRange.get())) {
+                AllConfigs.server().logistics.packagePortRange.get() + 2)) {
                 return;
             }
 
