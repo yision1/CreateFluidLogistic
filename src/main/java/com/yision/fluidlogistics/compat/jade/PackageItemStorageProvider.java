@@ -53,7 +53,7 @@ public enum PackageItemStorageProvider implements IServerExtensionProvider<ItemS
 			ItemStack slotStack = contents.getStackInSlot(i);
 			if (slotStack.isEmpty()) continue;
 
-			if (slotStack.getItem() instanceof CompressedTankItem) {
+			if (CompressedTankItem.isFluidStack(slotStack)) {
 				continue;
 			}
 			displayItems.add(slotStack);

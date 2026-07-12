@@ -56,7 +56,7 @@ public enum PackageFluidStorageProvider implements IServerExtensionProvider<Comp
 
 		for (int i = 0; i < contents.getSlots(); i++) {
 			ItemStack slotStack = contents.getStackInSlot(i);
-			if (!slotStack.isEmpty() && slotStack.getItem() instanceof CompressedTankItem) {
+			if (CompressedTankItem.isFluidStack(slotStack)) {
 				FluidStack fluid = CompressedTankItem.getFluid(slotStack);
 				int totalAmount = fluid.getAmount() * slotStack.getCount();
 				mergeFluid(fluids, fluid, totalAmount);

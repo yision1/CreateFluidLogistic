@@ -89,7 +89,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private static final int fluidlogistics$BOTTOM_ROW_X_OFFSET = -20;
 
     @Unique
-    private boolean fluidlogistics$isVirtualTank = false;
+    private boolean fluidlogistics$isFluidTank = false;
 
     @Unique
     private FluidStack fluidlogistics$cachedFluid = null;
@@ -107,12 +107,12 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     )
     private void fluidlogistics$onRenderInputItemHead(GuiGraphics graphics, int slot, BigItemStack itemStack, 
             int mouseX, int mouseY, CallbackInfo ci) {
-        fluidlogistics$isVirtualTank = false;
+        fluidlogistics$isFluidTank = false;
         fluidlogistics$cachedFluid = null;
 
-        if (FluidGaugeHelper.isVirtualFluidFilter(itemStack.stack)) {
+        if (FluidGaugeHelper.isFluidFilter(itemStack.stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(itemStack.stack);
-            fluidlogistics$isVirtualTank = true;
+            fluidlogistics$isFluidTank = true;
             fluidlogistics$cachedFluid = fluid;
         }
     }
@@ -129,7 +129,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     )
     private void fluidlogistics$redirectRenderItemDecorations(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
             ItemStack stack, int x, int y, String text, @Local(argsOnly = true) BigItemStack itemStack) {
-        if (fluidlogistics$isVirtualTank) {
+        if (fluidlogistics$isFluidTank) {
             String amountText = FluidAmountHelper.format(itemStack.count);
             graphics.renderItemDecorations(font, stack, x, y, amountText);
             return;
@@ -150,7 +150,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private void fluidlogistics$redirectInputTooltip(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
             List<Component> tooltips, int mouseX, int mouseY,
             @Local(argsOnly = true) BigItemStack itemStack) {
-        if (fluidlogistics$isVirtualTank && fluidlogistics$cachedFluid != null) {
+        if (fluidlogistics$isFluidTank && fluidlogistics$cachedFluid != null) {
             String fluidName = fluidlogistics$cachedFluid.getHoverName().getString();
             String amountText = FluidAmountHelper.formatPrecise(itemStack.count);
             List<Component> newTooltips = new ArrayList<>();
@@ -201,28 +201,28 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private ScrollInput fluidlogistics$promiseLimitInput;
 
     @Unique
-    private boolean fluidlogistics$hasVirtualFluidFilter() {
-        return FluidGaugeHelper.isVirtualFluidFilter(behaviour.getFilter());
+    private boolean fluidlogistics$hasFluidFilter() {
+        return FluidGaugeHelper.isFluidFilter(behaviour.getFilter());
     }
 
     @Unique
     private boolean fluidlogistics$hasFluidRestockThresholdControl() {
         return restocker
             && behaviour instanceof IFluidRestockThreshold
-            && fluidlogistics$hasVirtualFluidFilter();
+            && fluidlogistics$hasFluidFilter();
     }
 
     @Unique
     private boolean fluidlogistics$hasFluidPromiseLimitControl() {
         return behaviour instanceof IFluidPromiseLimit
-            && fluidlogistics$hasVirtualFluidFilter();
+            && fluidlogistics$hasFluidFilter();
     }
 
     @Unique
     private boolean fluidlogistics$hasFluidAdditionalStockControl() {
         return restocker
             && behaviour instanceof IFluidAdditionalStock
-            && fluidlogistics$hasVirtualFluidFilter();
+            && fluidlogistics$hasFluidFilter();
     }
 
     @Inject(
@@ -405,7 +405,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private void fluidlogistics$renderFactoryGaugePreviewFluidAsBlock(RenderElement element, GuiGraphics graphics,
             int x, int y) {
         ItemStack filter = behaviour.getFilter();
-        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
+        if (FluidGaugeHelper.isFluidFilter(filter)) {
             FluidStack fluid = CompressedTankItem.getFluid(filter);
             if (!fluid.isEmpty() && fluid.getFluid() != Fluids.EMPTY) {
                 fluidlogistics$renderFluidAsFactoryGaugeFilterPreview(graphics, fluid, x, y);
@@ -485,7 +485,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     )
     private int fluidlogistics$redirectClamp(int value, int min, int max,
             @Local BigItemStack itemStack) {
-        if (FluidGaugeHelper.isVirtualFluidFilter(itemStack.stack)) {
+        if (FluidGaugeHelper.isFluidFilter(itemStack.stack)) {
             FactoryPanelScreen self = (FactoryPanelScreen) (Object) this;
             int maxBatch = FluidGaugeHelper.getMaxFluidRequestPerBatch();
             return FluidAmountHelper.adjustFluidRequestAmount(itemStack.count, value > itemStack.count, self.hasShiftDown(),
@@ -507,7 +507,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     )
     private void fluidlogistics$redirectOutputRenderItemDecorations(GuiGraphics graphics, 
             net.minecraft.client.gui.Font font, ItemStack stack, int x, int y, String text) {
-        if (outputConfig.stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(outputConfig.stack)) {
+        if (CompressedTankItem.isFluidStack(outputConfig.stack)) {
             String amountText = FluidAmountHelper.format(outputConfig.count);
             graphics.renderItemDecorations(font, stack, x, y, amountText);
             return;
@@ -529,7 +529,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private void fluidlogistics$redirectPromiseItemDecorations(GuiGraphics graphics, 
             net.minecraft.client.gui.Font font, ItemStack stack, int x, int y, String text) {
         ItemStack filter = behaviour.getFilter();
-        if (filter.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(filter)) {
+        if (CompressedTankItem.isFluidStack(filter)) {
             int promised = behaviour.getPromised();
             String amountText = FluidAmountHelper.format(promised);
             graphics.renderItemDecorations(font, stack, x, y, amountText);
@@ -551,7 +551,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     )
     private void fluidlogistics$redirectOutputTooltip(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
             List<Component> tooltips, int mouseX, int mouseY) {
-        if (outputConfig.stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(outputConfig.stack)) {
+        if (CompressedTankItem.isFluidStack(outputConfig.stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(outputConfig.stack);
             String fluidName = fluid.getHoverName().getString();
             String amountText = FluidAmountHelper.formatPrecise(outputConfig.count);
@@ -599,7 +599,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private void fluidlogistics$redirectPromiseTooltip(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
             List<Component> tooltips, int mouseX, int mouseY) {
         ItemStack filter = behaviour.getFilter();
-        if (filter.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(filter)) {
+        if (CompressedTankItem.isFluidStack(filter)) {
             FluidStack fluid = CompressedTankItem.getFluid(filter);
             int promised = behaviour.getPromised();
             if (promised > 0) {

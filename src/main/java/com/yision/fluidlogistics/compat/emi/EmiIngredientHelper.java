@@ -39,7 +39,7 @@ public final class EmiIngredientHelper {
         FluidStack fluid = getFirstFluid(ingredient);
         if (fluid != null) {
             ItemStack tankStack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-            CompressedTankItem.setFluidVirtual(tankStack, fluid.copyWithAmount(1));
+            CompressedTankItem.setFluid(tankStack, fluid.copyWithAmount(1));
             return tankStack;
         }
 

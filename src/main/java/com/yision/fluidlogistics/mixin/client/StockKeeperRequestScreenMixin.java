@@ -87,7 +87,7 @@ public abstract class StockKeeperRequestScreenMixin {
         fluidlogistics$isCompressedTank = false;
 
         ItemStack stack = entry.stack;
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
+        if (CompressedTankItem.isFluidStack(stack)) {
             fluidlogistics$isCompressedTank = true;
         }
     }
@@ -122,7 +122,7 @@ public abstract class StockKeeperRequestScreenMixin {
     )
     private void fluidlogistics$redirectRenderItemDecorations(GuiGraphics graphics, Font font, ItemStack stack, int x,
             int y, String text, @Local(ordinal = 0) int customCount) {
-        if (fluidlogistics$isVirtualCompressedTank(stack) && customCount > 0) {
+        if (fluidlogistics$isFluidTank(stack) && customCount > 0) {
             FluidSlotAmountRenderer.renderInStockKeeper(graphics, customCount);
             return;
         }
@@ -146,7 +146,7 @@ public abstract class StockKeeperRequestScreenMixin {
         boolean orderClicked = hoveredSlot.getFirst() == -1;
         BigItemStack entry = orderClicked ? itemsToOrder.get(hoveredSlot.getSecond())
             : displayedItems.get(hoveredSlot.getFirst()).get(hoveredSlot.getSecond());
-        if (!fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+        if (!fluidlogistics$isFluidTank(entry.stack)) {
             return;
         }
 
@@ -171,7 +171,7 @@ public abstract class StockKeeperRequestScreenMixin {
         boolean orderClicked = hoveredSlot.getFirst() == -1;
         BigItemStack entry = orderClicked ? itemsToOrder.get(hoveredSlot.getSecond())
             : displayedItems.get(hoveredSlot.getFirst()).get(hoveredSlot.getSecond());
-        if (!fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+        if (!fluidlogistics$isFluidTank(entry.stack)) {
             return;
         }
 
@@ -267,7 +267,7 @@ public abstract class StockKeeperRequestScreenMixin {
     @Redirect(method = "renderForeground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;renderComponentTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;II)V", ordinal = 0))
     private void fluidlogistics$recipeTooltip(GuiGraphics graphics, Font font, List<Component> tooltipLines, int mouseX, int mouseY, @Local(name = "lines")
         ArrayList<Component> lines, @Local(name = "entry") BigItemStack entry){
-        if (FluidGaugeHelper.isVirtualFluidFilter(entry.stack)) {
+        if (FluidGaugeHelper.isFluidFilter(entry.stack)) {
             ArrayList<Component> fluidLines = fluidlogistics$getPreciseFluidTooltipLines(entry, true, true);
             if (!fluidLines.isEmpty()) {
                 graphics.renderComponentTooltip(font, fluidLines, mouseX, mouseY);
@@ -280,7 +280,7 @@ public abstract class StockKeeperRequestScreenMixin {
     @Redirect(method="renderForeground", at = @At(value="INVOKE",target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V",ordinal = 0))
     private void fluidlogistics$itemTooltip(GuiGraphics graphics, Font font, ItemStack stack, int mouseX, int mouseY,
             @Local(name = "entry") BigItemStack entry){
-        if (FluidGaugeHelper.isVirtualFluidFilter(entry.stack)) {
+        if (FluidGaugeHelper.isFluidFilter(entry.stack)) {
             boolean orderHovered = getHoveredSlot(mouseX, mouseY).getFirst() == -1;
             ArrayList<Component> lines = fluidlogistics$getPreciseFluidTooltipLines(entry, false, orderHovered);
             if (!lines.isEmpty()) {
@@ -430,13 +430,12 @@ public abstract class StockKeeperRequestScreenMixin {
     @Unique
     private boolean fluidlogistics$isCustomFluidCraftable(CraftableBigItemStack cbis) {
         return fluidlogistics$hasCustomRecipeData(cbis)
-            && fluidlogistics$isVirtualCompressedTank(cbis.stack);
+            && fluidlogistics$isFluidTank(cbis.stack);
     }
 
     @Unique
-    private static boolean fluidlogistics$isVirtualCompressedTank(ItemStack stack) {
-        return stack.getItem() instanceof CompressedTankItem
-            && CompressedTankItem.isVirtual(stack);
+    private static boolean fluidlogistics$isFluidTank(ItemStack stack) {
+        return CompressedTankItem.isFluidStack(stack);
     }
 
     @Unique
@@ -448,7 +447,7 @@ public abstract class StockKeeperRequestScreenMixin {
     private static ArrayList<Component> fluidlogistics$getPreciseFluidTooltipLines(BigItemStack entry,
             boolean recipeHovered, boolean showAmount) {
         boolean advanced = Minecraft.getInstance().options.advancedItemTooltips;
-        ArrayList<Component> lines = new ArrayList<>(FluidTooltipHelper.getVirtualCompressedTankTooltipLines(entry.stack, advanced));
+        ArrayList<Component> lines = new ArrayList<>(FluidTooltipHelper.getCompressedTankTooltipLines(entry.stack, advanced));
         if (lines.isEmpty()) {
             return lines;
         }

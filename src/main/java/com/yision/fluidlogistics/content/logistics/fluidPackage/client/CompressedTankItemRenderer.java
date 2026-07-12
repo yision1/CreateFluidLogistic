@@ -5,7 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.foundation.item.render.CustomRenderedItemModel;
 import com.simibubi.create.foundation.item.render.CustomRenderedItemModelRenderer;
 import com.simibubi.create.foundation.item.render.PartialItemModelRenderer;
-import com.yision.fluidlogistics.util.VirtualFluidDisplayHelper;
+import com.yision.fluidlogistics.util.FluidDisplayHelper;
 
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -20,7 +20,7 @@ public class CompressedTankItemRenderer extends CustomRenderedItemModelRenderer 
     @Override
     protected void render(ItemStack stack, CustomRenderedItemModel model, PartialItemModelRenderer renderer,
             ItemDisplayContext displayContext, PoseStack ms, MultiBufferSource buffer, int light, int overlay) {
-        FluidStack fluid = VirtualFluidDisplayHelper.getDisplayFluid(stack);
+        FluidStack fluid = FluidDisplayHelper.getDisplayFluid(stack);
         if (!fluid.isEmpty() && shouldRenderFluidIcon(displayContext)) {
             float halfSize = displayContext == ItemDisplayContext.FIXED ? 0.375f : 0.5f;
             FluidSlotRenderer.renderFluidItemIcon(fluid, ms, buffer, light, halfSize);

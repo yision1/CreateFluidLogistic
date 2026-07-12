@@ -23,12 +23,12 @@ import net.neoforged.neoforge.fluids.FluidStack;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-final class VirtualFluidTankRecipeLookupPlugin implements IRecipeManagerPlugin {
+final class FluidTankRecipeLookupPlugin implements IRecipeManagerPlugin {
 
     private final IFocusFactory focusFactory;
     private final Supplier<IJeiRuntime> runtimeSupplier;
 
-    VirtualFluidTankRecipeLookupPlugin(IJeiHelpers jeiHelpers, Supplier<IJeiRuntime> runtimeSupplier) {
+    FluidTankRecipeLookupPlugin(IJeiHelpers jeiHelpers, Supplier<IJeiRuntime> runtimeSupplier) {
         this.focusFactory = jeiHelpers.getFocusFactory();
         this.runtimeSupplier = runtimeSupplier;
     }
@@ -85,7 +85,7 @@ final class VirtualFluidTankRecipeLookupPlugin implements IRecipeManagerPlugin {
         }
 
         ItemStack stack = itemStack.get();
-        if (!(stack.getItem() instanceof CompressedTankItem) || !CompressedTankItem.isVirtual(stack)) {
+        if (!CompressedTankItem.isFluidStack(stack)) {
             return Optional.empty();
         }
 

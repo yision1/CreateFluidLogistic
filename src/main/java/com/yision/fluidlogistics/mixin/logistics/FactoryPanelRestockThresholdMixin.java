@@ -289,6 +289,6 @@ public abstract class FactoryPanelRestockThresholdMixin extends FilteringBehavio
     @Unique
     private boolean fluidlogistics$shouldApply() {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
-        return FluidGaugeHelper.isVirtualFluidRestocker(self);
+        return FluidGaugeHelper.isFluidRestocker(self);
     }
 }

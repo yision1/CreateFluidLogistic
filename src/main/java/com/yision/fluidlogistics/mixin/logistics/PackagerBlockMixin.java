@@ -31,7 +31,6 @@ public class PackagerBlockMixin {
             return;
         }
 
-        // Preserve side effects from vanilla path except redstone state syncing.
         InvManipulationBehaviour behaviour = BlockEntityBehaviour.get(worldIn, pos, InvManipulationBehaviour.TYPE);
         if (behaviour != null) {
             behaviour.onNeighborChanged(fromPos);

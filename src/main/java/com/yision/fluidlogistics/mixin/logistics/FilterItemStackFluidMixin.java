@@ -6,14 +6,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.simibubi.create.content.logistics.filter.FilterItemStack;
-import com.yision.fluidlogistics.compat.ghost.VirtualFluidGhostStacks;
+import com.yision.fluidlogistics.compat.ghost.FluidGhostStacks;
 
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 @Mixin(FilterItemStack.class)
-public class FilterItemStackVirtualFluidMixin {
+public class FilterItemStackFluidMixin {
 
     @Inject(
         method = "test(Lnet/minecraft/world/level/Level;Lnet/neoforged/neoforge/fluids/FluidStack;Z)Z",
@@ -21,10 +21,10 @@ public class FilterItemStackVirtualFluidMixin {
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$testVirtualFluid(Level world, FluidStack stack, boolean matchNBT,
+    private void fluidlogistics$testFluid(Level world, FluidStack stack, boolean matchNBT,
             CallbackInfoReturnable<Boolean> cir) {
         ItemStack filterItem = ((FilterItemStack) (Object) this).item();
-        if (!VirtualFluidGhostStacks.isVirtualFluidGhost(filterItem)) {
+        if (!FluidGhostStacks.isFluidGhost(filterItem)) {
             return;
         }
 
@@ -33,7 +33,7 @@ public class FilterItemStackVirtualFluidMixin {
             return;
         }
 
-        FluidStack filterFluid = VirtualFluidGhostStacks.getFluid(filterItem);
+        FluidStack filterFluid = FluidGhostStacks.getFluid(filterItem);
         if (filterFluid.isEmpty()) {
             cir.setReturnValue(false);
             return;

@@ -44,11 +44,11 @@ public class FluidLogisticsEMI implements EmiPlugin {
         registry.addDragDropHandler(RedstoneRequesterScreen.class, REDSTONE_REQUESTER_DRAG_DROP);
         registry.addDragDropHandler(HandPointerFilterScreen.class, HAND_POINTER_DRAG_DROP);
 
-        registry.addStackProvider(FilterScreen.class, EmiVirtualFluidStackProvider.Filter.INSTANCE);
-        registry.addStackProvider(AttributeFilterScreen.class, EmiVirtualFluidStackProvider.AttributeFilter.INSTANCE);
-        registry.addStackProvider(FactoryPanelSetItemScreen.class, EmiVirtualFluidStackProvider.FactoryPanel.INSTANCE);
-        registry.addStackProvider(RedstoneRequesterScreen.class, EmiVirtualFluidStackProvider.RedstoneRequester.INSTANCE);
-        registry.addStackProvider(HandPointerFilterScreen.class, EmiVirtualFluidStackProvider.HandPointerFilter.INSTANCE);
-        registry.addStackProvider(StockKeeperRequestScreen.class, EmiVirtualFluidStackProvider.StockKeeper.INSTANCE);
+        registry.addStackProvider(FilterScreen.class, EmiFluidStackProvider.Filter.INSTANCE);
+        registry.addStackProvider(AttributeFilterScreen.class, EmiFluidStackProvider.AttributeFilter.INSTANCE);
+        registry.addStackProvider(FactoryPanelSetItemScreen.class, EmiFluidStackProvider.FactoryPanel.INSTANCE);
+        registry.addStackProvider(RedstoneRequesterScreen.class, EmiFluidStackProvider.RedstoneRequester.INSTANCE);
+        registry.addStackProvider(HandPointerFilterScreen.class, EmiFluidStackProvider.HandPointerFilter.INSTANCE);
+        registry.addStackProvider(StockKeeperRequestScreen.class, EmiFluidStackProvider.StockKeeper.INSTANCE);
     }
 }

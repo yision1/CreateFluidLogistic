@@ -25,11 +25,10 @@ import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.yision.fluidlogistics.registry.FluidLogisticsArmInteractionPointTypes;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.AllBlocks;
-import com.simibubi.create.content.logistics.box.PackageItem;
-import com.simibubi.create.foundation.item.ItemHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankFluidHandler;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankTooltipModifier;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageContentHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageFluidHandler;
 import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidTankItem;
 import com.yision.fluidlogistics.registry.AllDataComponents;
@@ -50,7 +49,6 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.items.ItemStackHandler;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -81,7 +79,7 @@ public class FluidLogistics {
     public static final Supplier<CreativeModeTab> FLUID_LOGISTICS_CREATIVE_TAB =
             CREATIVE_TABS.register("fluidlogistics_tab", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.fluidlogistics.fluidlogistics_tab"))
-                    .icon(() -> createWaterFluidPackage(50000))
+                    .icon(() -> createWaterFluidPackage(Config.getFluidPerPackage()))
                     .build());
 
     public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(MODID)
@@ -226,13 +224,6 @@ public class FluidLogistics {
     }
 
     private static ItemStack createWaterFluidPackage(int amount) {
-        ItemStack packageStack = new ItemStack(AllItems.FLUID_PACKAGE.get());
-        ItemStackHandler contents = new ItemStackHandler(PackageItem.SLOTS);
-        ItemStack tankStack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluid(tankStack, new FluidStack(Fluids.WATER, amount));
-        contents.setStackInSlot(0, tankStack);
-        packageStack.set(com.simibubi.create.AllDataComponents.PACKAGE_CONTENTS,
-                ItemHelper.containerContentsFromHandler(contents));
-        return packageStack;
+        return FluidPackageContentHelper.createCanonicalPackage(new FluidStack(Fluids.WATER, amount));
     }
 }

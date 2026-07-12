@@ -3,6 +3,7 @@ package com.yision.fluidlogistics.content.logistics.fluidPackage;
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.foundation.item.ItemHelper;
+import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidPackageSplitting;
 import com.yision.fluidlogistics.registry.AllItems;
 
@@ -23,32 +24,59 @@ public final class FluidPackageContentHelper {
         }
 
         ItemStackHandler contents = FluidPackageSplitting.readRawContents(packageStack);
+        if (!isCanonicalContents(contents, Config.getFluidPerPackage())) {
+            return FluidStack.EMPTY;
+        }
+        return CompressedTankItem.getFluid(contents.getStackInSlot(0)).copy();
+    }
 
-        FluidStack result = FluidStack.EMPTY;
-        for (int i = 0; i < contents.getSlots(); i++) {
-            ItemStack slotStack = contents.getStackInSlot(i);
-            if (slotStack.isEmpty()) {
-                continue;
-            }
-            if (!(slotStack.getItem() instanceof CompressedTankItem)) {
-                return FluidStack.EMPTY;
-            }
-            FluidStack fluid = CompressedTankItem.getFluid(slotStack);
-            if (fluid.isEmpty()) {
-                continue;
-            }
-            int totalAmount = fluid.getAmount() * slotStack.getCount();
-            if (result.isEmpty()) {
-                result = fluid.copyWithAmount(totalAmount);
-            } else {
-                if (!FluidStack.isSameFluidSameComponents(result, fluid)) {
-                    return FluidStack.EMPTY;
-                }
-                result.grow(totalAmount);
-            }
+    public static boolean isCanonicalPackage(ItemStack packageStack) {
+        return packageStack != null && PackageItem.isPackage(packageStack)
+                && isCanonicalContents(FluidPackageSplitting.readRawContents(packageStack), Config.getFluidPerPackage());
+    }
+
+    public static boolean isCanonicalContents(ItemStackHandler contents, int capacity) {
+        if (contents == null || contents.getSlots() != PackageItem.SLOTS) {
+            return false;
         }
 
-        return result;
+        ItemStack tank = contents.getStackInSlot(0);
+        if (tank.getCount() != 1 || !CompressedTankItem.isFluidStack(tank)) {
+            return false;
+        }
+        if (!CompressedTankRules.isStoredFluidAmountValid(CompressedTankItem.getFluid(tank).getAmount(), capacity)) {
+            return false;
+        }
+        for (int slot = 1; slot < contents.getSlots(); slot++) {
+            if (!contents.getStackInSlot(slot).isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static ItemStackHandler createCanonicalContents(FluidStack fluid) {
+        int capacity = Config.getFluidPerPackage();
+        if (fluid.isEmpty() || !CompressedTankRules.isStoredFluidAmountValid(fluid.getAmount(), capacity)) {
+            throw new IllegalArgumentException("fluid amount must be between 1 and " + capacity + " mB");
+        }
+
+        ItemStackHandler contents = new ItemStackHandler(PackageItem.SLOTS);
+        ItemStack tank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+        CompressedTankItem.setFluid(tank, fluid);
+        contents.setStackInSlot(0, tank);
+        return contents;
+    }
+
+    public static ItemStack createCanonicalPackage(FluidStack fluid) {
+        ItemStack packageStack = AllItems.createFluidPackage();
+        setCanonicalContents(packageStack, fluid);
+        return packageStack;
+    }
+
+    public static void setCanonicalContents(ItemStack packageStack, FluidStack fluid) {
+        packageStack.set(AllDataComponents.PACKAGE_CONTENTS,
+                ItemHelper.containerContentsFromHandler(createCanonicalContents(fluid)));
     }
 
     public static FluidStack peekDrainOneBucket(ItemStack packageStack) {
@@ -78,12 +106,6 @@ public final class FluidPackageContentHelper {
     }
 
     private static void writeSingleFluid(ItemStack packageStack, FluidStack remainingFluid) {
-        ItemStackHandler contents = new ItemStackHandler(PackageItem.SLOTS);
-        ItemStack tank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluid(tank, remainingFluid.copy());
-        contents.setStackInSlot(0, tank);
-
-        packageStack.set(AllDataComponents.PACKAGE_CONTENTS,
-            ItemHelper.containerContentsFromHandler(contents));
+        setCanonicalContents(packageStack, remainingFluid);
     }
 }

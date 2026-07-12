@@ -7,7 +7,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 import com.yision.fluidlogistics.compat.ghost.GhostSlotSubmitter;
 import com.yision.fluidlogistics.compat.ghost.GhostSlotTargets;
-import com.yision.fluidlogistics.compat.ghost.VirtualFluidGhostStacks;
+import com.yision.fluidlogistics.compat.ghost.FluidGhostStacks;
 import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterScreen;
 
 import mezz.jei.api.constants.VanillaTypes;
@@ -75,7 +75,7 @@ public class HandPointerFilterGhostHandler
             ItemStack stack = null;
 
             if (ingredient instanceof FluidStack fluidStack) {
-                stack = VirtualFluidGhostStacks.fromFluid(fluidStack);
+                stack = FluidGhostStacks.fromFluid(fluidStack);
             } else if (ingredient instanceof ItemStack itemStack) {
                 stack = itemStack.copyWithCount(1);
             }

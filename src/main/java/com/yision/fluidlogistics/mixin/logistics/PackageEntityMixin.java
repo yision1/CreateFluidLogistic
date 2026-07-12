@@ -85,7 +85,7 @@ public abstract class PackageEntityMixin implements IHaveGoggleInformation {
         }
 
         ItemStack itemStack = itemEntity.getItem();
-        if (!(itemStack.getItem() instanceof CompressedTankItem)) {
+        if (!CompressedTankItem.isFluidStack(itemStack)) {
             return original.call(level, entity);
         }
 
@@ -151,7 +151,7 @@ public abstract class PackageEntityMixin implements IHaveGoggleInformation {
 
         for (int i = 0; i < contents.getSlots(); i++) {
             ItemStack slotStack = contents.getStackInSlot(i);
-            if (!slotStack.isEmpty() && slotStack.getItem() instanceof CompressedTankItem) {
+            if (CompressedTankItem.isFluidStack(slotStack)) {
                 FluidStack fluid = CompressedTankItem.getFluid(slotStack);
                 mergeFluid(fluids, fluid, slotStack.getCount());
             }

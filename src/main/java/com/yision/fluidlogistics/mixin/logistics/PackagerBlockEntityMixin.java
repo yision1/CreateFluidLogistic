@@ -156,7 +156,7 @@ public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGog
 
         ItemStackHandler contents = PackageItem.getContents(box);
         for (int slot = 0; slot < contents.getSlots(); slot++) {
-            if (contents.getStackInSlot(slot).getItem() instanceof CompressedTankItem) {
+            if (CompressedTankItem.isFluidStack(contents.getStackInSlot(slot))) {
                 return true;
             }
         }

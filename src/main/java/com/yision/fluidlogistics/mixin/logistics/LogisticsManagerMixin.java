@@ -45,7 +45,7 @@ public abstract class LogisticsManagerMixin {
             IdentifiedInventory ignoredHandler,
             Operation<Pair<PackagerBlockEntity, PackagingRequest>> original) {
 
-        if (fluidlogistics$isVirtualFluidRequest(requestedItem)) {
+        if (fluidlogistics$isFluidRequest(requestedItem)) {
             IFluidPackager fluidPackager = fluidlogistics$getFluidPackagerFromLink(link);
             if (fluidPackager == null || fluidPackager.isTargetingSameInventory(ignoredHandler)) {
                 return null;
@@ -73,10 +73,8 @@ public abstract class LogisticsManagerMixin {
     }
 
     @Unique
-    private static boolean fluidlogistics$isVirtualFluidRequest(ItemStack stack) {
-        return !stack.isEmpty()
-            && stack.getItem() instanceof CompressedTankItem
-            && CompressedTankItem.isVirtual(stack);
+    private static boolean fluidlogistics$isFluidRequest(ItemStack stack) {
+        return CompressedTankItem.isFluidStack(stack);
     }
 
     @Unique

@@ -10,7 +10,7 @@ import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.gui.menu.GhostItemMenu;
 import com.yision.fluidlogistics.compat.ghost.GhostSlotSubmitter;
 import com.yision.fluidlogistics.compat.ghost.GhostSlotTargets;
-import com.yision.fluidlogistics.compat.ghost.VirtualFluidGhostStacks;
+import com.yision.fluidlogistics.compat.ghost.FluidGhostStacks;
 
 import mezz.jei.api.gui.handlers.IGhostIngredientHandler;
 import mezz.jei.api.ingredients.ITypedIngredient;
@@ -81,7 +81,7 @@ public class FluidGhostIngredientHandler<T extends AbstractSimiContainerScreen<?
                 return;
             }
 
-            var stack = VirtualFluidGhostStacks.fromFluid(fluidStack);
+            var stack = FluidGhostStacks.fromFluid(fluidStack);
             GhostSlotSubmitter.submit(gui, slotIndex, stack);
             afterSubmit.accept(gui, slotIndex);
         }

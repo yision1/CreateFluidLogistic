@@ -18,7 +18,7 @@ import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
-import com.yision.fluidlogistics.util.VirtualFluidDisplayHelper;
+import com.yision.fluidlogistics.util.FluidDisplayHelper;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -54,7 +54,7 @@ public abstract class PackageItemMixin {
 
         ItemStackHandler contents = cir.getReturnValue();
         for (int i = 0; i < contents.getSlots(); i++) {
-            ItemStack displayStack = VirtualFluidDisplayHelper.getPackageDisplayStack(contents.getStackInSlot(i));
+            ItemStack displayStack = FluidDisplayHelper.getPackageDisplayStack(contents.getStackInSlot(i));
             if (displayStack != contents.getStackInSlot(i)) {
                 contents.setStackInSlot(i, displayStack);
             }
@@ -96,7 +96,7 @@ public abstract class PackageItemMixin {
             mergedFluidsRef.set(mergedFluids);
         }
 
-        FluidStack fluid = VirtualFluidDisplayHelper.getPackageDisplayFluid(itemStack);
+        FluidStack fluid = FluidDisplayHelper.getPackageDisplayFluid(itemStack);
         fluid.setAmount(fluid.getAmount() * itemStack.getCount());
         fluidlogistics$mergeFluid(mergedFluids, fluid);
         return ItemStack.EMPTY;
@@ -168,7 +168,7 @@ public abstract class PackageItemMixin {
 
     @Unique
     private static boolean fluidlogistics$shouldRenderAsFluidTooltip(ItemStack itemStack) {
-        return VirtualFluidDisplayHelper.shouldDisplayAsFluidInPackage(itemStack);
+        return FluidDisplayHelper.shouldDisplayAsFluidInPackage(itemStack);
     }
 
     @Unique
@@ -191,7 +191,7 @@ public abstract class PackageItemMixin {
 
         ItemStackHandler contents = getContents(box);
         for (int i = 0; i < contents.getSlots(); i++) {
-            if (contents.getStackInSlot(i).getItem() instanceof CompressedTankItem) {
+            if (CompressedTankItem.isFluidStack(contents.getStackInSlot(i))) {
                 return true;
             }
         }

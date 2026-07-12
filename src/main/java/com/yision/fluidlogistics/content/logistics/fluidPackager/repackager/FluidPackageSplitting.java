@@ -13,6 +13,8 @@ import com.simibubi.create.content.logistics.box.PackageItem.PackageOrderData;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 import com.simibubi.create.foundation.item.ItemHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankRules;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageContentHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.registry.AllItems;
 
@@ -42,10 +44,8 @@ public final class FluidPackageSplitting {
 			if (stack.isEmpty())
 				continue;
 
-			if (stack.getItem() instanceof CompressedTankItem) {
+			if (CompressedTankItem.isFluidStack(stack)) {
 				FluidStack fluid = CompressedTankItem.getFluid(stack);
-				if (fluid.isEmpty())
-					continue;
 				int totalAmount = fluid.getAmount() * stack.getCount();
 				FluidTypeKey key = FluidTypeKey.of(fluid);
 				fluidsByType.compute(key, (k, existing) -> {
@@ -64,7 +64,8 @@ public final class FluidPackageSplitting {
 		PackageOrderData orderData = box.get(AllDataComponents.PACKAGE_ORDER_DATA);
 		boolean hasFluids = !fluidsByType.isEmpty();
 		boolean hasItems = !nonFluidItems.isEmpty();
-		boolean unchanged = !hasFluids || (!hasItems && isFluidPackage(box));
+		boolean unchanged = !hasFluids || (!hasItems && isFluidPackage(box)
+			&& FluidPackageContentHelper.isCanonicalPackage(box));
 
 		if (unchanged) {
 			result.add(box.copyWithCount(1));
@@ -113,24 +114,8 @@ public final class FluidPackageSplitting {
 
 	private static List<ItemStack> createFluidPackages(FluidStack fluidType, int totalAmount) {
 		List<ItemStack> packages = new ArrayList<>();
-		int tankCapacity = CompressedTankItem.getCapacity();
-
-		int remaining = totalAmount;
-
-		while (remaining > 0) {
-			int fluidForPackage = Math.min(remaining, tankCapacity);
-			ItemStackHandler packageContents = new ItemStackHandler(PackageItem.SLOTS);
-			ItemStack compressedTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-			CompressedTankItem.setFluid(compressedTank, fluidType.copyWithAmount(fluidForPackage));
-			packageContents.setStackInSlot(0, compressedTank);
-
-			ItemStack fluidPackage = AllItems.createFluidPackage();
-			fluidPackage.set(AllDataComponents.PACKAGE_CONTENTS,
-				ItemHelper.containerContentsFromHandler(packageContents));
-			packages.add(fluidPackage);
-
-			remaining -= fluidForPackage;
-		}
+		for (int amount : CompressedTankRules.splitAmounts(totalAmount, CompressedTankItem.getCapacity()))
+			packages.add(FluidPackageContentHelper.createCanonicalPackage(fluidType.copyWithAmount(amount)));
 
 		return packages;
 	}

@@ -36,16 +36,16 @@ public final class FluidGaugeHelper {
     private FluidGaugeHelper() {
     }
 
-    public static boolean isVirtualFluidFilter(ItemStack stack) {
-        return stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack);
+    public static boolean isFluidFilter(ItemStack stack) {
+        return CompressedTankItem.isFluidStack(stack);
     }
 
-    public static boolean isVirtualFluidFilter(FactoryPanelBehaviour behaviour) {
-        return isVirtualFluidFilter(behaviour.getFilter());
+    public static boolean isFluidFilter(FactoryPanelBehaviour behaviour) {
+        return isFluidFilter(behaviour.getFilter());
     }
 
-    public static boolean isVirtualFluidRestocker(FactoryPanelBehaviour behaviour) {
-        return behaviour.panelBE().restocker && isVirtualFluidFilter(behaviour);
+    public static boolean isFluidRestocker(FactoryPanelBehaviour behaviour) {
+        return behaviour.panelBE().restocker && isFluidFilter(behaviour);
     }
 
     public static int clampRestockThreshold(int threshold) {

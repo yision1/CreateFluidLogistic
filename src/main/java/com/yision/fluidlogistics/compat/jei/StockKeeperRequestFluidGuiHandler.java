@@ -26,8 +26,7 @@ public class StockKeeperRequestFluidGuiHandler implements IGuiContainerHandler<S
                 .flatMap(pair -> {
                     Object ingredient = pair.getFirst();
                     if (ingredient instanceof net.minecraft.world.item.ItemStack stack
-                            && stack.getItem() instanceof CompressedTankItem
-                            && CompressedTankItem.isVirtual(stack)) {
+                            && CompressedTankItem.isFluidStack(stack)) {
                         FluidStack fluid = CompressedTankItem.getFluid(stack);
                         if (fluid.isEmpty()) {
                             return Optional.empty();

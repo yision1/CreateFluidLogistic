@@ -4,7 +4,7 @@ import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
-import com.yision.fluidlogistics.util.VirtualFluidDisplayHelper;
+import com.yision.fluidlogistics.util.FluidDisplayHelper;
 
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.Capabilities;
@@ -16,32 +16,32 @@ public final class FluidLogisticsApi {
     private FluidLogisticsApi() {
     }
 
-    public static boolean isVirtualFluidStack(ItemStack stack) {
-        return stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack);
+    public static boolean isFluidStack(ItemStack stack) {
+        return CompressedTankItem.isFluidStack(stack);
     }
 
-    public static ItemStack createVirtualFluidKey(FluidStack fluid) {
+    public static ItemStack createFluidKey(FluidStack fluid) {
         if (fluid.isEmpty()) {
             return ItemStack.EMPTY;
         }
         ItemStack stack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluidVirtual(stack, fluid.copyWithAmount(1));
+        CompressedTankItem.setFluid(stack, fluid.copyWithAmount(1));
         return stack;
     }
 
-    public static FluidStack getVirtualFluid(ItemStack stack) {
-        if (!isVirtualFluidStack(stack)) {
+    public static FluidStack getFluid(ItemStack stack) {
+        if (!isFluidStack(stack)) {
             return FluidStack.EMPTY;
         }
         return CompressedTankItem.getFluid(stack).copy();
     }
 
     public static boolean shouldDisplayAsFluidInPackage(ItemStack stack) {
-        return VirtualFluidDisplayHelper.shouldDisplayAsFluidInPackage(stack);
+        return FluidDisplayHelper.shouldDisplayAsFluidInPackage(stack);
     }
 
     public static FluidStack getPackageDisplayFluid(ItemStack stack) {
-        return VirtualFluidDisplayHelper.getPackageDisplayFluid(stack);
+        return FluidDisplayHelper.getPackageDisplayFluid(stack);
     }
 
     public static int getPackageFluidAmount(ItemStack stack) {

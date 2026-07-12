@@ -6,23 +6,23 @@ import com.yision.fluidlogistics.registry.AllItems;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 
-public final class VirtualFluidGhostStacks {
+public final class FluidGhostStacks {
 
-    private VirtualFluidGhostStacks() {
+    private FluidGhostStacks() {
     }
 
     public static ItemStack fromFluid(FluidStack fluid) {
         ItemStack stack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluidVirtual(stack, fluid.copyWithAmount(1));
+        CompressedTankItem.setFluid(stack, fluid.copyWithAmount(1));
         return stack;
     }
 
-    public static boolean isVirtualFluidGhost(ItemStack stack) {
-        return stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack);
+    public static boolean isFluidGhost(ItemStack stack) {
+        return CompressedTankItem.isFluidStack(stack);
     }
 
     public static FluidStack getFluid(ItemStack stack) {
-        if (!isVirtualFluidGhost(stack)) {
+        if (!isFluidGhost(stack)) {
             return FluidStack.EMPTY;
         }
         return CompressedTankItem.getFluid(stack);

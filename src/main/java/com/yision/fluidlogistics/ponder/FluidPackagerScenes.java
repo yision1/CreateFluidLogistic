@@ -1,12 +1,10 @@
 package com.yision.fluidlogistics.ponder;
 
-import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageItem;
-import com.simibubi.create.foundation.item.ItemHelper;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageContentHelper;
 import com.yision.fluidlogistics.registry.AllItems;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.PonderPalette;
@@ -228,12 +226,7 @@ public class FluidPackagerScenes {
     }
 
     private static void setFluidPackageContents(ItemStack packageStack, FluidStack fluid) {
-        net.neoforged.neoforge.items.ItemStackHandler contents = new net.neoforged.neoforge.items.ItemStackHandler(PackageItem.SLOTS);
-        ItemStack tankStack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluid(tankStack, fluid);
-        contents.setStackInSlot(0, tankStack);
-        packageStack.set(AllDataComponents.PACKAGE_CONTENTS,
-                ItemHelper.containerContentsFromHandler(contents));
+        FluidPackageContentHelper.setCanonicalContents(packageStack, fluid);
     }
 
     public static void fluidPackagerAddress(SceneBuilder builder, SceneBuildingUtil util) {

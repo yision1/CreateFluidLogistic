@@ -140,9 +140,9 @@ public abstract class StockKeeperTransferHandlerMixin {
                 .filter(fluid -> !fluid.isEmpty())
                 .findFirst();
             if (fluidOutput.isPresent()) {
-                ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-                CompressedTankItem.setFluidVirtual(virtualTank, fluidOutput.get().copyWithAmount(1));
-                return new OutputTarget(virtualTank, Math.max(1, fluidOutput.get().getAmount()), Config.getFluidPerPackage());
+                ItemStack fluidTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+                CompressedTankItem.setFluid(fluidTank, fluidOutput.get().copyWithAmount(1));
+                return new OutputTarget(fluidTank, Math.max(1, fluidOutput.get().getAmount()), Config.getFluidPerPackage());
             }
         }
 
@@ -196,9 +196,9 @@ public abstract class StockKeeperTransferHandlerMixin {
                 return;
             }
 
-            ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-            CompressedTankItem.setFluidVirtual(virtualTank, fluid.copyWithAmount(1));
-            candidates.add(new BigItemStack(virtualTank, fluid.getAmount()));
+            ItemStack fluidTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+            CompressedTankItem.setFluid(fluidTank, fluid.copyWithAmount(1));
+            candidates.add(new BigItemStack(fluidTank, fluid.getAmount()));
         });
 
         return candidates;

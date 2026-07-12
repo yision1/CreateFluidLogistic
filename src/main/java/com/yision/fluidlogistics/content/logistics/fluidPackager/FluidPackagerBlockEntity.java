@@ -12,7 +12,6 @@ import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.Create;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.compat.computercraft.ComputerCraftProxy;
@@ -44,6 +43,7 @@ import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.PackagerGoggleInfo;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageContentHelper;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidHandlerHelper;
@@ -280,7 +280,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
     private ItemStack createFluidDisplayItem(FluidStack fluid) {
         ItemStack tankStack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluidVirtual(tankStack, fluid.copyWithAmount(1));
+        CompressedTankItem.setFluid(tankStack, fluid.copyWithAmount(1));
         return tankStack;
     }
 
@@ -411,15 +411,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
     }
 
     private ItemStack createFluidPackage(FluidStack fluid) {
-        ItemStackHandler packageContents = new ItemStackHandler(PackageItem.SLOTS);
-        ItemStack compressedTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluid(compressedTank, fluid.copy());
-        packageContents.setStackInSlot(0, compressedTank);
-
-        ItemStack fluidPackage = AllItems.createFluidPackage();
-        fluidPackage.set(AllDataComponents.PACKAGE_CONTENTS,
-            ItemHelper.containerContentsFromHandler(packageContents));
-        return fluidPackage;
+        return FluidPackageContentHelper.createCanonicalPackage(fluid);
     }
 
     @Override
@@ -537,7 +529,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
         if (isTargetingSameInventory(ignoredHandler))
             return null;
 
-        if (!(stack.getItem() instanceof CompressedTankItem))
+        if (!CompressedTankItem.isFluidStack(stack))
             return null;
 
         FluidStack requestedFluid = CompressedTankItem.getFluid(stack);
@@ -568,7 +560,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
         PackagingRequest nextRequest = queuedRequests.get(0);
         ItemStack requestedStack = nextRequest.item();
 
-        if (!(requestedStack.getItem() instanceof CompressedTankItem)) {
+        if (!CompressedTankItem.isFluidStack(requestedStack)) {
             queuedRequests.remove(0);
             return;
         }

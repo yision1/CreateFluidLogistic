@@ -19,7 +19,7 @@ public class FluidAttributeHelper {
         List<FluidStack> result = new ArrayList<>();
         Set<FluidStackKey> seen = new HashSet<>();
 
-        if (stack.getItem() instanceof CompressedTankItem) {
+        if (CompressedTankItem.isFluidStack(stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(stack);
             addIfNew(result, seen, fluid);
         }

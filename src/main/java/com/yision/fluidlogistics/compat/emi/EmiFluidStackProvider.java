@@ -18,9 +18,9 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 
-public final class EmiVirtualFluidStackProvider {
+public final class EmiFluidStackProvider {
 
-    private EmiVirtualFluidStackProvider() {
+    private EmiFluidStackProvider() {
     }
 
     public static EmiStackInteraction forGhostSlotScreen(AbstractContainerScreen<?> gui, int x, int y) {
@@ -34,7 +34,7 @@ public final class EmiVirtualFluidStackProvider {
                 continue;
             }
             ItemStack ghost = slot.getItem();
-            if (ghost.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(ghost)) {
+            if (CompressedTankItem.isFluidStack(ghost)) {
                 FluidStack fluid = CompressedTankItem.getFluid(ghost);
                 if (!fluid.isEmpty()) {
                     return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, false);
@@ -100,9 +100,7 @@ public final class EmiVirtualFluidStackProvider {
         }
 
         private static EmiStackInteraction toInteraction(Object ingredient) {
-            if (ingredient instanceof ItemStack stack
-                    && stack.getItem() instanceof CompressedTankItem
-                    && CompressedTankItem.isVirtual(stack)) {
+            if (ingredient instanceof ItemStack stack && CompressedTankItem.isFluidStack(stack)) {
                 FluidStack fluid = CompressedTankItem.getFluid(stack);
                 if (!fluid.isEmpty()) {
                     return new EmiStackInteraction(NeoForgeEmiStack.of(fluid), null, false);

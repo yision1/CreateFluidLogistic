@@ -70,10 +70,10 @@ public record FactoryPanelSetFluidFilterPacket(
             return;
         }
         
-        ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluidVirtual(virtualTank, fluidStack.copyWithAmount(1));
+        ItemStack fluidTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+        CompressedTankItem.setFluid(fluidTank, fluidStack.copyWithAmount(1));
         
-        if (behaviour.setFilter(virtualTank)) {
+        if (behaviour.setFilter(fluidTank)) {
             if (!player.isCreative()) {
                 heldItem.shrink(1);
                 if (!emptyResult.getSecond().isEmpty()) {

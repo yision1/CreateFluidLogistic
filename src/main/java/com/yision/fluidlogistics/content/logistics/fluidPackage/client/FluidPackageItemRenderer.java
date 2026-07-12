@@ -11,7 +11,7 @@ import com.simibubi.create.foundation.item.render.PartialItemModelRenderer;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.render.FluidItemRenderHelper;
-import com.yision.fluidlogistics.util.VirtualFluidDisplayHelper;
+import com.yision.fluidlogistics.util.FluidDisplayHelper;
 
 import net.createmod.catnip.platform.NeoForgeCatnipServices;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -146,7 +146,7 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
 
         for (int i = 0; i < contents.getSlots(); i++) {
             ItemStack slotStack = contents.getStackInSlot(i);
-            FluidStack fluid = VirtualFluidDisplayHelper.getPackageDisplayFluid(slotStack);
+            FluidStack fluid = FluidDisplayHelper.getPackageDisplayFluid(slotStack);
             if (!fluid.isEmpty()) {
                 mergeFluid(fluids, fluid);
             }

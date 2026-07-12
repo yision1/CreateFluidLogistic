@@ -87,7 +87,7 @@ public abstract class FactoryPanelBehaviourMixin {
     @Unique
     private void fluidlogistics$disableCalFactoryPanelState() {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
-        if (!FluidGaugeHelper.isVirtualFluidFilter(self)) {
+        if (!FluidGaugeHelper.isFluidFilter(self)) {
             return;
         }
 
@@ -166,7 +166,7 @@ public abstract class FactoryPanelBehaviourMixin {
     )
     private void fluidlogistics$limitNonRestockFluidPromises(CallbackInfo ci) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
-        if (self.panelBE().restocker || !FluidGaugeHelper.isVirtualFluidFilter(self)) {
+        if (self.panelBE().restocker || !FluidGaugeHelper.isFluidFilter(self)) {
             return;
         }
 
@@ -311,7 +311,7 @@ public abstract class FactoryPanelBehaviourMixin {
             CallbackInfoReturnable<ValueSettingsBoard> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
+        if (FluidGaugeHelper.isFluidFilter(filter)) {
             ValueSettingsBoard original = cir.getReturnValue();
             ValueSettingsBoard fluidBoard = new ValueSettingsBoard(
                 CreateLang.translate("factory_panel.target_amount").component(),
@@ -337,7 +337,7 @@ public abstract class FactoryPanelBehaviourMixin {
             CallbackInfoReturnable<MutableComponent> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
+        if (FluidGaugeHelper.isFluidFilter(filter)) {
             String formatted = FluidAmountHelper.formatFactoryGaugeValueSetting(value.row(), value.value());
             cir.setReturnValue(formatted == null
                 ? CreateLang.translateDirect("gui.factory_panel.inactive")
@@ -360,7 +360,7 @@ public abstract class FactoryPanelBehaviourMixin {
             boolean ctrlDown, CallbackInfo ci) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
+        if (FluidGaugeHelper.isFluidFilter(filter)) {
             fluidlogistics$needsConversion.set(true);
             fluidlogistics$useBucketsMode.set(settings.row() == 1);
         } else {
@@ -394,7 +394,7 @@ public abstract class FactoryPanelBehaviourMixin {
     private void fluidlogistics$onGetValueSettings(CallbackInfoReturnable<ValueSettingsBehaviour.ValueSettings> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (FluidGaugeHelper.isVirtualFluidFilter(filter)) {
+        if (FluidGaugeHelper.isFluidFilter(filter)) {
             int count = self.getAmount();
             boolean upTo = self.upTo;
             boolean useBuckets = count >= FluidAmountHelper.MB_PER_BUCKET;
@@ -417,7 +417,7 @@ public abstract class FactoryPanelBehaviourMixin {
     private void fluidlogistics$onGetCountLabelForValueBox(CallbackInfoReturnable<MutableComponent> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (!FluidGaugeHelper.isVirtualFluidFilter(filter)) {
+        if (!FluidGaugeHelper.isFluidFilter(filter)) {
             return;
         }
         
@@ -463,7 +463,7 @@ public abstract class FactoryPanelBehaviourMixin {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
         
-        if (!FluidGaugeHelper.isVirtualFluidFilter(filter)) {
+        if (!FluidGaugeHelper.isFluidFilter(filter)) {
             return;
         }
         

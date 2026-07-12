@@ -36,13 +36,9 @@ public abstract class RequestPromiseQueueMixin {
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$getTotalPromisedForVirtualTank(ItemStack stack, int expiryTime, 
+    private void fluidlogistics$getTotalPromisedForFluidTank(ItemStack stack, int expiryTime,
             CallbackInfoReturnable<Integer> cir) {
-        if (!(stack.getItem() instanceof CompressedTankItem)) {
-            return;
-        }
-        
-        if (!CompressedTankItem.isVirtual(stack)) {
+        if (!CompressedTankItem.isFluidStack(stack)) {
             return;
         }
         
@@ -59,7 +55,7 @@ public abstract class RequestPromiseQueueMixin {
         
         for (Iterator<RequestPromise> iterator = list.iterator(); iterator.hasNext();) {
             RequestPromise promise = iterator.next();
-            if (!fluidlogistics$matchesVirtualFluid(promise.promisedStack.stack, targetFluid)) {
+            if (!fluidlogistics$matchesFluid(promise.promisedStack.stack, targetFluid)) {
                 continue;
             }
             if (expiryTime != -1 && promise.ticksExisted >= expiryTime) {
@@ -87,12 +83,8 @@ public abstract class RequestPromiseQueueMixin {
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$forceClearVirtualTank(ItemStack stack, CallbackInfo ci) {
-        if (!(stack.getItem() instanceof CompressedTankItem)) {
-            return;
-        }
-        
-        if (!CompressedTankItem.isVirtual(stack)) {
+    private void fluidlogistics$forceClearFluidTank(ItemStack stack, CallbackInfo ci) {
+        if (!CompressedTankItem.isFluidStack(stack)) {
             return;
         }
         
@@ -107,7 +99,7 @@ public abstract class RequestPromiseQueueMixin {
         boolean changed = false;
         for (Iterator<RequestPromise> iterator = list.iterator(); iterator.hasNext();) {
             RequestPromise promise = iterator.next();
-            if (fluidlogistics$matchesVirtualFluid(promise.promisedStack.stack, targetFluid)) {
+            if (fluidlogistics$matchesFluid(promise.promisedStack.stack, targetFluid)) {
                 iterator.remove();
                 changed = true;
             }
@@ -130,12 +122,8 @@ public abstract class RequestPromiseQueueMixin {
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$itemEnteredSystemVirtualTank(ItemStack stack, int amount, CallbackInfo ci) {
-        if (!(stack.getItem() instanceof CompressedTankItem)) {
-            return;
-        }
-        
-        if (!CompressedTankItem.isVirtual(stack)) {
+    private void fluidlogistics$itemEnteredSystemFluidTank(ItemStack stack, int amount, CallbackInfo ci) {
+        if (!CompressedTankItem.isFluidStack(stack)) {
             return;
         }
         
@@ -150,7 +138,7 @@ public abstract class RequestPromiseQueueMixin {
         boolean changed = false;
         for (Iterator<RequestPromise> iterator = list.iterator(); iterator.hasNext();) {
             RequestPromise requestPromise = iterator.next();
-            if (!fluidlogistics$matchesVirtualFluid(requestPromise.promisedStack.stack, targetFluid)) {
+            if (!fluidlogistics$matchesFluid(requestPromise.promisedStack.stack, targetFluid)) {
                 continue;
             }
             
@@ -179,17 +167,7 @@ public abstract class RequestPromiseQueueMixin {
     }
 
     @Unique
-    private static boolean fluidlogistics$matchesVirtualFluid(ItemStack promiseStack, FluidStack targetFluid) {
-        if (!(promiseStack.getItem() instanceof CompressedTankItem)) {
-            return false;
-        }
-        
-        if (!CompressedTankItem.isVirtual(promiseStack)) {
-            return false;
-        }
-        
-        FluidStack promiseFluid = CompressedTankItem.getFluid(promiseStack);
-
-        return FluidStack.isSameFluidSameComponents(promiseFluid, targetFluid);
+    private static boolean fluidlogistics$matchesFluid(ItemStack promiseStack, FluidStack targetFluid) {
+        return CompressedTankItem.matchesFluid(promiseStack, targetFluid);
     }
 }
