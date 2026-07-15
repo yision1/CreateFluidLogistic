@@ -285,7 +285,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
     }
 
     private void submitNewArrivals(InventorySummary before, InventorySummary after) {
-        if (after.isEmpty())
+        if (before == null || after.isEmpty())
             return;
 
         Set<RequestPromiseQueue> promiseQueues = new HashSet<>();
@@ -323,15 +323,6 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
         if (promiseQueues.isEmpty())
             return;
-
-        if (before == null || before.isEmpty()) {
-            for (RequestPromiseQueue queue : promiseQueues) {
-                for (BigItemStack entry : after.getStacks()) {
-                    queue.itemEnteredSystem(entry.stack, entry.count);
-                }
-            }
-            return;
-        }
 
         for (BigItemStack entry : after.getStacks())
             before.add(entry.stack, -entry.count);

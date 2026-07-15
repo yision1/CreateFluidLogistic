@@ -25,6 +25,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
@@ -81,14 +82,19 @@ public class ChainConveyorVisualMixin {
             method = "beginFrame",
             at = @At(
                     value = "INVOKE",
-                    target = "Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorVisual;setupBoxVisual(Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorBlockEntity;Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorPackage;F)V",
-                    ordinal = 1
+                    target = "Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorVisual;setupBoxVisual(Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorBlockEntity;Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorPackage;F)V"
+            ),
+            slice = @Slice(
+                    from = @At(
+                            value = "FIELD",
+                            target = "Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorBlockEntity;travellingPackages:Ljava/util/Map;"
+                    )
             )
     )
     private void fluidlogistics$skipPhantomTravellingBoxVisual(ChainConveyorVisual instance,
                                                                ChainConveyorBlockEntity be, ChainConveyorPackage box,
                                                                float partialTicks, Operation<Void> original,
-                                                               @Local(ordinal = 0) Map.Entry<BlockPos, List<ChainConveyorPackage>> entry) {
+                                                               @Local Map.Entry<BlockPos, List<ChainConveyorPackage>> entry) {
         if (!PhantomChainVisibility.shouldRenderConnection(be, entry.getKey())) {
             return;
         }
@@ -138,14 +144,9 @@ public class ChainConveyorVisualMixin {
     )
     private dev.engine_room.flywheel.lib.instance.ColoredLitInstance fluidlogistics$setupFluidVisual(
             TransformedInstance instance, int light, Operation<dev.engine_room.flywheel.lib.instance.ColoredLitInstance> original,
-            @Local(ordinal = 0) TransformedInstance rigBuffer,
-            @Local(ordinal = 1) TransformedInstance boxBuffer,
             @Share("fluidBuffers") LocalRef<TransformedInstance[]> fluidBuffers,
             @Share("fluid") LocalRef<FluidStack> fluid) {
         if (fluidlogistics$fluidVisual == null) {
-            return original.call(instance, light);
-        }
-        if (instance == rigBuffer || instance == boxBuffer) {
             return original.call(instance, light);
         }
         if (fluid.get() == null || fluid.get().isEmpty()) {

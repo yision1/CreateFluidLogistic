@@ -6,6 +6,7 @@ import com.yision.fluidlogistics.content.equipment.handPointer.client.FrogportSe
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerModeManager;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerInteractionHandler;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageClientRendering;
+import com.yision.fluidlogistics.client.event.FluidSlotClickHandler;
 import net.createmod.catnip.render.DefaultSuperRenderTypeBuffer;
 import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import com.yision.fluidlogistics.ponder.FluidLogisticsPonderPlugin;
@@ -44,6 +45,7 @@ public class FluidLogisticsClient {
     public FluidLogisticsClient(ModContainer container) {
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         NeoForge.EVENT_BUS.register(new HandPointerInteractionHandler());
+        NeoForge.EVENT_BUS.register(FluidSlotClickHandler.class);
     }
 
     @SubscribeEvent

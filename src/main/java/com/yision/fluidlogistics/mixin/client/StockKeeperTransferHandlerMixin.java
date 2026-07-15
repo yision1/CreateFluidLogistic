@@ -20,6 +20,7 @@ import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScree
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.stockTicker.FluidCraftableBigItemStack;
 import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.util.IFluidCraftableBigItemStack;
 
@@ -97,7 +98,7 @@ public abstract class StockKeeperTransferHandlerMixin {
             return;
         }
 
-        CraftableBigItemStack craftableEntry = new CraftableBigItemStack(outputTarget.displayStack().copy(), recipe);
+        CraftableBigItemStack craftableEntry = new FluidCraftableBigItemStack(outputTarget.displayStack().copy(), recipe);
         ((IFluidCraftableBigItemStack) craftableEntry).fluidlogistics$setCustomRecipeData(
             outputTarget.outputCount(), outputTarget.transferLimit(), selectedRequirements);
         screen.recipesToOrder.add(craftableEntry);

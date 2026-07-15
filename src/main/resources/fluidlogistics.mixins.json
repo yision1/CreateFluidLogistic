@@ -1,6 +1,5 @@
 {
     "required": true,
-    "priority": 1100,
     "package": "com.yision.fluidlogistics.mixin",
     "plugin": "com.yision.fluidlogistics.mixin.FluidLogisticsMixinPlugin",
     "compatibilityLevel": "JAVA_21",
@@ -15,13 +14,10 @@
         "kinetics.ChainConveyorConnectionPacketMixin",
         "kinetics.SawBlockEntityMixin",
         "logistics.AttributeFilterItemStackMixin",
-        "logistics.FilterItemStackVirtualFluidMixin",
-        "logistics.FactoryPanelBehaviourLegacyLinkCleanupMixin",
+        "logistics.FilterItemStackFluidMixin",
         "logistics.FactoryPanelBehaviourMixin",
-        "logistics.FactoryPanelRestockThresholdMixin",
         "logistics.FactoryPanelBlockEntityMixin",
         "logistics.InventorySummaryMixin",
-        "logistics.LogisticallyLinkedBehaviourLegacyLinkCleanupMixin",
         "logistics.LogisticsManagerMixin",
         "logistics.PackageEntityMixin",
         "logistics.PackagerBlockEntityMixin",
@@ -30,19 +26,17 @@
     ],
     "client": [
         "accessor.FrogportChainConveyorOBBAccessor",
-        "accessor.FrogportChainConveyorShapeAccessor",
         "client.ChainConveyorRendererMixin",
+        "client.ChainConveyorInteractionHandlerMixin",
         "client.ChainConveyorVisualMixin",
         "kinetics.ChainConveyorConnectionHandlerMixin",
-        "client.CraftableBigItemStackMixin",
         "client.FactoryPanelBehaviourClientMixin",
         "client.FactoryPanelScreenMixin",
-        "client.FactoryPanelSetItemScreenMixin",
         "client.GoggleOverlayRendererMixin",
         "client.RedstoneRequesterScreenMixin",
+        "client.PackagePortTargetSelectionHandlerMixin",
         "client.StockKeeperTransferHandlerMixin",
-        "client.StockKeeperRequestScreenMixin",
-        "item.PackageItemMixin"
+        "client.StockKeeperRequestScreenMixin"
     ],
     "injectors": {
         "defaultRequire": 1

@@ -3,13 +3,13 @@ package com.yision.fluidlogistics.mixin.client;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -19,24 +19,18 @@ import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterMenu;
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
-import com.simibubi.create.foundation.gui.menu.GhostItemSubmitPacket;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
 import com.yision.fluidlogistics.client.RedstoneRequesterAmountsAccess;
 import com.yision.fluidlogistics.client.FluidTooltipHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
-import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
-import net.createmod.catnip.data.Pair;
-import net.createmod.catnip.platform.CatnipServices;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.inventory.ClickType;
-import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -63,43 +57,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
         return amounts;
     }
 
-    @Override
-    protected void slotClicked(@Nullable Slot slot, int slotId, int mouseButton, ClickType type) {
-        if (slot instanceof SlotItemHandler) {
-            int slotIndex = slot.getSlotIndex();
-            if (this.menu.getCarried().isEmpty()) {
-                menu.ghostInventory.setStackInSlot(slotIndex, ItemStack.EMPTY);
-                CatnipServices.NETWORK.sendToServer(new GhostItemSubmitPacket(ItemStack.EMPTY, slotIndex));
-            } else {
-                ItemStack carried = this.menu.getCarried();
-                
-                if (hasAltDown() && GenericItemEmptying.canItemBeEmptied(this.menu.contentHolder.getLevel(), carried)) {
-                    Pair<FluidStack, ItemStack> emptyResult = GenericItemEmptying.emptyItem(
-                            this.menu.contentHolder.getLevel(), carried, true);
-                    FluidStack fluidStack = emptyResult.getFirst();
-                    
-                    if (!fluidStack.isEmpty()) {
-                        ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-                        CompressedTankItem.setFluidVirtual(virtualTank, fluidStack.copyWithAmount(1));
-                        menu.ghostInventory.setStackInSlot(slotIndex, virtualTank);
-                        amounts.set(slotIndex, FluidAmountHelper.DEFAULT_FLUID_REQUEST_AMOUNT);
-                        
-                        CatnipServices.NETWORK.sendToServer(new GhostItemSubmitPacket(virtualTank, slotIndex));
-                        return;
-                    }
-                }
-                
-                ItemStack insert = carried.copy();
-                insert.setCount(1);
-                menu.ghostInventory.setStackInSlot(slotIndex, insert);
-                CatnipServices.NETWORK.sendToServer(new GhostItemSubmitPacket(insert, slotIndex));
-            }
-            return;
-        }
-        super.slotClicked(slot, slotId, mouseButton, type);
-    }
-
-    @Redirect(
+    @WrapOperation(
         method = "renderForeground",
         at = @At(
             value = "INVOKE",
@@ -110,19 +68,20 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
         remap = false
     )
     private void fluidlogistics$redirectRenderItemDecorations(
-            GuiGraphics graphics, Font font, ItemStack stack, int x, int y, String text) {
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
+            GuiGraphics graphics, Font font, ItemStack stack, int x, int y, String text,
+            Operation<Void> original) {
+        if (CompressedTankItem.isFluidStack(stack)) {
             int guiLeft = getGuiLeft();
             int slotIndex = (x - (guiLeft + 27)) / 20;
             
             if (slotIndex >= 0 && slotIndex < amounts.size()) {
                 int amount = amounts.get(slotIndex);
                 String amountText = FluidAmountHelper.format(amount);
-                graphics.renderItemDecorations(font, stack, x, y, amountText);
+                original.call(graphics, font, stack, x, y, amountText);
                 return;
             }
         }
-        graphics.renderItemDecorations(font, stack, x, y, text);
+        original.call(graphics, font, stack, x, y, text);
     }
 
     @Inject(method = "renderForeground", at = @At("TAIL"), remap = false)
@@ -158,7 +117,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
             int slotIndex = this.hoveredSlot.getSlotIndex();
             if (slotIndex >= 0 && slotIndex < menu.ghostInventory.getSlots()) {
                 ItemStack ghostStack = menu.ghostInventory.getStackInSlot(slotIndex);
-                if (ghostStack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(ghostStack)) {
+                if (CompressedTankItem.isFluidStack(ghostStack)) {
                     FluidStack fluid = CompressedTankItem.getFluid(ghostStack);
                     int amount = amounts.get(slotIndex);
                     String amountText = FluidAmountHelper.formatPrecise(amount);
@@ -194,7 +153,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
             int inputY = y + 28;
             if (mouseX >= inputX && mouseX < inputX + 16 && mouseY >= inputY && mouseY < inputY + 16) {
                 ItemStack itemStack = menu.ghostInventory.getStackInSlot(i);
-                if (itemStack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(itemStack)) {
+                if (CompressedTankItem.isFluidStack(itemStack)) {
                     int newAmount = adjustFluidRequestAmount(amounts.get(i), Math.signum(scrollY)>0, hasShiftDown(), hasControlDown(), 1, Integer.MAX_VALUE);
                     amounts.set(i, newAmount);
                     cir.setReturnValue(true);

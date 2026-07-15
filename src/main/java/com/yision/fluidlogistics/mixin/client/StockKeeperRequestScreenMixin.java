@@ -1,6 +1,8 @@
 package com.yision.fluidlogistics.mixin.client;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
@@ -29,7 +31,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -92,7 +93,7 @@ public abstract class StockKeeperRequestScreenMixin {
         }
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderItemEntry",
         at = @At(
             value = "INVOKE",
@@ -103,14 +104,14 @@ public abstract class StockKeeperRequestScreenMixin {
         remap = false
     )
     private void fluidlogistics$redirectDrawItemCount(StockKeeperRequestScreen instance, 
-            GuiGraphics graphics, int count, int customCount) {
+            GuiGraphics graphics, int count, int customCount, Operation<Void> original) {
         if (fluidlogistics$isCompressedTank) {
             return;
         }
-        drawItemCount(graphics, count, customCount);
+        original.call(instance, graphics, count, customCount);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderItemEntry",
         at = @At(
             value = "INVOKE",
@@ -121,12 +122,12 @@ public abstract class StockKeeperRequestScreenMixin {
         remap = false
     )
     private void fluidlogistics$redirectRenderItemDecorations(GuiGraphics graphics, Font font, ItemStack stack, int x,
-            int y, String text, @Local(ordinal = 0) int customCount) {
+            int y, String text, Operation<Void> original, @Local(ordinal = 0) int customCount) {
         if (fluidlogistics$isFluidTank(stack) && customCount > 0) {
             FluidSlotAmountRenderer.renderInStockKeeper(graphics, customCount);
             return;
         }
-        graphics.renderItemDecorations(font, stack, x, y, text);
+        original.call(graphics, font, stack, x, y, text);
     }
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true, remap = false)
@@ -264,22 +265,23 @@ public abstract class StockKeeperRequestScreenMixin {
         }
     }
 
-    @Redirect(method = "renderForeground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;renderComponentTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;II)V", ordinal = 0))
-    private void fluidlogistics$recipeTooltip(GuiGraphics graphics, Font font, List<Component> tooltipLines, int mouseX, int mouseY, @Local(name = "lines")
-        ArrayList<Component> lines, @Local(name = "entry") BigItemStack entry){
+    @WrapOperation(method = "renderForeground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;renderComponentTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;II)V", ordinal = 0))
+    private void fluidlogistics$recipeTooltip(GuiGraphics graphics, Font font, List<Component> tooltipLines,
+            int mouseX, int mouseY, Operation<Void> original,
+            @Local(name = "lines") ArrayList<Component> lines, @Local(name = "entry") BigItemStack entry){
         if (FluidGaugeHelper.isFluidFilter(entry.stack)) {
             ArrayList<Component> fluidLines = fluidlogistics$getPreciseFluidTooltipLines(entry, true, true);
             if (!fluidLines.isEmpty()) {
-                graphics.renderComponentTooltip(font, fluidLines, mouseX, mouseY);
+                original.call(graphics, font, fluidLines, mouseX, mouseY);
                 return;
             }
         }
-        graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
+        original.call(graphics, font, lines, mouseX, mouseY);
     }
 
-    @Redirect(method="renderForeground", at = @At(value="INVOKE",target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V",ordinal = 0))
+    @WrapOperation(method="renderForeground", at = @At(value="INVOKE",target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V",ordinal = 0))
     private void fluidlogistics$itemTooltip(GuiGraphics graphics, Font font, ItemStack stack, int mouseX, int mouseY,
-            @Local(name = "entry") BigItemStack entry){
+            Operation<Void> original, @Local(name = "entry") BigItemStack entry){
         if (FluidGaugeHelper.isFluidFilter(entry.stack)) {
             boolean orderHovered = getHoveredSlot(mouseX, mouseY).getFirst() == -1;
             ArrayList<Component> lines = fluidlogistics$getPreciseFluidTooltipLines(entry, false, orderHovered);
@@ -288,7 +290,7 @@ public abstract class StockKeeperRequestScreenMixin {
                 return;
             }
         }
-        graphics.renderTooltip(font, entry.stack, mouseX, mouseY);
+        original.call(graphics, font, stack, mouseX, mouseY);
     }
 
     @Unique

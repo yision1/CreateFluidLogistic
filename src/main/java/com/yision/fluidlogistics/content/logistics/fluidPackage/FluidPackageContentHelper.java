@@ -18,6 +18,19 @@ public final class FluidPackageContentHelper {
     private FluidPackageContentHelper() {
     }
 
+    public static boolean containsFluidStack(ItemStack box) {
+        if (!PackageItem.isPackage(box)) {
+            return false;
+        }
+        ItemStackHandler contents = PackageItem.getContents(box);
+        for (int i = 0; i < contents.getSlots(); i++) {
+            if (CompressedTankItem.isFluidStack(contents.getStackInSlot(i))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static FluidStack getSingleContainedFluid(ItemStack packageStack) {
         if (packageStack == null || !PackageItem.isPackage(packageStack)) {
             return FluidStack.EMPTY;

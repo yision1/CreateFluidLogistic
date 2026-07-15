@@ -23,9 +23,8 @@ import com.simibubi.create.foundation.utility.CreateLang;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorOBBAccessor;
-import com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorShapeAccessor;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerFrogportConnectionPacket;
+import com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorOBBAccessor;
 
 import net.createmod.catnip.outliner.Outliner;
 import net.createmod.catnip.theme.Color;
@@ -230,7 +229,11 @@ public class FrogportSelectionHandler {
                 for (ChainConveyorShape shape : shapes) {
                     ms.pushPose();
                     ms.translate(current.getX() - camera.x, current.getY() - camera.y, current.getZ() - camera.z);
-                    ((FrogportChainConveyorShapeAccessor) shape).fluidlogistics$invokeDrawOutline(current, ms, vb);
+        if (shape instanceof ChainConveyorShape.ChainConveyorOBB obb) {
+            obb.drawOutline(current, ms, vb);
+        } else if (shape instanceof ChainConveyorShape.ChainConveyorBB bb) {
+            bb.drawOutline(current, ms, vb);
+        }
                     ms.popPose();
                 }
             }

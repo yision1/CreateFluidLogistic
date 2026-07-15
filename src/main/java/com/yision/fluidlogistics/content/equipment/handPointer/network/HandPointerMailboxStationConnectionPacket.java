@@ -57,7 +57,7 @@ public record HandPointerMailboxStationConnectionPacket(
     @Override
     public void handle(ServerPlayer player) {
         Level level = player.level();
-        if (!level.isLoaded(stationPos)) {
+        if (!HandPointerInteractionGuard.canUseHandPointer(player) || !level.isLoaded(stationPos)) {
             return;
         }
 
@@ -78,7 +78,7 @@ public record HandPointerMailboxStationConnectionPacket(
 
         List<PendingMailboxUpdate> pendingUpdates = new ArrayList<>(uniqueMailboxes.size());
         for (BlockPos mailboxPos : uniqueMailboxes) {
-            if (!HandPointerInteractionGuard.canUseHandPointer(player, mailboxPos)) {
+            if (!level.isLoaded(mailboxPos)) {
                 return;
             }
 

@@ -77,7 +77,7 @@ public record HandPointerFrogportConnectionPacket(
     @Override
     public void handle(ServerPlayer player) {
         Level level = player.level();
-        if (!level.isLoaded(chainConveyorPos)) {
+        if (!HandPointerInteractionGuard.canUseHandPointer(player) || !level.isLoaded(chainConveyorPos)) {
             return;
         }
 
@@ -93,7 +93,7 @@ public record HandPointerFrogportConnectionPacket(
 
         List<PendingFrogportUpdate> pendingUpdates = new ArrayList<>(uniqueFrogports.size());
         for (BlockPos frogportPos : uniqueFrogports) {
-            if (!HandPointerInteractionGuard.canUseHandPointer(player, frogportPos)) {
+            if (!level.isLoaded(frogportPos)) {
                 return;
             }
 

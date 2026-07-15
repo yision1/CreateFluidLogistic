@@ -1,5 +1,6 @@
 package com.yision.fluidlogistics.mixin.kinetics;
 
+import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.simibubi.create.content.kinetics.belt.BeltHelper;
 import com.simibubi.create.content.kinetics.belt.behaviour.BeltProcessingBehaviour;
@@ -11,8 +12,6 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(targets = "com.simibubi.create.content.kinetics.belt.transport.BeltInventory")
 public class BeltInventoryMixin {
@@ -21,31 +20,27 @@ public class BeltInventoryMixin {
     @Final
     private BeltBlockEntity belt;
 
-    @Inject(method = "getBeltProcessingAtSegment", at = @At("RETURN"), cancellable = true)
-    private void fluidlogistics$findSmartFaucetOneBlockAbove(int segment,
-        CallbackInfoReturnable<BeltProcessingBehaviour> cir) {
+    @ModifyReturnValue(method = "getBeltProcessingAtSegment", at = @At("RETURN"))
+    private BeltProcessingBehaviour fluidlogistics$findSmartFaucetOneBlockAbove(
+            BeltProcessingBehaviour original, int segment) {
         BlockPos beltPos = BeltHelper.getPositionForOffset(belt, segment);
         BlockPos oneBlockAbove = beltPos.above();
         if (belt.getLevel().getBlockState(oneBlockAbove).getBlock() instanceof SmartFaucetBlock) {
             BeltProcessingBehaviour behaviour =
                 BlockEntityBehaviour.get(belt.getLevel(), oneBlockAbove, BeltProcessingBehaviour.TYPE);
-            cir.setReturnValue(behaviour);
-            return;
+            return behaviour;
         }
 
         if (belt.getLevel().getBlockState(beltPos.above(2)).getBlock() instanceof SmartFaucetBlock) {
-            cir.setReturnValue(null);
-            return;
+            return null;
         }
 
-        if (cir.getReturnValue() != null) {
-            return;
+        if (original != null) {
+            return original;
         }
 
         BeltProcessingBehaviour gunBehaviour =
             MechanicalFluidGunBlockEntity.getBeltProcessingAt(belt.getLevel(), beltPos);
-        if (gunBehaviour != null) {
-            cir.setReturnValue(gunBehaviour);
-        }
+        return gunBehaviour;
     }
 }

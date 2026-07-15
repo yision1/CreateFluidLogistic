@@ -11,6 +11,10 @@ final class HandPointerInteractionGuard {
     private HandPointerInteractionGuard() {
     }
 
+    static boolean canUseHandPointer(ServerPlayer player) {
+        return player.mayBuild() && player.getMainHandItem().getItem() instanceof HandPointerItem;
+    }
+
     static boolean canUseHandPointer(ServerPlayer player, BlockPos pos) {
         return canUseHandPointer(player, pos, player.getMainHandItem());
     }

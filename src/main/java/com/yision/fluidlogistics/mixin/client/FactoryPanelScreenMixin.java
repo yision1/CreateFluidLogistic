@@ -14,7 +14,8 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -117,7 +118,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         }
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderInputItem",
         at = @At(
             value = "INVOKE",
@@ -128,16 +129,17 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false
     )
     private void fluidlogistics$redirectRenderItemDecorations(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
-            ItemStack stack, int x, int y, String text, @Local(argsOnly = true) BigItemStack itemStack) {
+            ItemStack stack, int x, int y, String text, Operation<Void> original,
+            @Local(argsOnly = true) BigItemStack itemStack) {
         if (fluidlogistics$isFluidTank) {
             String amountText = FluidAmountHelper.format(itemStack.count);
-            graphics.renderItemDecorations(font, stack, x, y, amountText);
+            original.call(graphics, font, stack, x, y, amountText);
             return;
         }
-        graphics.renderItemDecorations(font, stack, x, y, text);
+        original.call(graphics, font, stack, x, y, text);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderInputItem",
         at = @At(
             value = "INVOKE",
@@ -148,7 +150,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false
     )
     private void fluidlogistics$redirectInputTooltip(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
-            List<Component> tooltips, int mouseX, int mouseY,
+            List<Component> tooltips, int mouseX, int mouseY, Operation<Void> original,
             @Local(argsOnly = true) BigItemStack itemStack) {
         if (fluidlogistics$isFluidTank && fluidlogistics$cachedFluid != null) {
             String fluidName = fluidlogistics$cachedFluid.getHoverName().getString();
@@ -185,10 +187,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             }
             FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluidlogistics$cachedFluid,
                     Minecraft.getInstance().options.advancedItemTooltips);
-            graphics.renderComponentTooltip(font, newTooltips, mouseX, mouseY);
+            original.call(graphics, font, newTooltips, mouseX, mouseY);
             return;
         }
-        graphics.renderComponentTooltip(font, tooltips, mouseX, mouseY);
+        original.call(graphics, font, tooltips, mouseX, mouseY);
     }
 
     @Unique
@@ -376,7 +378,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         fluidlogistics$clearCalCompatibilityControls();
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderWindow",
         at = @At(
             value = "INVOKE",
@@ -384,14 +386,14 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         ),
         remap = false
     )
-    private boolean fluidlogistics$hideRedstoneLinkWhenFluidPromiseLimitPresent(Map map) {
+    private boolean fluidlogistics$hideRedstoneLinkWhenFluidPromiseLimitPresent(Map map, Operation<Boolean> original) {
         if (!restocker && fluidlogistics$hasFluidPromiseLimitControl() && map == behaviour.targetedByLinks) {
             return true;
         }
-        return map.isEmpty();
+        return original.call(map);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderWindow",
         at = @At(
             value = "INVOKE",
@@ -403,7 +405,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false
     )
     private void fluidlogistics$renderFactoryGaugePreviewFluidAsBlock(RenderElement element, GuiGraphics graphics,
-            int x, int y) {
+            int x, int y, Operation<Void> original) {
         ItemStack filter = behaviour.getFilter();
         if (FluidGaugeHelper.isFluidFilter(filter)) {
             FluidStack fluid = CompressedTankItem.getFluid(filter);
@@ -412,7 +414,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                 return;
             }
         }
-        element.render(graphics, x, y);
+        original.call(element, graphics, x, y);
     }
 
     @Unique
@@ -474,7 +476,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         }
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "mouseScrolled",
         at = @At(
             value = "INVOKE",
@@ -483,7 +485,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         ),
         remap = false
     )
-    private int fluidlogistics$redirectClamp(int value, int min, int max,
+    private int fluidlogistics$redirectClamp(int value, int min, int max, Operation<Integer> original,
             @Local BigItemStack itemStack) {
         if (FluidGaugeHelper.isFluidFilter(itemStack.stack)) {
             FactoryPanelScreen self = (FactoryPanelScreen) (Object) this;
@@ -491,10 +493,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             return FluidAmountHelper.adjustFluidRequestAmount(itemStack.count, value > itemStack.count, self.hasShiftDown(),
                 self.hasControlDown(), 1, maxBatch);
         }
-        return Mth.clamp(value, min, max);
+        return original.call(value, min, max);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderWindow",
         at = @At(
             value = "INVOKE",
@@ -506,16 +508,17 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false
     )
     private void fluidlogistics$redirectOutputRenderItemDecorations(GuiGraphics graphics, 
-            net.minecraft.client.gui.Font font, ItemStack stack, int x, int y, String text) {
+            net.minecraft.client.gui.Font font, ItemStack stack, int x, int y, String text,
+            Operation<Void> original) {
         if (CompressedTankItem.isFluidStack(outputConfig.stack)) {
             String amountText = FluidAmountHelper.format(outputConfig.count);
-            graphics.renderItemDecorations(font, stack, x, y, amountText);
+            original.call(graphics, font, stack, x, y, amountText);
             return;
         }
-        graphics.renderItemDecorations(font, stack, x, y, text);
+        original.call(graphics, font, stack, x, y, text);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderWindow",
         at = @At(
             value = "INVOKE",
@@ -527,18 +530,19 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false
     )
     private void fluidlogistics$redirectPromiseItemDecorations(GuiGraphics graphics, 
-            net.minecraft.client.gui.Font font, ItemStack stack, int x, int y, String text) {
+            net.minecraft.client.gui.Font font, ItemStack stack, int x, int y, String text,
+            Operation<Void> original) {
         ItemStack filter = behaviour.getFilter();
         if (CompressedTankItem.isFluidStack(filter)) {
             int promised = behaviour.getPromised();
             String amountText = FluidAmountHelper.format(promised);
-            graphics.renderItemDecorations(font, stack, x, y, amountText);
+            original.call(graphics, font, stack, x, y, amountText);
             return;
         }
-        graphics.renderItemDecorations(font, stack, x, y, text);
+        original.call(graphics, font, stack, x, y, text);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderWindow",
         at = @At(
             value = "INVOKE",
@@ -550,7 +554,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false
     )
     private void fluidlogistics$redirectOutputTooltip(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
-            List<Component> tooltips, int mouseX, int mouseY) {
+            List<Component> tooltips, int mouseX, int mouseY, Operation<Void> original) {
         if (CompressedTankItem.isFluidStack(outputConfig.stack)) {
             FluidStack fluid = CompressedTankItem.getFluid(outputConfig.stack);
             String fluidName = fluid.getHoverName().getString();
@@ -579,13 +583,13 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             List<Component> newTooltips = new ArrayList<>(List.of(c1, c2, c3, c4, c5));
             FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluid,
                     Minecraft.getInstance().options.advancedItemTooltips);
-            graphics.renderComponentTooltip(font, newTooltips, mouseX, mouseY);
+            original.call(graphics, font, newTooltips, mouseX, mouseY);
             return;
         }
-        graphics.renderComponentTooltip(font, tooltips, mouseX, mouseY);
+        original.call(graphics, font, tooltips, mouseX, mouseY);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderWindow",
         at = @At(
             value = "INVOKE",
@@ -597,7 +601,7 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false
     )
     private void fluidlogistics$redirectPromiseTooltip(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
-            List<Component> tooltips, int mouseX, int mouseY) {
+            List<Component> tooltips, int mouseX, int mouseY, Operation<Void> original) {
         ItemStack filter = behaviour.getFilter();
         if (CompressedTankItem.isFluidStack(filter)) {
             FluidStack fluid = CompressedTankItem.getFluid(filter);
@@ -618,11 +622,11 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                 ));
                 FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluid,
                         Minecraft.getInstance().options.advancedItemTooltips);
-                graphics.renderComponentTooltip(font, newTooltips, mouseX, mouseY);
+                original.call(graphics, font, newTooltips, mouseX, mouseY);
                 return;
             }
         }
-        graphics.renderComponentTooltip(font, tooltips, mouseX, mouseY);
+        original.call(graphics, font, tooltips, mouseX, mouseY);
     }
 
     @Inject(
