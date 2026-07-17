@@ -11,6 +11,7 @@ import com.simibubi.create.content.logistics.packagePort.PackagePortBlockEntity;
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget.ChainConveyorFrogportTarget;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerPackagePortRules;
 import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperChainConveyorFrogportTarget;
 import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlockEntity;
 
@@ -112,9 +113,19 @@ public record HandPointerFrogportConnectionPacket(
             }
 
             Vec3 targetLocation = newTarget.getExactTargetLocation(frogport, level, frogportPos);
-            if (targetLocation == Vec3.ZERO || !targetLocation.closerThan(
-                Vec3.atBottomCenterOf(frogportPos),
-                AllConfigs.server().logistics.packagePortRange.get() + 2)) {
+            if (targetLocation == Vec3.ZERO) {
+                return;
+            }
+            double maxRange = AllConfigs.server().logistics.packagePortRange.get();
+            if (frogport instanceof CopperFrogportBlockEntity) {
+                if (!HandPointerPackagePortRules.isWithinRange(
+                    targetLocation.x, targetLocation.y, targetLocation.z,
+                    frogportPos.getX(), frogportPos.getY(), frogportPos.getZ(), maxRange)) {
+                    return;
+                }
+            } else if (!HandPointerPackagePortRules.isCreateFrogportReachable(
+                targetLocation.x, targetLocation.y, targetLocation.z,
+                frogportPos.getX(), frogportPos.getY(), frogportPos.getZ(), maxRange)) {
                 return;
             }
             pendingUpdates.add(new PendingFrogportUpdate(frogportPos, frogport, newTarget));

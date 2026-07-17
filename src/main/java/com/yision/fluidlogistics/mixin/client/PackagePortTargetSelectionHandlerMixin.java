@@ -98,9 +98,7 @@ public class PackagePortTargetSelectionHandlerMixin {
             ? CopperFrogportBlock.getAttachedDirection(minecraft.level.getBlockState(placedPos))
             : getPreviewAttachedDirection(minecraft);
         if (!CopperFrogportRules.isChainHeightValid(attachedDirection, target.y, source.y)) {
-            cir.setReturnValue(attachedDirection == Direction.DOWN
-                ? "fluidlogistics.package_port.cannot_reach_down"
-                : "fluidlogistics.package_port.cannot_reach_up");
+            cir.setReturnValue("fluidlogistics.package_port.cannot_connect");
             return;
         }
         if (diff.length() > AllConfigs.server().logistics.packagePortRange.get()) {

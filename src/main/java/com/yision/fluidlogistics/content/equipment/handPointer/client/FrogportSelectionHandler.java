@@ -23,6 +23,7 @@ import com.simibubi.create.foundation.utility.CreateLang;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerPackagePortRules;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerFrogportConnectionPacket;
 import com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorOBBAccessor;
 
@@ -341,9 +342,19 @@ public class FrogportSelectionHandler {
                 return true;
             }
             Vec3 targetLocation = previewTarget.getExactTargetLocation(null, level, frogportPos);
-            if (targetLocation == Vec3.ZERO || targetLocation.distanceTo(
-                Vec3.atBottomCenterOf(frogportPos))
-                > AllConfigs.server().logistics.packagePortRange.get()) {
+            if (targetLocation == Vec3.ZERO) {
+                return true;
+            }
+            double maxRange = AllConfigs.server().logistics.packagePortRange.get();
+            if (blockEntity instanceof CopperFrogportBlockEntity) {
+                if (!HandPointerPackagePortRules.isWithinRange(
+                    targetLocation.x, targetLocation.y, targetLocation.z,
+                    frogportPos.getX(), frogportPos.getY(), frogportPos.getZ(), maxRange)) {
+                    return true;
+                }
+            } else if (!HandPointerPackagePortRules.isCreateFrogportReachable(
+                targetLocation.x, targetLocation.y, targetLocation.z,
+                frogportPos.getX(), frogportPos.getY(), frogportPos.getZ(), maxRange)) {
                 return true;
             }
         }
