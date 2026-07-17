@@ -25,10 +25,6 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * 龙头的物品灌装子系统：置物台（depot）与传送带上的物品灌装/修复的全部状态与逻辑。
- * 仅拥有灌装相关状态，其余（renderingFluid、transferCooldown、源查询）经 {@link FaucetBlockEntity} 回调。
- */
 class FaucetItemFilling {
 
     private static final int FILLING_TIME = 20;

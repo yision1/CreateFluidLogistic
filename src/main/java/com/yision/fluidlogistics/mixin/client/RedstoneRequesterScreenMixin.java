@@ -1,6 +1,5 @@
 package com.yision.fluidlogistics.mixin.client;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.spongepowered.asm.mixin.Final;
@@ -20,24 +19,21 @@ import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequester
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
 import com.simibubi.create.foundation.gui.menu.AbstractSimiContainerScreen;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.api.packager.PackageResourceDisplay;
+import com.yision.fluidlogistics.api.packager.client.PackageResourceClient;
 import com.yision.fluidlogistics.client.RedstoneRequesterAmountsAccess;
-import com.yision.fluidlogistics.client.FluidTooltipHelper;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
-import com.yision.fluidlogistics.util.FluidAmountHelper;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.items.SlotItemHandler;
-
-import static com.yision.fluidlogistics.util.FluidAmountHelper.adjustFluidRequestAmount;
 
 @OnlyIn(Dist.CLIENT)
 @Mixin(RedstoneRequesterScreen.class)
@@ -70,14 +66,13 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
     private void fluidlogistics$redirectRenderItemDecorations(
             GuiGraphics graphics, Font font, ItemStack stack, int x, int y, String text,
             Operation<Void> original) {
-        if (CompressedTankItem.isFluidStack(stack)) {
-            int guiLeft = getGuiLeft();
-            int slotIndex = (x - (guiLeft + 27)) / 20;
-            
-            if (slotIndex >= 0 && slotIndex < amounts.size()) {
-                int amount = amounts.get(slotIndex);
-                String amountText = FluidAmountHelper.format(amount);
-                original.call(graphics, font, stack, x, y, amountText);
+        int guiLeft = getGuiLeft();
+        int slotIndex = (x - (guiLeft + 27)) / 20;
+        if (slotIndex >= 0 && slotIndex < amounts.size()) {
+            var amountText = PackageResources.formatAmount(
+                    stack, amounts.get(slotIndex), PackageResourceDisplay.Format.COMPACT);
+            if (amountText.isPresent()) {
+                original.call(graphics, font, stack, x, y, amountText.orElseThrow());
                 return;
             }
         }
@@ -85,7 +80,7 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
     }
 
     @Inject(method = "renderForeground", at = @At("TAIL"), remap = false)
-    private void fluidlogistics$renderAltHintForFluidContainers(GuiGraphics graphics, int mouseX, int mouseY,
+    private void fluidlogistics$renderRequestSelectorHint(GuiGraphics graphics, int mouseX, int mouseY,
             float partialTicks, CallbackInfo ci) {
         if (!(this.hoveredSlot instanceof SlotItemHandler hoveredHandlerSlot)) {
             return;
@@ -101,50 +96,53 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
         }
 
         ItemStack carried = this.menu.getCarried();
-        if (carried.isEmpty() || !GenericItemEmptying.canItemBeEmptied(this.menu.contentHolder.getLevel(), carried)) {
+        if (carried.isEmpty()) {
             return;
         }
 
+        Component hint = PackageResourceClient.getRequestSelectorHint(carried).orElse(null);
+        if (hint == null) {
+            if (!GenericItemEmptying.canItemBeEmptied(this.menu.contentHolder.getLevel(), carried)) {
+                return;
+            }
+            hint = CreateLang.translateDirect("fluidlogistics.factory_panel.hold_alt_to_set_contained_fluid");
+        }
+
         graphics.renderComponentTooltip(font,
-            List.of(CreateLang.translateDirect("fluidlogistics.factory_panel.hold_alt_to_set_contained_fluid")
-                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC)),
+            List.of(hint.copy().withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC)),
             mouseX, mouseY);
     }
 
     @Inject(method = "getTooltipFromContainerItem", at = @At("HEAD"), cancellable = true, remap = true)
-    private void fluidlogistics$modifyFluidTooltip(ItemStack stack, CallbackInfoReturnable<List<Component>> cir) {
+    private void fluidlogistics$modifyResourceTooltip(ItemStack stack, CallbackInfoReturnable<List<Component>> cir) {
         if (this.hoveredSlot instanceof SlotItemHandler) {
             int slotIndex = this.hoveredSlot.getSlotIndex();
             if (slotIndex >= 0 && slotIndex < menu.ghostInventory.getSlots()) {
                 ItemStack ghostStack = menu.ghostInventory.getStackInSlot(slotIndex);
-                if (CompressedTankItem.isFluidStack(ghostStack)) {
-                    FluidStack fluid = CompressedTankItem.getFluid(ghostStack);
-                    int amount = amounts.get(slotIndex);
-                    String amountText = FluidAmountHelper.formatPrecise(amount);
-                    List<Component> tooltip = new ArrayList<>();
-                    tooltip.add(CreateLang.translate("gui.factory_panel.send_item",
-                            CreateLang.text(fluid.getHoverName().getString())
-                                .add(CreateLang.text(" x" + amountText)))
-                        .color(ScrollInput.HEADER_RGB)
-                        .component());
-                    tooltip.add(CreateLang.translate("gui.factory_panel.scroll_to_change_amount")
-                            .style(ChatFormatting.DARK_GRAY)
-                            .style(ChatFormatting.ITALIC)
-                            .component());
-                    tooltip.add(CreateLang.translate("fluidlogistics.scroll_precise_amount")
-                            .style(ChatFormatting.DARK_GRAY)
-                            .style(ChatFormatting.ITALIC)
-                            .component());
-                    FluidTooltipHelper.addAdvancedComponentLines(tooltip, fluid,
-                            Minecraft.getInstance().options.advancedItemTooltips);
-                    cir.setReturnValue(tooltip);
+                Component resourceName = PackageResources.nameOf(ghostStack).orElse(null);
+                if (resourceName == null) {
+                    return;
                 }
+                String amountText = PackageResources.formatAmount(
+                        ghostStack, amounts.get(slotIndex), PackageResourceDisplay.Format.PRECISE)
+                        .orElse(Integer.toString(amounts.get(slotIndex)));
+                cir.setReturnValue(List.of(
+                        CreateLang.translate("gui.factory_panel.send_item",
+                                        resourceName.getString() + " x" + amountText)
+                                .color(ScrollInput.HEADER_RGB)
+                                .component(),
+                        CreateLang.translate("gui.factory_panel.scroll_to_change_amount")
+                                .style(ChatFormatting.DARK_GRAY).style(ChatFormatting.ITALIC)
+                                .component(),
+                        CreateLang.translate("fluidlogistics.scroll_precise_amount")
+                                .style(ChatFormatting.DARK_GRAY).style(ChatFormatting.ITALIC)
+                                .component()));
             }
         }
     }
 
     @Inject(method = "mouseScrolled", at = @At("HEAD"), cancellable = true, remap = false)
-    private void fluidlogistics$handleFluidScroll(double mouseX, double mouseY, double scrollX, double scrollY, CallbackInfoReturnable<Boolean> cir) {
+    private void fluidlogistics$handleResourceScroll(double mouseX, double mouseY, double scrollX, double scrollY, CallbackInfoReturnable<Boolean> cir) {
         int x = getGuiLeft();
         int y = getGuiTop();
 
@@ -153,9 +151,18 @@ public abstract class RedstoneRequesterScreenMixin extends AbstractSimiContainer
             int inputY = y + 28;
             if (mouseX >= inputX && mouseX < inputX + 16 && mouseY >= inputY && mouseY < inputY + 16) {
                 ItemStack itemStack = menu.ghostInventory.getStackInSlot(i);
-                if (CompressedTankItem.isFluidStack(itemStack)) {
-                    int newAmount = adjustFluidRequestAmount(amounts.get(i), Math.signum(scrollY)>0, hasShiftDown(), hasControlDown(), 1, Integer.MAX_VALUE);
-                    amounts.set(i, newAmount);
+                int steps = Mth.ceil(Math.abs(scrollY));
+                var adjusted = PackageResources.adjustAmount(itemStack, new PackageResourceDisplay.Adjustment(
+                        amounts.get(i),
+                        scrollY > 0,
+                        hasShiftDown(),
+                        hasControlDown(),
+                        1,
+                        Integer.MAX_VALUE,
+                        steps,
+                        PackageResourceDisplay.Interaction.REDSTONE_REQUESTER));
+                if (adjusted.isPresent()) {
+                    amounts.set(i, adjusted.getAsInt());
                     cir.setReturnValue(true);
                     return;
                 }

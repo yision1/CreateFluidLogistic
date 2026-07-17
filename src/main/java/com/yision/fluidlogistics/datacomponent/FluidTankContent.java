@@ -10,6 +10,11 @@ import net.neoforged.neoforge.fluids.FluidStack;
 
 public record FluidTankContent(FluidStack fluid) {
 
+    public FluidTankContent {
+        Objects.requireNonNull(fluid, "fluid");
+        fluid = fluid.copy();
+    }
+
     public static final Codec<FluidTankContent> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     FluidStack.CODEC.fieldOf("fluid").forGetter(FluidTankContent::fluid)
@@ -23,6 +28,11 @@ public record FluidTankContent(FluidStack fluid) {
 
     public static FluidTankContent empty() {
         return new FluidTankContent(FluidStack.EMPTY);
+    }
+
+    @Override
+    public FluidStack fluid() {
+        return fluid.copy();
     }
 
     public boolean isEmpty() {

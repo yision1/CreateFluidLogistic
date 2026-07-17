@@ -159,7 +159,6 @@ class MechanicalFluidGunProcessor {
 			return indices;
 		}
 
-		// ROUND_ROBIN
 		for (int step = 0; step < size; step++) {
 			indices.add(Math.floorMod(start + step, size));
 		}

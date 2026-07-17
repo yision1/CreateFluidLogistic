@@ -18,11 +18,12 @@ import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestMenu;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.api.packager.PackageResourceCrafting;
+import com.yision.fluidlogistics.api.packager.PackageResourceCraftingData;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.content.logistics.stockTicker.FluidCraftableBigItemStack;
 import com.yision.fluidlogistics.registry.AllItems;
-import com.yision.fluidlogistics.util.IFluidCraftableBigItemStack;
 
 import mezz.jei.api.gui.ingredient.IRecipeSlotView;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
@@ -99,8 +100,8 @@ public abstract class StockKeeperTransferHandlerMixin {
         }
 
         CraftableBigItemStack craftableEntry = new FluidCraftableBigItemStack(outputTarget.displayStack().copy(), recipe);
-        ((IFluidCraftableBigItemStack) craftableEntry).fluidlogistics$setCustomRecipeData(
-            outputTarget.outputCount(), outputTarget.transferLimit(), selectedRequirements);
+        PackageResourceCrafting.set(craftableEntry, new PackageResourceCraftingData(
+                outputTarget.outputCount(), outputTarget.transferLimit(), selectedRequirements));
         screen.recipesToOrder.add(craftableEntry);
         screen.requestCraftable(craftableEntry, outputTarget.outputCount() * setsToAdd);
 

@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.api.packager.PackageResources;
 
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.resources.ResourceLocation;
@@ -53,7 +53,7 @@ public enum PackageItemStorageProvider implements IServerExtensionProvider<ItemS
 			ItemStack slotStack = contents.getStackInSlot(i);
 			if (slotStack.isEmpty()) continue;
 
-			if (CompressedTankItem.isFluidStack(slotStack)) {
+			if (PackageResources.isBootstrapped() && PackageResources.findType(slotStack).isPresent()) {
 				continue;
 			}
 			displayItems.add(slotStack);

@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-
 import org.jetbrains.annotations.Nullable;
-import com.mojang.math.Axis;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -26,36 +23,25 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelPosition;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelScreen;
 import com.simibubi.create.foundation.gui.widget.ScrollInput;
 import com.simibubi.create.foundation.utility.CreateLang;
-import com.yision.fluidlogistics.client.FluidAmountScrollInput;
-import com.yision.fluidlogistics.client.FluidTooltipHelper;
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.api.packager.PackageResourceDisplay;
+import com.yision.fluidlogistics.content.logistics.packageResource.ResourceRestockSettings;
+import com.yision.fluidlogistics.api.packager.client.PackageResourceClient;
+import com.yision.fluidlogistics.client.ResourceAmountScrollInput;
 import com.yision.fluidlogistics.client.FluidLogisticsGuiTextures;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
-import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidAdditionalStockPacket;
-import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidPromiseLimitPacket;
-import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidRestockThresholdPacket;
-import com.yision.fluidlogistics.util.IFluidAdditionalStock;
-import com.yision.fluidlogistics.util.FluidAmountHelper;
-import com.yision.fluidlogistics.util.FluidGaugeHelper;
-import com.yision.fluidlogistics.util.IFluidPromiseLimit;
-import com.yision.fluidlogistics.util.IFluidRestockThreshold;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetResourceRestockSettingPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetResourceRestockSettingPacket.Setting;
+import com.yision.fluidlogistics.util.ResourceGaugeHelper;
 
 import net.createmod.catnip.gui.AbstractSimiScreen;
-import net.createmod.catnip.gui.UIRenderHelper;
 import net.createmod.catnip.gui.element.RenderElement;
 import net.createmod.catnip.platform.CatnipServices;
-import net.createmod.catnip.platform.NeoForgeCatnipServices;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.material.Fluids;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import net.neoforged.neoforge.fluids.FluidStack;
 
 @OnlyIn(Dist.CLIENT)
 @Mixin(FactoryPanelScreen.class)
@@ -89,33 +75,37 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     @Unique
     private static final int fluidlogistics$BOTTOM_ROW_X_OFFSET = -20;
 
-    @Unique
-    private boolean fluidlogistics$isFluidTank = false;
+    @WrapOperation(
+        method = {"renderInputItem", "renderWindow"},
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/minecraft/client/gui/GuiGraphics;renderItem("
+                    + "Lnet/minecraft/world/item/ItemStack;II)V",
+            remap = true),
+        remap = false)
+    private void fluidlogistics$renderResourceIcon(
+            GuiGraphics graphics, ItemStack stack, int x, int y, Operation<Void> original) {
+        original.call(graphics, PackageResources.iconOf(stack).orElse(stack), x, y);
+    }
 
-    @Unique
-    private FluidStack fluidlogistics$cachedFluid = null;
-
-    @Unique
-    private static final float fluidlogistics$FACTORY_GAUGE_FILTER_PREVIEW_SCALE = 1.625f;
-
-    @Unique
-    private static final float fluidlogistics$DEFAULT_BLOCK_GUI_SCALE = 0.625f;
-
-    @Inject(
-        method = "renderInputItem",
-        at = @At("HEAD"),
+    @WrapOperation(
+        method = "renderWindow",
+        at = @At(
+            value = "INVOKE",
+            target = "Lnet/createmod/catnip/gui/element/RenderElement;render("
+                    + "Lnet/minecraft/client/gui/GuiGraphics;II)V",
+            ordinal = 1,
+            remap = false
+        ),
         remap = false
     )
-    private void fluidlogistics$onRenderInputItemHead(GuiGraphics graphics, int slot, BigItemStack itemStack, 
-            int mouseX, int mouseY, CallbackInfo ci) {
-        fluidlogistics$isFluidTank = false;
-        fluidlogistics$cachedFluid = null;
-
-        if (FluidGaugeHelper.isFluidFilter(itemStack.stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(itemStack.stack);
-            fluidlogistics$isFluidTank = true;
-            fluidlogistics$cachedFluid = fluid;
+    private void fluidlogistics$renderFactoryPanelResourcePreview(
+            RenderElement element, GuiGraphics graphics, int x, int y, Operation<Void> original) {
+        if (PackageResourceClient.tryRenderFactoryPanelPreview(
+                graphics, behaviour.getFilter(), x, y)) {
+            return;
         }
+        original.call(element, graphics, x, y);
     }
 
     @WrapOperation(
@@ -131,9 +121,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private void fluidlogistics$redirectRenderItemDecorations(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
             ItemStack stack, int x, int y, String text, Operation<Void> original,
             @Local(argsOnly = true) BigItemStack itemStack) {
-        if (fluidlogistics$isFluidTank) {
-            String amountText = FluidAmountHelper.format(itemStack.count);
-            original.call(graphics, font, stack, x, y, amountText);
+        var amountText = PackageResources.formatAmount(
+                itemStack.stack, itemStack.count, PackageResourceDisplay.Format.COMPACT);
+        if (amountText.isPresent()) {
+            original.call(graphics, font, stack, x, y, amountText.orElseThrow());
             return;
         }
         original.call(graphics, font, stack, x, y, text);
@@ -152,45 +143,35 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private void fluidlogistics$redirectInputTooltip(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
             List<Component> tooltips, int mouseX, int mouseY, Operation<Void> original,
             @Local(argsOnly = true) BigItemStack itemStack) {
-        if (fluidlogistics$isFluidTank && fluidlogistics$cachedFluid != null) {
-            String fluidName = fluidlogistics$cachedFluid.getHoverName().getString();
-            String amountText = FluidAmountHelper.formatPrecise(itemStack.count);
-            List<Component> newTooltips = new ArrayList<>();
-            
-            if (restocker) {
-                newTooltips.add(CreateLang.translate("gui.factory_panel.sending_item", fluidName)
-                    .color(ScrollInput.HEADER_RGB)
-                    .component());
-                newTooltips.add(CreateLang.translate("gui.factory_panel.sending_item_tip")
-                    .style(ChatFormatting.GRAY)
-                    .component());
-                newTooltips.add(CreateLang.translate("gui.factory_panel.sending_item_tip_1")
-                    .style(ChatFormatting.GRAY)
-                    .component());
-            } else {
-                newTooltips.add(CreateLang.translate("gui.factory_panel.sending_item", 
-                        CreateLang.text(fluidName + " x" + amountText).string())
-                    .color(ScrollInput.HEADER_RGB)
-                    .component());
-                newTooltips.add(CreateLang.translate("gui.factory_panel.scroll_to_change_amount")
-                    .style(ChatFormatting.DARK_GRAY)
-                    .style(ChatFormatting.ITALIC)
-                    .component());
-                newTooltips.add(CreateLang.translate("fluidlogistics.scroll_precise_amount")
-                        .style(ChatFormatting.DARK_GRAY)
-                        .style(ChatFormatting.ITALIC)
-                        .component());
-                newTooltips.add(CreateLang.translate("gui.factory_panel.left_click_disconnect")
-                    .style(ChatFormatting.DARK_GRAY)
-                    .style(ChatFormatting.ITALIC)
-                    .component());
-            }
-            FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluidlogistics$cachedFluid,
-                    Minecraft.getInstance().options.advancedItemTooltips);
-            original.call(graphics, font, newTooltips, mouseX, mouseY);
+        Component resourceName = PackageResources.nameOf(itemStack.stack).orElse(null);
+        if (resourceName == null) {
+            original.call(graphics, font, tooltips, mouseX, mouseY);
             return;
         }
-        original.call(graphics, font, tooltips, mouseX, mouseY);
+        String amountText = PackageResources.formatAmount(
+                itemStack.stack, itemStack.count, PackageResourceDisplay.Format.PRECISE)
+                .orElse(Integer.toString(itemStack.count));
+        List<Component> newTooltips = new ArrayList<>();
+        String header = restocker
+                ? resourceName.getString()
+                : resourceName.getString() + " x" + amountText;
+        newTooltips.add(CreateLang.translate("gui.factory_panel.sending_item", header)
+                .color(ScrollInput.HEADER_RGB)
+                .component());
+        if (restocker) {
+            newTooltips.add(CreateLang.translate("gui.factory_panel.sending_item_tip")
+                    .style(ChatFormatting.GRAY).component());
+            newTooltips.add(CreateLang.translate("gui.factory_panel.sending_item_tip_1")
+                    .style(ChatFormatting.GRAY).component());
+        } else {
+            newTooltips.add(CreateLang.translate("gui.factory_panel.scroll_to_change_amount")
+                    .style(ChatFormatting.DARK_GRAY).style(ChatFormatting.ITALIC).component());
+            newTooltips.add(CreateLang.translate("fluidlogistics.scroll_precise_amount")
+                    .style(ChatFormatting.DARK_GRAY).style(ChatFormatting.ITALIC).component());
+            newTooltips.add(CreateLang.translate("gui.factory_panel.left_click_disconnect")
+                    .style(ChatFormatting.DARK_GRAY).style(ChatFormatting.ITALIC).component());
+        }
+        original.call(graphics, font, newTooltips, mouseX, mouseY);
     }
 
     @Unique
@@ -203,28 +184,40 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private ScrollInput fluidlogistics$promiseLimitInput;
 
     @Unique
-    private boolean fluidlogistics$hasFluidFilter() {
-        return FluidGaugeHelper.isFluidFilter(behaviour.getFilter());
+    private int fluidlogistics$additionalStockLabelKind = Integer.MIN_VALUE;
+
+    @Unique
+    private int fluidlogistics$promiseLimitLabelKind = Integer.MIN_VALUE;
+
+    @Unique
+    private boolean fluidlogistics$calCompatibilityControlsCleared;
+
+    @Unique
+    private ResourceRestockSettings fluidlogistics$resourceRestockSettings() {
+        return behaviour instanceof ResourceRestockSettings settings ? settings : null;
     }
 
     @Unique
-    private boolean fluidlogistics$hasFluidRestockThresholdControl() {
-        return restocker
-            && behaviour instanceof IFluidRestockThreshold
-            && fluidlogistics$hasFluidFilter();
+    private PackageResourceDisplay.FactoryPanelRestockPolicy fluidlogistics$resourceRestockPolicy() {
+        return ResourceGaugeHelper.policy(behaviour);
     }
 
     @Unique
-    private boolean fluidlogistics$hasFluidPromiseLimitControl() {
-        return behaviour instanceof IFluidPromiseLimit
-            && fluidlogistics$hasFluidFilter();
+    private boolean fluidlogistics$hasResourceRestockThresholdControl() {
+        return restocker && fluidlogistics$resourceRestockSettings() != null
+                && fluidlogistics$resourceRestockPolicy().configurableThreshold();
     }
 
     @Unique
-    private boolean fluidlogistics$hasFluidAdditionalStockControl() {
-        return restocker
-            && behaviour instanceof IFluidAdditionalStock
-            && fluidlogistics$hasFluidFilter();
+    private boolean fluidlogistics$hasResourcePromiseLimitControl() {
+        return fluidlogistics$resourceRestockSettings() != null
+                && fluidlogistics$resourceRestockPolicy().configurablePromiseLimit();
+    }
+
+    @Unique
+    private boolean fluidlogistics$hasResourceAdditionalStockControl() {
+        return restocker && fluidlogistics$resourceRestockSettings() != null
+                && fluidlogistics$resourceRestockPolicy().configurableAdditionalStock();
     }
 
     @Inject(
@@ -236,88 +229,101 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         fluidlogistics$restockThresholdInput = null;
         fluidlogistics$additionalStockInput = null;
         fluidlogistics$promiseLimitInput = null;
-        if (!fluidlogistics$hasFluidRestockThresholdControl()
-            && !fluidlogistics$hasFluidAdditionalStockControl()
-            && !fluidlogistics$hasFluidPromiseLimitControl()) {
+        fluidlogistics$additionalStockLabelKind = Integer.MIN_VALUE;
+        fluidlogistics$promiseLimitLabelKind = Integer.MIN_VALUE;
+        fluidlogistics$calCompatibilityControlsCleared = false;
+        if (!fluidlogistics$hasResourceRestockThresholdControl()
+            && !fluidlogistics$hasResourceAdditionalStockControl()
+            && !fluidlogistics$hasResourcePromiseLimitControl()) {
             return;
         }
 
         int x = guiLeft;
         int y = guiTop;
-        if (fluidlogistics$hasFluidRestockThresholdControl()) {
-            IFluidRestockThreshold thresholdData = (IFluidRestockThreshold) behaviour;
+        if (fluidlogistics$hasResourceRestockThresholdControl()) {
+            ResourceRestockSettings settings = fluidlogistics$resourceRestockSettings();
 
-            FluidAmountScrollInput thresholdInput = new FluidAmountScrollInput(x + 5, y + windowHeight - 24, 47, 16);
-            fluidlogistics$configureFluidAmountInput(thresholdInput, 0, false);
+            ResourceAmountScrollInput thresholdInput =
+                    new ResourceAmountScrollInput(x + 5, y + windowHeight - 24, 47, 16);
+            fluidlogistics$configureResourceAmountInput(thresholdInput, 0, false);
             thresholdInput.withSecondaryHeader(() -> CreateLang.text(fluidlogistics$formatRestockThresholdTooltip(
                 fluidlogistics$restockThresholdInput == null ? 0 : fluidlogistics$restockThresholdInput.getState()))
                 .component());
             fluidlogistics$restockThresholdInput =
-                thresholdInput.setState(thresholdData.fluidlogistics$getRestockThreshold());
+                thresholdInput.setState(settings.fluidlogistics$getRestockThreshold());
             fluidlogistics$updateRestockThresholdLabel();
             addRenderableWidget(fluidlogistics$restockThresholdInput);
         }
 
         fluidlogistics$initAdditionalStockInput(x, y);
         fluidlogistics$initPromiseLimitInput(x, y);
-        fluidlogistics$clearCalCompatibilityControls();
     }
 
     @Unique
     private void fluidlogistics$initAdditionalStockInput(int x, int y) {
-        if (!fluidlogistics$hasFluidAdditionalStockControl()) {
+        if (!fluidlogistics$hasResourceAdditionalStockControl()) {
             return;
         }
 
-        IFluidAdditionalStock additionalStockData = (IFluidAdditionalStock) behaviour;
-        FluidAmountScrollInput additionalInput = new FluidAmountScrollInput(x + 44 + fluidlogistics$BOTTOM_ROW_X_OFFSET,
+        ResourceRestockSettings settings = fluidlogistics$resourceRestockSettings();
+        ResourceAmountScrollInput additionalInput = new ResourceAmountScrollInput(
+            x + 44 + fluidlogistics$BOTTOM_ROW_X_OFFSET,
             y + windowHeight + 1, 36, 16);
-        fluidlogistics$configureFluidAmountInput(additionalInput, 0, false);
+        fluidlogistics$configureResourceAmountInput(additionalInput, 0, false);
         additionalInput.withSecondaryHeader(() -> CreateLang.text(fluidlogistics$formatAdditionalStockTooltip(
             fluidlogistics$additionalStockInput == null ? 0 : fluidlogistics$additionalStockInput.getState()))
             .component());
-        fluidlogistics$additionalStockInput = additionalInput.setState(additionalStockData.fluidlogistics$getAdditionalStock());
+        fluidlogistics$additionalStockInput =
+                additionalInput.setState(settings.fluidlogistics$getAdditionalStock());
         fluidlogistics$updateAdditionalStockLabel();
         addRenderableWidget(fluidlogistics$additionalStockInput);
     }
 
     @Unique
     private void fluidlogistics$initPromiseLimitInput(int x, int y) {
-        if (!fluidlogistics$hasFluidPromiseLimitControl()) {
+        if (!fluidlogistics$hasResourcePromiseLimitControl()) {
             return;
         }
 
-        IFluidPromiseLimit promiseLimitData = (IFluidPromiseLimit) behaviour;
+        ResourceRestockSettings settings = fluidlogistics$resourceRestockSettings();
         int promiseInputX = restocker ? x + 88 + fluidlogistics$BOTTOM_ROW_X_OFFSET : x + 5;
         int promiseInputY = restocker ? y + windowHeight + 1 : y + windowHeight - 24;
         int promiseInputWidth = restocker ? 56 : 47;
-        FluidAmountScrollInput promiseInput =
-            new FluidAmountScrollInput(promiseInputX, promiseInputY, promiseInputWidth, 16);
-        fluidlogistics$configureFluidAmountInput(promiseInput, -1, true);
+        ResourceAmountScrollInput promiseInput =
+            new ResourceAmountScrollInput(promiseInputX, promiseInputY, promiseInputWidth, 16);
+        fluidlogistics$configureResourceAmountInput(promiseInput, -1, true);
         promiseInput.withSecondaryHeader(() -> CreateLang.text(fluidlogistics$formatPromiseLimitTooltip(
             fluidlogistics$promiseLimitInput == null ? -1 : fluidlogistics$promiseLimitInput.getState()))
             .component());
         if (!restocker) {
             promiseInput.withRedstoneLinkInfo(() -> !behaviour.targetedByLinks.isEmpty());
         }
-        fluidlogistics$promiseLimitInput = promiseInput.setState(promiseLimitData.fluidlogistics$getPromiseLimit());
+        fluidlogistics$promiseLimitInput = promiseInput.setState(settings.fluidlogistics$getPromiseLimit());
         fluidlogistics$updatePromiseLimitLabel();
         addRenderableWidget(fluidlogistics$promiseLimitInput);
     }
 
     @Unique
-    private void fluidlogistics$configureFluidAmountInput(FluidAmountScrollInput input, int minValue,
+    private void fluidlogistics$configureResourceAmountInput(ResourceAmountScrollInput input, int minValue,
         boolean allowUnlimited) {
-        int maxBatch = FluidGaugeHelper.getMaxFluidRequestPerBatch();
-        input.withRange(minValue, maxBatch + 1)
+        int maximum = fluidlogistics$resourceRestockPolicy().maxSettingAmount();
+        ItemStack key = behaviour.getFilter();
+        input.withRange(minValue, maximum + 1)
             .withShiftStep(1)
             .withStepFunction(context -> {
                 if (allowUnlimited && context.currentValue < 0) {
                     return 1;
                 }
-
-                int next = FluidAmountHelper.adjustFluidRequestAmount(context.currentValue, context.forward,
-                    context.shift, context.control, 0, maxBatch);
+                int next = PackageResources.adjustAmount(key, new PackageResourceDisplay.Adjustment(
+                        context.currentValue,
+                        context.forward,
+                        context.shift,
+                        context.control,
+                        minValue,
+                        maximum,
+                        1,
+                        PackageResourceDisplay.Interaction.FACTORY_PANEL))
+                        .orElse(context.currentValue);
                 return Math.max(1, Math.abs(next - context.currentValue));
             });
     }
@@ -339,7 +345,12 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             return;
         }
 
-        String key = fluidlogistics$promiseLimitInput.getState() < 0
+        int labelKind = fluidlogistics$promiseLimitInput.getState() < 0 ? -1 : 0;
+        if (fluidlogistics$promiseLimitLabelKind == labelKind) {
+            return;
+        }
+        fluidlogistics$promiseLimitLabelKind = labelKind;
+        String key = labelKind < 0
             ? "fluidlogistics.gauge.promise_limit.none"
             : "fluidlogistics.gauge.promise_limit";
         fluidlogistics$promiseLimitInput.titled(CreateLang.translateDirect(key));
@@ -351,7 +362,12 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             return;
         }
 
-        String key = fluidlogistics$additionalStockInput.getState() <= 0
+        int labelKind = fluidlogistics$additionalStockInput.getState() <= 0 ? 0 : 1;
+        if (fluidlogistics$additionalStockLabelKind == labelKind) {
+            return;
+        }
+        fluidlogistics$additionalStockLabelKind = labelKind;
+        String key = labelKind == 0
             ? "fluidlogistics.gauge.request_additional.none"
             : "fluidlogistics.gauge.request_additional";
         fluidlogistics$additionalStockInput.titled(CreateLang.translateDirect(key));
@@ -363,7 +379,6 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false
     )
     private void fluidlogistics$tickRestockThresholdInput(CallbackInfo ci) {
-        fluidlogistics$updateRestockThresholdLabel();
         fluidlogistics$updateAdditionalStockLabel();
         fluidlogistics$updatePromiseLimitLabel();
     }
@@ -375,6 +390,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     )
     private void fluidlogistics$beforeRenderWindow(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks,
             CallbackInfo ci) {
+        if (fluidlogistics$calCompatibilityControlsCleared) {
+            return;
+        }
+        fluidlogistics$calCompatibilityControlsCleared = true;
         fluidlogistics$clearCalCompatibilityControls();
     }
 
@@ -386,68 +405,13 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         ),
         remap = false
     )
-    private boolean fluidlogistics$hideRedstoneLinkWhenFluidPromiseLimitPresent(Map map, Operation<Boolean> original) {
-        if (!restocker && fluidlogistics$hasFluidPromiseLimitControl() && map == behaviour.targetedByLinks) {
+    private boolean fluidlogistics$hideRedstoneLinkWhenResourcePromiseLimitPresent(
+            Map map, Operation<Boolean> original) {
+        if (!restocker && fluidlogistics$hasResourcePromiseLimitControl()
+                && map == behaviour.targetedByLinks) {
             return true;
         }
         return original.call(map);
-    }
-
-    @WrapOperation(
-        method = "renderWindow",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/createmod/catnip/gui/element/RenderElement;render(" +
-                     "Lnet/minecraft/client/gui/GuiGraphics;II)V",
-            ordinal = 1,
-            remap = false
-        ),
-        remap = false
-    )
-    private void fluidlogistics$renderFactoryGaugePreviewFluidAsBlock(RenderElement element, GuiGraphics graphics,
-            int x, int y, Operation<Void> original) {
-        ItemStack filter = behaviour.getFilter();
-        if (FluidGaugeHelper.isFluidFilter(filter)) {
-            FluidStack fluid = CompressedTankItem.getFluid(filter);
-            if (!fluid.isEmpty() && fluid.getFluid() != Fluids.EMPTY) {
-                fluidlogistics$renderFluidAsFactoryGaugeFilterPreview(graphics, fluid, x, y);
-                return;
-            }
-        }
-        original.call(element, graphics, x, y);
-    }
-
-    @Unique
-    private static void fluidlogistics$renderFluidAsFactoryGaugeFilterPreview(GuiGraphics graphics, FluidStack fluid,
-            int x, int y) {
-        FluidStack renderFluid = fluid.getAmount() == 0 ? fluid.copyWithAmount(1) : fluid;
-        PoseStack ms = graphics.pose();
-        ms.pushPose();
-        ms.translate(x, y, 100);
-        ms.scale(fluidlogistics$FACTORY_GAUGE_FILTER_PREVIEW_SCALE,
-            fluidlogistics$FACTORY_GAUGE_FILTER_PREVIEW_SCALE,
-            fluidlogistics$FACTORY_GAUGE_FILTER_PREVIEW_SCALE);
-        UIRenderHelper.flipForGuiRender(ms);
-
-        ms.translate(0, 0, 100);
-        ms.translate(8, -8, 0);
-        ms.scale(16, 16, 16);
-        fluidlogistics$applyDefaultBlockGuiTransform(ms);
-        ms.translate(-0.5f, -0.5f, -0.5f);
-        NeoForgeCatnipServices.FLUID_RENDERER.renderFluidBox(renderFluid,
-            0, 0, 0, 1, 1, 1,
-            graphics.bufferSource(), ms, LightTexture.FULL_BRIGHT, false, true);
-        graphics.flush();
-        ms.popPose();
-    }
-
-    @Unique
-    private static void fluidlogistics$applyDefaultBlockGuiTransform(PoseStack ms) {
-        ms.mulPose(Axis.XP.rotationDegrees(30));
-        ms.mulPose(Axis.YP.rotationDegrees(225));
-        ms.scale(fluidlogistics$DEFAULT_BLOCK_GUI_SCALE,
-            fluidlogistics$DEFAULT_BLOCK_GUI_SCALE,
-            fluidlogistics$DEFAULT_BLOCK_GUI_SCALE);
     }
 
     @Inject(
@@ -456,9 +420,9 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false,
         cancellable = true
     )
-    private void fluidlogistics$handleFluidPromiseLimitClick(double mouseX, double mouseY, int pButton,
+    private void fluidlogistics$handleResourcePromiseLimitClick(double mouseX, double mouseY, int pButton,
             CallbackInfoReturnable<Boolean> cir) {
-        if (restocker || !fluidlogistics$hasFluidPromiseLimitControl()
+        if (restocker || !fluidlogistics$hasResourcePromiseLimitControl()
             || fluidlogistics$promiseLimitInput == null || behaviour.targetedByLinks.isEmpty()) {
             return;
         }
@@ -487,11 +451,23 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     )
     private int fluidlogistics$redirectClamp(int value, int min, int max, Operation<Integer> original,
             @Local BigItemStack itemStack) {
-        if (FluidGaugeHelper.isFluidFilter(itemStack.stack)) {
-            FactoryPanelScreen self = (FactoryPanelScreen) (Object) this;
-            int maxBatch = FluidGaugeHelper.getMaxFluidRequestPerBatch();
-            return FluidAmountHelper.adjustFluidRequestAmount(itemStack.count, value > itemStack.count, self.hasShiftDown(),
-                self.hasControlDown(), 1, maxBatch);
+        PackageResourceDisplay display = PackageResources.displayOf(itemStack.stack).orElse(null);
+        if (display == null) {
+            return original.call(value, min, max);
+        }
+        int maximum = display.factoryPanelRestockPolicy(itemStack.stack).maxRequestPerBatch();
+        FactoryPanelScreen self = (FactoryPanelScreen) (Object) this;
+        var adjusted = PackageResources.adjustAmount(itemStack.stack, new PackageResourceDisplay.Adjustment(
+                itemStack.count,
+                value > itemStack.count,
+                self.hasShiftDown(),
+                self.hasControlDown(),
+                1,
+                maximum,
+                1,
+                PackageResourceDisplay.Interaction.FACTORY_PANEL));
+        if (adjusted.isPresent()) {
+            return adjusted.getAsInt();
         }
         return original.call(value, min, max);
     }
@@ -510,9 +486,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private void fluidlogistics$redirectOutputRenderItemDecorations(GuiGraphics graphics, 
             net.minecraft.client.gui.Font font, ItemStack stack, int x, int y, String text,
             Operation<Void> original) {
-        if (CompressedTankItem.isFluidStack(outputConfig.stack)) {
-            String amountText = FluidAmountHelper.format(outputConfig.count);
-            original.call(graphics, font, stack, x, y, amountText);
+        var amountText = PackageResources.formatAmount(
+                outputConfig.stack, outputConfig.count, PackageResourceDisplay.Format.COMPACT);
+        if (amountText.isPresent()) {
+            original.call(graphics, font, stack, x, y, amountText.orElseThrow());
             return;
         }
         original.call(graphics, font, stack, x, y, text);
@@ -533,10 +510,10 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
             net.minecraft.client.gui.Font font, ItemStack stack, int x, int y, String text,
             Operation<Void> original) {
         ItemStack filter = behaviour.getFilter();
-        if (CompressedTankItem.isFluidStack(filter)) {
-            int promised = behaviour.getPromised();
-            String amountText = FluidAmountHelper.format(promised);
-            original.call(graphics, font, stack, x, y, amountText);
+        var amountText = PackageResources.formatAmount(
+                filter, behaviour.getPromised(), PackageResourceDisplay.Format.COMPACT);
+        if (amountText.isPresent()) {
+            original.call(graphics, font, stack, x, y, amountText.orElseThrow());
             return;
         }
         original.call(graphics, font, stack, x, y, text);
@@ -555,38 +532,27 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     )
     private void fluidlogistics$redirectOutputTooltip(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
             List<Component> tooltips, int mouseX, int mouseY, Operation<Void> original) {
-        if (CompressedTankItem.isFluidStack(outputConfig.stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(outputConfig.stack);
-            String fluidName = fluid.getHoverName().getString();
-            String amountText = FluidAmountHelper.formatPrecise(outputConfig.count);
-
-            MutableComponent c1 = CreateLang
-                .translate("gui.factory_panel.expected_output",
-                    CreateLang.text(fluidName + " x" + amountText).string())
-                .color(ScrollInput.HEADER_RGB)
-                .component();
-            MutableComponent c2 = CreateLang.translate("gui.factory_panel.expected_output_tip")
-                .style(ChatFormatting.GRAY)
-                .component();
-            MutableComponent c3 = CreateLang.translate("gui.factory_panel.expected_output_tip_1")
-                .style(ChatFormatting.GRAY)
-                .component();
-            MutableComponent c4 = CreateLang.translate("gui.factory_panel.expected_output_tip_2")
-                .style(ChatFormatting.DARK_GRAY)
-                .style(ChatFormatting.ITALIC)
-                .component();
-            MutableComponent c5 = CreateLang.translate("fluidlogistics.scroll_precise_amount")
-                    .style(ChatFormatting.DARK_GRAY)
-                    .style(ChatFormatting.ITALIC)
-                    .component();
-
-            List<Component> newTooltips = new ArrayList<>(List.of(c1, c2, c3, c4, c5));
-            FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluid,
-                    Minecraft.getInstance().options.advancedItemTooltips);
-            original.call(graphics, font, newTooltips, mouseX, mouseY);
+        Component resourceName = PackageResources.nameOf(outputConfig.stack).orElse(null);
+        if (resourceName == null) {
+            original.call(graphics, font, tooltips, mouseX, mouseY);
             return;
         }
-        original.call(graphics, font, tooltips, mouseX, mouseY);
+        String amountText = PackageResources.formatAmount(
+                outputConfig.stack, outputConfig.count, PackageResourceDisplay.Format.PRECISE)
+                .orElse(Integer.toString(outputConfig.count));
+        List<Component> resourceTooltips = new ArrayList<>(List.of(
+                CreateLang.translate("gui.factory_panel.expected_output",
+                        resourceName.getString() + " x" + amountText)
+                        .color(ScrollInput.HEADER_RGB).component(),
+                CreateLang.translate("gui.factory_panel.expected_output_tip")
+                        .style(ChatFormatting.GRAY).component(),
+                CreateLang.translate("gui.factory_panel.expected_output_tip_1")
+                        .style(ChatFormatting.GRAY).component(),
+                CreateLang.translate("gui.factory_panel.expected_output_tip_2")
+                        .style(ChatFormatting.DARK_GRAY).style(ChatFormatting.ITALIC).component(),
+                CreateLang.translate("fluidlogistics.scroll_precise_amount")
+                        .style(ChatFormatting.DARK_GRAY).style(ChatFormatting.ITALIC).component()));
+        original.call(graphics, font, resourceTooltips, mouseX, mouseY);
     }
 
     @WrapOperation(
@@ -603,30 +569,22 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     private void fluidlogistics$redirectPromiseTooltip(GuiGraphics graphics, net.minecraft.client.gui.Font font, 
             List<Component> tooltips, int mouseX, int mouseY, Operation<Void> original) {
         ItemStack filter = behaviour.getFilter();
-        if (CompressedTankItem.isFluidStack(filter)) {
-            FluidStack fluid = CompressedTankItem.getFluid(filter);
-            int promised = behaviour.getPromised();
-            if (promised > 0) {
-                String fluidName = fluid.getHoverName().getString();
-                String amountText = FluidAmountHelper.formatPrecise(promised);
-                List<Component> newTooltips = new ArrayList<>(List.of(
-                    CreateLang.translate("gui.factory_panel.promised_items")
-                        .color(ScrollInput.HEADER_RGB)
-                        .component(),
-                    CreateLang.text(fluidName + " x" + amountText)
-                        .component(),
-                    CreateLang.translate("gui.factory_panel.left_click_reset")
-                        .style(ChatFormatting.DARK_GRAY)
-                        .style(ChatFormatting.ITALIC)
-                        .component()
-                ));
-                FluidTooltipHelper.addAdvancedComponentLines(newTooltips, fluid,
-                        Minecraft.getInstance().options.advancedItemTooltips);
-                original.call(graphics, font, newTooltips, mouseX, mouseY);
-                return;
-            }
+        Component resourceName = PackageResources.nameOf(filter).orElse(null);
+        int promised = behaviour.getPromised();
+        if (resourceName == null || promised <= 0) {
+            original.call(graphics, font, tooltips, mouseX, mouseY);
+            return;
         }
-        original.call(graphics, font, tooltips, mouseX, mouseY);
+        String amountText = PackageResources.formatAmount(
+                filter, promised, PackageResourceDisplay.Format.PRECISE)
+                .orElse(Integer.toString(promised));
+        List<Component> resourceTooltips = new ArrayList<>(List.of(
+                CreateLang.translate("gui.factory_panel.promised_items")
+                        .color(ScrollInput.HEADER_RGB).component(),
+                Component.literal(resourceName.getString() + " x" + amountText),
+                CreateLang.translate("gui.factory_panel.left_click_reset")
+                        .style(ChatFormatting.DARK_GRAY).style(ChatFormatting.ITALIC).component()));
+        original.call(graphics, font, resourceTooltips, mouseX, mouseY);
     }
 
     @Inject(
@@ -645,7 +603,8 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         if (fluidlogistics$restockThresholdInput != null) {
             FluidLogisticsGuiTextures.ADDITIONAL_STOCK_BG.render(graphics, fluidlogistics$restockThresholdInput.getX() + 11,
                 fluidlogistics$restockThresholdInput.getY() - 1);
-            String label = " " + FluidAmountHelper.formatOptionalCompact(fluidlogistics$restockThresholdInput.getState(), true);
+            String label = " " + fluidlogistics$formatResourceAmount(
+                    fluidlogistics$restockThresholdInput.getState(), true, false);
             graphics.drawString(font, CreateLang.text(label).component(), fluidlogistics$restockThresholdInput.getX() + 15,
                 fluidlogistics$restockThresholdInput.getY() + 4, 0xffeeeeee, true);
         }
@@ -658,7 +617,8 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
                 FluidLogisticsGuiTextures.ADDITIONAL_STOCK_BG.render(graphics, fluidlogistics$promiseLimitInput.getX() + 11,
                     fluidlogistics$promiseLimitInput.getY() - 1);
             }
-            String label = " " + FluidAmountHelper.formatOptionalCompact(fluidlogistics$promiseLimitInput.getState(), false);
+            String label = " " + fluidlogistics$formatResourceAmount(
+                    fluidlogistics$promiseLimitInput.getState(), false, false);
             int promiseLabelX = fluidlogistics$promiseLimitInput.getX() + (restocker ? 3 : 15);
             graphics.drawString(font, CreateLang.text(label).component(), promiseLabelX,
                 fluidlogistics$promiseLimitInput.getY() + 4, 0xffeeeeee, true);
@@ -667,7 +627,8 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         if (fluidlogistics$additionalStockInput != null) {
             FluidLogisticsGuiTextures.ADDITIONAL_STOCK_LEFT_BG.render(graphics, fluidlogistics$additionalStockInput.getX() - 1,
                 fluidlogistics$additionalStockInput.getY() - 4);
-            String label = " " + FluidAmountHelper.formatOptionalCompact(fluidlogistics$additionalStockInput.getState(), true);
+            String label = " " + fluidlogistics$formatResourceAmount(
+                    fluidlogistics$additionalStockInput.getState(), true, false);
             graphics.drawString(font, CreateLang.text(label).component(), fluidlogistics$additionalStockInput.getX() + 8,
                 fluidlogistics$additionalStockInput.getY() + 4, 0xffeeeeee, true);
         }
@@ -679,45 +640,48 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
         remap = false
     )
     private void fluidlogistics$sendRestockThreshold(CallbackInfo ci) {
-        if (!(behaviour instanceof IFluidRestockThreshold) || fluidlogistics$restockThresholdInput == null) {
-            if (!(behaviour instanceof IFluidPromiseLimit) || fluidlogistics$promiseLimitInput == null) {
-                if (!(behaviour instanceof IFluidAdditionalStock) || fluidlogistics$additionalStockInput == null) {
-                    return;
-                }
-            }
+        ResourceRestockSettings settings = fluidlogistics$resourceRestockSettings();
+        if (settings == null
+                || fluidlogistics$restockThresholdInput == null
+                && fluidlogistics$promiseLimitInput == null
+                && fluidlogistics$additionalStockInput == null) {
+            return;
         }
 
-        if (fluidlogistics$additionalStockInput != null) {
-            CatnipServices.NETWORK.sendToServer(new FactoryPanelSetFluidAdditionalStockPacket(
-                behaviour.getPanelPosition(),
-                fluidlogistics$additionalStockInput.getState()
-            ));
+        if (fluidlogistics$additionalStockInput != null
+                && fluidlogistics$additionalStockInput.getState() != settings.fluidlogistics$getAdditionalStock()) {
+            fluidlogistics$sendRestockSetting(
+                    Setting.ADDITIONAL_STOCK, fluidlogistics$additionalStockInput.getState());
         }
 
-        if (fluidlogistics$restockThresholdInput != null) {
-            CatnipServices.NETWORK.sendToServer(new FactoryPanelSetFluidRestockThresholdPacket(
-                behaviour.getPanelPosition(),
-                fluidlogistics$restockThresholdInput.getState()
-            ));
+        if (fluidlogistics$restockThresholdInput != null
+                && fluidlogistics$restockThresholdInput.getState() != settings.fluidlogistics$getRestockThreshold()) {
+            fluidlogistics$sendRestockSetting(
+                    Setting.RESTOCK_THRESHOLD, fluidlogistics$restockThresholdInput.getState());
         }
 
-        if (fluidlogistics$promiseLimitInput != null) {
-            CatnipServices.NETWORK.sendToServer(new FactoryPanelSetFluidPromiseLimitPacket(
-                behaviour.getPanelPosition(),
-                fluidlogistics$promiseLimitInput.getState()
-            ));
+        if (fluidlogistics$promiseLimitInput != null
+                && fluidlogistics$promiseLimitInput.getState() != settings.fluidlogistics$getPromiseLimit()) {
+            fluidlogistics$sendRestockSetting(
+                    Setting.PROMISE_LIMIT, fluidlogistics$promiseLimitInput.getState());
         }
     }
 
     @Unique
-    private static String fluidlogistics$formatAdditionalStockTooltip(int amount) {
-        return FluidAmountHelper.formatOptionalPreciseMultiplier(amount, true);
+    private void fluidlogistics$sendRestockSetting(Setting setting, int value) {
+        CatnipServices.NETWORK.sendToServer(new FactoryPanelSetResourceRestockSettingPacket(
+                behaviour.getPanelPosition(), setting, value));
+    }
+
+    @Unique
+    private String fluidlogistics$formatAdditionalStockTooltip(int amount) {
+        return fluidlogistics$formatResourceAmount(amount, true, true);
     }
 
     @Unique
     private void fluidlogistics$clearCalCompatibilityControls() {
-        boolean hasAdditionalStockControl = fluidlogistics$hasFluidAdditionalStockControl();
-        boolean hasPromiseLimitControl = fluidlogistics$hasFluidPromiseLimitControl();
+        boolean hasAdditionalStockControl = fluidlogistics$hasResourceAdditionalStockControl();
+        boolean hasPromiseLimitControl = fluidlogistics$hasResourcePromiseLimitControl();
         if (!hasAdditionalStockControl && !hasPromiseLimitControl) {
             return;
         }
@@ -731,44 +695,37 @@ public abstract class FactoryPanelScreenMixin extends AbstractSimiScreen {
     }
 
     @Unique
-    private static String fluidlogistics$formatRestockThresholdTooltip(int threshold) {
-        return FluidAmountHelper.formatOptionalPreciseMultiplier(threshold, true);
+    private String fluidlogistics$formatRestockThresholdTooltip(int threshold) {
+        return fluidlogistics$formatResourceAmount(threshold, true, true);
     }
 
     @Unique
-    private static String fluidlogistics$formatPromiseLimitTooltip(int threshold) {
-        return FluidAmountHelper.formatOptionalPreciseMultiplier(threshold, false);
+    private String fluidlogistics$formatPromiseLimitTooltip(int threshold) {
+        return fluidlogistics$formatResourceAmount(threshold, false, true);
+    }
+
+    @Unique
+    private String fluidlogistics$formatResourceAmount(
+            int amount, boolean zeroIsInactive, boolean multiplier) {
+        if (amount < 0 || zeroIsInactive && amount == 0) {
+            return "---";
+        }
+        String formatted = PackageResources.formatAmount(
+                behaviour.getFilter(), amount, PackageResourceDisplay.Format.PRECISE)
+                .orElse(Integer.toString(amount));
+        return multiplier ? "x" + formatted : formatted;
     }
 
     @Unique
     private void fluidlogistics$clearOptionalScrollInputField(String fieldName) {
-        ScrollInput widget = fluidlogistics$getOptionalScrollInputField(fieldName);
-        if (widget == null) {
-            return;
-        }
-
-        removeWidget(widget);
-        fluidlogistics$setOptionalScrollInputField(fieldName, null);
-    }
-
-    @Unique
-    private ScrollInput fluidlogistics$getOptionalScrollInputField(String fieldName) {
         try {
             java.lang.reflect.Field field = ((Object) this).getClass().getDeclaredField(fieldName);
             field.setAccessible(true);
             Object value = field.get(this);
-            return value instanceof ScrollInput scrollInput ? scrollInput : null;
-        } catch (ReflectiveOperationException e) {
-            return null;
-        }
-    }
-
-    @Unique
-    private void fluidlogistics$setOptionalScrollInputField(String fieldName, ScrollInput value) {
-        try {
-            java.lang.reflect.Field field = ((Object) this).getClass().getDeclaredField(fieldName);
-            field.setAccessible(true);
-            field.set(this, value);
+            if (value instanceof ScrollInput scrollInput) {
+                removeWidget(scrollInput);
+                field.set(this, null);
+            }
         } catch (ReflectiveOperationException e) {
         }
     }

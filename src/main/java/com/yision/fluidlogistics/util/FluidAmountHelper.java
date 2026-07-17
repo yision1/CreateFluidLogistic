@@ -122,17 +122,15 @@ public final class FluidAmountHelper {
 
     private static int adjustByDelta(int currentAmount, int delta, int minAmount, int maxAmount, int steps) {
         int safeSteps = Math.max(0, steps);
-        int newAmount;
+        long newAmount;
 
         if (currentAmount == 1 && delta>1){
-            //fluid inputs start with 1mb. This check stops the first scroll (ex 1B) from going to 1.001B and instead going to 1B exactly
-            //need to also check delta>1 or else ctrl+scroll doesn't work when currentAmount == 1
-            newAmount = delta * safeSteps;
+            newAmount = (long) delta * safeSteps;
         } else {
-            newAmount = currentAmount + delta * safeSteps;
+            newAmount = currentAmount + (long) delta * safeSteps;
         }
 
-        return Math.clamp(newAmount, minAmount, maxAmount);
+        return (int) Math.clamp(newAmount, (long) minAmount, (long) maxAmount);
     }
 
     private static int getFluidRequestStep(boolean shift, boolean control) {
@@ -196,13 +194,10 @@ public final class FluidAmountHelper {
             return (amount / unitSize) + suffix;
         }
         if (amount / unitSize <= 10) {
-            //only one digit before decimal
-            //display 1 decimal
             double value = Math.floor(amount / (unitSize / 10.0)) / 10.0;
             return String.format(Locale.ROOT, "%.1f%s", value, suffix);
 
         }
-        // don't display decimal
         return String.format(Locale.ROOT, "%.0f%s", Math.floor(amount / (float) unitSize), suffix);
     }
 }

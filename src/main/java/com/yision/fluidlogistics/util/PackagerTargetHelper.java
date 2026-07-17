@@ -1,6 +1,5 @@
 package com.yision.fluidlogistics.util;
 
-import com.simibubi.create.AllBlocks;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 
@@ -18,12 +17,4 @@ public final class PackagerTargetHelper {
             && state.hasProperty(PackagerBlock.POWERED);
     }
 
-    public static boolean isClipboardAddressTarget(BlockEntity blockEntity, BlockState state) {
-        return blockEntity instanceof PackagerBlockEntity && isClipboardAddressBlock(state);
-    }
-
-    public static boolean isClipboardAddressBlock(BlockState state) {
-        return AllBlocks.PACKAGER.has(state)
-            || com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state);
-    }
 }

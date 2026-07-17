@@ -1,15 +1,10 @@
 package com.yision.fluidlogistics.content.equipment.handPointer.network;
 
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
-import com.simibubi.create.content.logistics.packager.PackagerBlock;
-import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
-import com.yision.fluidlogistics.util.IPackagerOverrideData;
-import com.yision.fluidlogistics.util.PackagerTargetHelper;
-import net.createmod.catnip.data.Iterate;
+import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
 import net.createmod.catnip.net.base.ServerboundPacketPayload;
 import net.createmod.catnip.platform.CatnipServices;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -21,10 +16,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.SignBlockEntity;
-import net.minecraft.world.level.block.entity.SignText;
-import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Vector3f;
 
 public record HandPointerClearClipboardAddressPacket(BlockPos pos) implements ServerboundPacketPayload {
@@ -53,51 +44,40 @@ public record HandPointerClearClipboardAddressPacket(BlockPos pos) implements Se
         }
 
         Level level = player.level();
-        BlockState state = level.getBlockState(pos);
-        BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (!PackagerTargetHelper.isClipboardAddressTarget(blockEntity, state)
-            || !(blockEntity instanceof IPackagerOverrideData data)) {
-            return;
-        }
-
-        boolean linkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
-        if (linkedToNetwork) {
-            player.displayClientMessage(
-                Component.translatable("logistically_linked.protected")
-                    .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(STATUS_INVALID_COLOR))),
-                true
-            );
-            fluidlogistics$sendFeedback(level, pos, player, false);
-            return;
-        }
-
-        if (fluidlogistics$hasSignAddress(level, pos)) {
-            player.displayClientMessage(
-                Component.translatable("create.fluidlogistics.hand_pointer.address_clear_blocked_by_sign")
-                    .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(STATUS_INVALID_COLOR))),
-                true
-            );
-            fluidlogistics$sendFeedback(level, pos, player, false);
-            return;
-        }
-
-        if (data.fluidlogistics$getClipboardAddress().isBlank()) {
-            player.displayClientMessage(
-                Component.translatable("create.fluidlogistics.hand_pointer.address_already_empty")
-                    .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(STATUS_NEUTRAL_COLOR))),
-                true
-            );
-            fluidlogistics$sendFeedback(level, pos, player, false);
-            return;
-        }
-
-        data.fluidlogistics$setClipboardAddress("");
-
-        if (blockEntity instanceof PackagerBlockEntity packager) {
-            packager.signBasedAddress = "";
-            packager.updateSignAddress();
-            packager.setChanged();
-            packager.notifyUpdate();
+        PackagerAddresses.EditResult result = PackagerAddresses.clear(level, pos);
+        switch (result) {
+            case NOT_TARGET -> {
+                return;
+            }
+            case NETWORK_LINKED -> {
+                player.displayClientMessage(
+                    Component.translatable("logistically_linked.protected")
+                        .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(STATUS_INVALID_COLOR))),
+                    true
+                );
+                fluidlogistics$sendFeedback(level, pos, player, false);
+                return;
+            }
+            case SIGN_CONTROLLED -> {
+                player.displayClientMessage(
+                    Component.translatable("create.fluidlogistics.hand_pointer.address_clear_blocked_by_sign")
+                        .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(STATUS_INVALID_COLOR))),
+                    true
+                );
+                fluidlogistics$sendFeedback(level, pos, player, false);
+                return;
+            }
+            case ALREADY_EMPTY -> {
+                player.displayClientMessage(
+                    Component.translatable("create.fluidlogistics.hand_pointer.address_already_empty")
+                        .setStyle(Style.EMPTY.withColor(TextColor.fromRgb(STATUS_NEUTRAL_COLOR))),
+                    true
+                );
+                fluidlogistics$sendFeedback(level, pos, player, false);
+                return;
+            }
+            case UPDATED -> {
+            }
         }
 
         player.displayClientMessage(
@@ -106,30 +86,6 @@ public record HandPointerClearClipboardAddressPacket(BlockPos pos) implements Se
             true
         );
         fluidlogistics$sendFeedback(level, pos, player, true);
-    }
-
-    private static boolean fluidlogistics$hasSignAddress(Level level, BlockPos pos) {
-        for (Direction direction : Iterate.directions) {
-            BlockEntity blockEntity = level.getBlockEntity(pos.relative(direction));
-            if (!(blockEntity instanceof SignBlockEntity sign)) {
-                continue;
-            }
-
-            for (boolean front : Iterate.trueAndFalse) {
-                SignText text = sign.getText(front);
-                StringBuilder address = new StringBuilder();
-                for (Component component : text.getMessages(false)) {
-                    String line = component.getString();
-                    if (!line.isBlank()) {
-                        address.append(line.trim()).append(' ');
-                    }
-                }
-                if (address.length() > 0) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     private static void fluidlogistics$sendFeedback(Level level, BlockPos pos, ServerPlayer player, boolean success) {

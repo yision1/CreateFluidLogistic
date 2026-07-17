@@ -3,7 +3,6 @@ package com.yision.fluidlogistics.mixin.logistics;
 import java.util.List;
 import java.util.Map;
 
-import com.yision.fluidlogistics.util.FluidAmountHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -34,13 +33,14 @@ import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBehavio
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueSettingsBoard;
 import com.simibubi.create.foundation.blockEntity.behaviour.filtering.FilteringBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
-import com.yision.fluidlogistics.api.IFluidPackager;
+import com.yision.fluidlogistics.api.packager.ResourcePackager;
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.api.packager.PackageResourceDisplay;
+import com.yision.fluidlogistics.api.packager.PackageResourceType;
+import com.yision.fluidlogistics.api.packager.ResourcePackagers;
+import com.yision.fluidlogistics.content.logistics.packageResource.ResourceRestockSettings;
 import com.yision.fluidlogistics.compat.cal.CalFactoryPanelCompat;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
-import com.yision.fluidlogistics.util.FluidGaugeHelper;
-import com.yision.fluidlogistics.util.IFluidAdditionalStock;
-import com.yision.fluidlogistics.util.IFluidPromiseLimit;
-import com.yision.fluidlogistics.util.IFluidRestockThreshold;
+import com.yision.fluidlogistics.util.ResourceGaugeHelper;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
@@ -50,11 +50,10 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
-import net.neoforged.neoforge.fluids.FluidStack;
 
 @Mixin(FactoryPanelBehaviour.class)
 public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
-    implements IFluidRestockThreshold, IFluidPromiseLimit, IFluidAdditionalStock {
+    implements ResourceRestockSettings {
 
     public FactoryPanelBehaviourMixin(SmartBlockEntity be, ValueBoxTransform slot) {
         super(be, slot);
@@ -91,7 +90,7 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
     @Unique
     private void fluidlogistics$disableCalFactoryPanelState() {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
-        if (!FluidGaugeHelper.isFluidFilter(self)) {
+        if (!ResourceGaugeHelper.hasConfigurableSettings(self)) {
             return;
         }
 
@@ -156,20 +155,20 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$limitNonRestockFluidPromises(CallbackInfo ci) {
+    private void fluidlogistics$limitNonRestockResourcePromises(CallbackInfo ci) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
-        if (self.panelBE().restocker || !FluidGaugeHelper.isFluidFilter(self)) {
+        PackageResourceDisplay.FactoryPanelRestockPolicy policy = ResourceGaugeHelper.policy(self);
+        if (self.panelBE().restocker || !policy.configurablePromiseLimit()) {
             return;
         }
 
-        if (!(self instanceof IFluidPromiseLimit promiseLimitData)
-            || !promiseLimitData.fluidlogistics$hasPromiseLimit()) {
+        if (!fluidlogistics$hasPromiseLimit()) {
             return;
         }
 
-        int limit = promiseLimitData.fluidlogistics$getPromiseLimit();
+        int capacity = policy.remainingPromiseCapacity(fluidlogistics$promiseLimit, self.getPromised());
         int nextPromise = Math.max(1, self.recipeOutput);
-        if (limit <= 0 || self.getPromised() + nextPromise > limit) {
+        if (capacity < nextPromise) {
             ci.cancel();
         }
     }
@@ -189,16 +188,23 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$getRelevantSummaryForFluidPackager(CallbackInfoReturnable<InventorySummary> cir) {
+    private void fluidlogistics$getRelevantSummaryForResourcePackager(CallbackInfoReturnable<InventorySummary> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         FactoryPanelBlockEntity panelBE = self.panelBE();
-        
-        IFluidPackager fluidPackager = FluidGaugeHelper.getFluidPackager(panelBE);
-        if (fluidPackager == null) {
+        if (!PackageResources.isBootstrapped()) {
             return;
         }
-        
-        cir.setReturnValue(fluidPackager.getAvailableItems());
+        ItemStack filter = self.getFilter();
+        PackageResourceType type = PackageResources.findType(filter).orElse(null);
+        PackagerBlockEntity owner = panelBE.getRestockedPackager();
+        ResourcePackager packager = ResourcePackagers.ownerOf(owner).orElse(null);
+        if (type == null || packager == null) {
+            return;
+        }
+        ItemStack normalizedKey = type.normalizeKey(filter.copy());
+        if (ResourcePackagers.supports(packager, type, normalizedKey)) {
+            cir.setReturnValue(ResourcePackagers.getAvailableResources(packager));
+        }
     }
 
     @Inject(
@@ -207,7 +213,7 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$getUnloadedLinksForFluidRestocker(CallbackInfoReturnable<Integer> cir) {
+    private void fluidlogistics$getUnloadedLinksForResourceRestocker(CallbackInfoReturnable<Integer> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         FactoryPanelBlockEntity panelBE = self.panelBE();
 
@@ -215,7 +221,7 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
             return;
         }
 
-        if (FluidGaugeHelper.getFluidPackager(panelBE) != null) {
+        if (ResourcePackagers.ownerOf(panelBE.getRestockedPackager()).isPresent()) {
             cir.setReturnValue(0);
         }
     }
@@ -226,53 +232,54 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$tryFluidRestock(CallbackInfo ci) {
+    private void fluidlogistics$tryResourceRestock(CallbackInfo ci) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         FactoryPanelBlockEntity panelBE = self.panelBE();
-        
-        PackagerBlockEntity packager = panelBE.getRestockedPackager();
-        if (packager != null && !(packager instanceof IFluidPackager)) {
+        if (!PackageResources.isBootstrapped()) {
             return;
         }
-        
-        IFluidPackager fluidPackager = FluidGaugeHelper.getFluidPackager(panelBE);
-        if (fluidPackager == null) {
+
+        ItemStack filter = self.getFilter();
+        PackageResourceType resourceType = PackageResources.findType(filter).orElse(null);
+        PackagerBlockEntity owner = panelBE.getRestockedPackager();
+        ResourcePackager resourcePackager = ResourcePackagers.ownerOf(owner).orElse(null);
+        if (resourceType == null || resourcePackager == null) {
             return;
         }
-        
-        ItemStack item = self.getFilter();
-        if (item.isEmpty()) {
+        ItemStack item = resourceType.normalizeKey(filter.copy());
+        if (!ResourcePackagers.supports(resourcePackager, resourceType, item.copy())) {
             return;
         }
-        
+
+        PackageResourceDisplay display = resourceType.display();
+        PackageResourceDisplay.FactoryPanelRestockPolicy policy =
+                display.factoryPanelRestockPolicy(item.copy());
         int inStorage = self.getLevelInStorage();
         int promised = self.getPromised();
-        int demand = FluidGaugeHelper.getRestockDemand(self);
-        int shortage = demand - promised - inStorage;
+        int demand = policy.restockDemand(self.getAmount(), fluidlogistics$remainingAdditionalStock);
+        long shortageValue = (long) demand - promised - inStorage;
+        int threshold = policy.effectiveThreshold(fluidlogistics$restockThreshold);
 
-        int threshold = FluidGaugeHelper.getEffectiveRestockThreshold(
-            self instanceof IFluidRestockThreshold thresholdData ? thresholdData : null);
-
-        if (shortage < threshold) {
+        if (shortageValue < threshold) {
             ci.cancel();
             return;
         }
 
-        IdentifiedInventory identifiedInventory =
-            fluidPackager.getIdentifiedInventory();
-
+        IdentifiedInventory identifiedInventory = owner.targetInventory == null
+                ? null
+                : owner.targetInventory.getIdentifiedInventory();
         int availableOnNetwork = LogisticsManager.getStockOf(network, item, identifiedInventory);
         if (availableOnNetwork == 0) {
             sendEffect(self.getPanelPosition(), false);
             ci.cancel();
             return;
         }
-        
+
+        int shortage = (int) Math.min(BigItemStack.INF, shortageValue);
         int amountToOrder = Math.min(shortage, availableOnNetwork);
-        amountToOrder = Math.min(amountToOrder, FluidGaugeHelper.getMaxFluidRequestPerBatch());
-        if (self instanceof IFluidPromiseLimit promiseLimitData && promiseLimitData.fluidlogistics$hasPromiseLimit()) {
-            amountToOrder = Math.min(amountToOrder, promiseLimitData.fluidlogistics$getPromiseLimit() - promised);
-        }
+        amountToOrder = Math.min(amountToOrder, policy.maxRequestPerBatch());
+        amountToOrder = Math.min(amountToOrder,
+                policy.remainingPromiseCapacity(fluidlogistics$promiseLimit, promised));
         if (amountToOrder <= 0) {
             ci.cancel();
             return;
@@ -303,20 +310,19 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
             CallbackInfoReturnable<ValueSettingsBoard> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (FluidGaugeHelper.isFluidFilter(filter)) {
-            ValueSettingsBoard original = cir.getReturnValue();
-            ValueSettingsBoard fluidBoard = new ValueSettingsBoard(
-                CreateLang.translate("factory_panel.target_amount").component(),
-                100,
-                10,
-                java.util.List.of(
-                    CreateLang.text("mB").component(),
-                    CreateLang.text("B").component()
-                ),
-                original.formatter()
-            );
-            cir.setReturnValue(fluidBoard);
+        PackageResourceDisplay display = PackageResources.displayOf(filter).orElse(null);
+        if (display == null) {
+            return;
         }
+        ValueSettingsBoard original = cir.getReturnValue();
+        List<PackageResourceDisplay.FactoryPanelUnit> units = display.factoryPanelUnits(filter);
+        cir.setReturnValue(new ValueSettingsBoard(
+            CreateLang.translate("factory_panel.target_amount").component(),
+            display.factoryPanelMaxValue(filter),
+            display.factoryPanelMilestoneInterval(filter),
+            units.stream().<Component>map(unit -> Component.literal(unit.label())).toList(),
+            original.formatter()
+        ));
     }
 
     @Inject(
@@ -325,40 +331,22 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$formatFluidValue(ValueSettingsBehaviour.ValueSettings value, 
+    private void fluidlogistics$formatResourceValue(ValueSettingsBehaviour.ValueSettings value,
             CallbackInfoReturnable<MutableComponent> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (FluidGaugeHelper.isFluidFilter(filter)) {
-            String formatted = FluidAmountHelper.formatFactoryGaugeValueSetting(value.row(), value.value());
-            cir.setReturnValue(formatted == null
-                ? CreateLang.translateDirect("gui.factory_panel.inactive")
-                : Component.literal(formatted));
+        PackageResourceDisplay display = PackageResources.displayOf(filter).orElse(null);
+        if (display == null) {
+            return;
         }
-    }
-
-    @Unique
-    private static ThreadLocal<Boolean> fluidlogistics$needsConversion = ThreadLocal.withInitial(() -> false);
-    
-    @Unique
-    private static ThreadLocal<Boolean> fluidlogistics$useBucketsMode = ThreadLocal.withInitial(() -> false);
-
-    @Inject(
-        method = "setValueSettings",
-        at = @At("HEAD"),
-        remap = false
-    )
-    private void fluidlogistics$beforeSetValueSettings(Player player, ValueSettingsBehaviour.ValueSettings settings, 
-            boolean ctrlDown, CallbackInfo ci) {
-        FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
-        ItemStack filter = self.getFilter();
-        if (FluidGaugeHelper.isFluidFilter(filter)) {
-            fluidlogistics$needsConversion.set(true);
-            fluidlogistics$useBucketsMode.set(settings.row() == 1);
-        } else {
-            fluidlogistics$needsConversion.set(false);
-            fluidlogistics$useBucketsMode.set(false);
+        if (value.value() == 0) {
+            cir.setReturnValue(CreateLang.translateDirect("gui.factory_panel.inactive"));
+            return;
         }
+        List<PackageResourceDisplay.FactoryPanelUnit> units = display.factoryPanelUnits(filter);
+        int row = Math.max(0, Math.min(units.size() - 1, value.row()));
+        int displayedValue = display.factoryPanelDisplayedValue(filter, row, value.value());
+        cir.setReturnValue(Component.literal(displayedValue + units.get(row).label()));
     }
 
     @ModifyExpressionValue(
@@ -370,11 +358,13 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         ),
         remap = false
     )
-    private int fluidlogistics$modifySettingsValue(int original) {
-        if (fluidlogistics$needsConversion.get()) {
-            return FluidAmountHelper.toFactoryGaugeAmount(fluidlogistics$useBucketsMode.get() ? 1 : 0, original);
-        }
-        return original;
+    private int fluidlogistics$modifySettingsValue(int original, Player player,
+            ValueSettingsBehaviour.ValueSettings settings, boolean ctrlDown) {
+        FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
+        ItemStack key = self.getFilter();
+        return PackageResources.displayOf(key)
+                .map(display -> display.factoryPanelAmount(key, settings.row(), original))
+                .orElse(original);
     }
 
     @Inject(
@@ -386,17 +376,15 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
     private void fluidlogistics$onGetValueSettings(CallbackInfoReturnable<ValueSettingsBehaviour.ValueSettings> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (FluidGaugeHelper.isFluidFilter(filter)) {
-            int count = self.getAmount();
-            boolean upTo = self.upTo;
-            boolean useBuckets = count >= FluidAmountHelper.MB_PER_BUCKET;
-            int displayValue;
-            if (useBuckets) {
-                displayValue = FluidAmountHelper.toFactoryGaugeValueSetting(count);
-            } else {
-                displayValue = FluidAmountHelper.toFactoryGaugeValueSetting(count);
-            }
-            cir.setReturnValue(new ValueSettingsBehaviour.ValueSettings(useBuckets ? 1 : (upTo ? 0 : 1), displayValue));
+        PackageResourceDisplay display = PackageResources.displayOf(filter).orElse(null);
+        if (display != null) {
+            int amount = self.getAmount();
+            int unitCount = display.factoryPanelUnits(filter).size();
+            int row = self.upTo || unitCount == 1
+                    ? 0
+                    : Math.max(1, Math.min(unitCount - 1, display.factoryPanelRow(filter, amount)));
+            int value = display.factoryPanelValue(filter, row, amount);
+            cir.setReturnValue(new ValueSettingsBehaviour.ValueSettings(row, value));
         }
     }
 
@@ -409,7 +397,10 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
     private void fluidlogistics$onGetCountLabelForValueBox(CallbackInfoReturnable<MutableComponent> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        if (!FluidGaugeHelper.isFluidFilter(filter)) {
+        int levelInStorage = self.getLevelInStorage();
+        var levelText = PackageResources.formatAmount(
+                filter, levelInStorage, PackageResourceDisplay.Format.COMPACT);
+        if (levelText.isEmpty()) {
             return;
         }
         
@@ -424,23 +415,24 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
             return;
         }
         
-        int levelInStorage = self.getLevelInStorage();
         int count = self.getAmount();
         boolean satisfied = self.satisfied;
         boolean promisedSatisfied = self.promisedSatisfied;
 
         if (count == 0){
-            cir.setReturnValue(CreateLang.text("  " + FluidAmountHelper.format(levelInStorage))
+            cir.setReturnValue(CreateLang.text("  " + levelText.orElseThrow())
                     .color(0xF1EFE8)
                     .component());
             return;
         }
 
-        cir.setReturnValue(CreateLang.text("   " + FluidAmountHelper.format(levelInStorage))
+        String countText = PackageResources.formatAmount(
+                filter, count, PackageResourceDisplay.Format.COMPACT).orElse(Integer.toString(count));
+        cir.setReturnValue(CreateLang.text("   " + levelText.orElseThrow())
                 .color(satisfied ? 0xD7FFA8 : promisedSatisfied ? 0xffcd75 : 0xFFBFA8)
                 .add(CreateLang.text("/")
                         .style(ChatFormatting.WHITE))
-                .add(CreateLang.text(FluidAmountHelper.format(count) + "  ")
+                .add(CreateLang.text(countText + "  ")
                         .color(0xF1EFE8))
                 .component());
     }
@@ -454,12 +446,10 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
     private void fluidlogistics$onGetLabel(CallbackInfoReturnable<MutableComponent> cir) {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         ItemStack filter = self.getFilter();
-        
-        if (!FluidGaugeHelper.isFluidFilter(filter)) {
+        Component resourceName = PackageResources.nameOf(filter).orElse(null);
+        if (resourceName == null) {
             return;
         }
-        
-        FluidStack fluid = CompressedTankItem.getFluid(filter);
 
         if (!targetedBy.isEmpty() && self.getAmount() == 0) {
             cir.setReturnValue(CreateLang.translate("gui.factory_panel.no_target_amount_set")
@@ -481,20 +471,17 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
             return;
         }
         
-        String fluidName = fluid.getHoverName().getString();
-        
         if (self.getAmount() == 0 || targetedBy.isEmpty()) {
-            cir.setReturnValue(fluid.getHoverName().plainCopy());
+            cir.setReturnValue(resourceName.copy());
             return;
         }
-        
+        String label = resourceName.getString();
         if (redstonePowered) {
-            fluidName += " " + CreateLang.translate("factory_panel.redstone_paused").string();
+            label += " " + CreateLang.translate("factory_panel.redstone_paused").string();
         } else if (!satisfied) {
-            fluidName += " " + CreateLang.translate("factory_panel.in_progress").string();
+            label += " " + CreateLang.translate("factory_panel.in_progress").string();
         }
-        
-        cir.setReturnValue(CreateLang.text(fluidName).component());
+        cir.setReturnValue(CreateLang.text(label).component());
     }
 
     @Inject(
@@ -503,7 +490,7 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$getFluidFrogAddress(CallbackInfoReturnable<String> cir) {
+    private void fluidlogistics$getResourceFrogAddress(CallbackInfoReturnable<String> cir) {
         if (cir.getReturnValue() != null) {
             return;
         }
@@ -515,23 +502,18 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
             return;
         }
         
-        IFluidPackager fluidPackager = FluidGaugeHelper.getFluidPackager(panelBE);
-        if (fluidPackager == null) {
+        PackagerBlockEntity owner = panelBE.getRestockedPackager();
+        if (ResourcePackagers.ownerOf(owner).isEmpty()) {
             return;
         }
-        
-        if (!(fluidPackager instanceof net.minecraft.world.level.block.entity.BlockEntity be)) {
-            return;
-        }
-        
-        if (be.getLevel().getBlockEntity(be.getBlockPos().above()) instanceof FrogportBlockEntity fpbe) {
+
+        if (owner.getLevel().getBlockEntity(owner.getBlockPos().above()) instanceof FrogportBlockEntity fpbe) {
             if (fpbe.addressFilter != null && !fpbe.addressFilter.isBlank()) {
                 cir.setReturnValue(fpbe.addressFilter + "");
             }
         }
     }
 
-    // ==== 流体补货阈值 / 承诺上限 / 额外库存（原 FactoryPanelRestockThresholdMixin，合并至此） ====
 
     @Shadow(remap = false)
     private int lastReportedLevelInStorage;
@@ -550,26 +532,26 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
     }
 
     @Unique
-    private static final String fluidlogistics$RESTOCK_THRESHOLD_KEY = FluidGaugeHelper.RESTOCK_THRESHOLD_KEY;
+    private static final String fluidlogistics$RESTOCK_THRESHOLD_KEY = ResourceGaugeHelper.RESTOCK_THRESHOLD_KEY;
 
     @Unique
-    private static final String fluidlogistics$PROMISE_LIMIT_KEY = FluidGaugeHelper.PROMISE_LIMIT_KEY;
+    private static final String fluidlogistics$PROMISE_LIMIT_KEY = ResourceGaugeHelper.PROMISE_LIMIT_KEY;
 
     @Unique
-    private static final String fluidlogistics$ADDITIONAL_STOCK_KEY = FluidGaugeHelper.ADDITIONAL_STOCK_KEY;
+    private static final String fluidlogistics$ADDITIONAL_STOCK_KEY = ResourceGaugeHelper.ADDITIONAL_STOCK_KEY;
 
     @Unique
     private static final String fluidlogistics$REMAINING_ADDITIONAL_STOCK_KEY =
-        FluidGaugeHelper.REMAINING_ADDITIONAL_STOCK_KEY;
+        ResourceGaugeHelper.REMAINING_ADDITIONAL_STOCK_KEY;
 
     @Unique
-    private static final int fluidlogistics$DEFAULT_RESTOCK_THRESHOLD = FluidGaugeHelper.DEFAULT_RESTOCK_THRESHOLD;
+    private static final int fluidlogistics$DEFAULT_RESTOCK_THRESHOLD = ResourceGaugeHelper.DEFAULT_RESTOCK_THRESHOLD;
 
     @Unique
-    private static final int fluidlogistics$DEFAULT_PROMISE_LIMIT = FluidGaugeHelper.DEFAULT_PROMISE_LIMIT;
+    private static final int fluidlogistics$DEFAULT_PROMISE_LIMIT = ResourceGaugeHelper.DEFAULT_PROMISE_LIMIT;
 
     @Unique
-    private static final int fluidlogistics$DEFAULT_ADDITIONAL_STOCK = FluidGaugeHelper.DEFAULT_ADDITIONAL_STOCK;
+    private static final int fluidlogistics$DEFAULT_ADDITIONAL_STOCK = ResourceGaugeHelper.DEFAULT_ADDITIONAL_STOCK;
 
     @Unique
     private int fluidlogistics$restockThreshold = fluidlogistics$DEFAULT_RESTOCK_THRESHOLD;
@@ -590,7 +572,9 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
 
     @Override
     public void fluidlogistics$setRestockThreshold(int threshold) {
-        fluidlogistics$restockThreshold = FluidGaugeHelper.clampRestockThreshold(threshold);
+        fluidlogistics$restockThreshold = ResourceGaugeHelper
+                .policy((FactoryPanelBehaviour) (Object) this)
+                .clampThreshold(threshold);
     }
 
     @Override
@@ -600,7 +584,9 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
 
     @Override
     public void fluidlogistics$setPromiseLimit(int limit) {
-        fluidlogistics$promiseLimit = FluidGaugeHelper.clampPromiseLimit(limit);
+        fluidlogistics$promiseLimit = ResourceGaugeHelper
+                .policy((FactoryPanelBehaviour) (Object) this)
+                .clampPromiseLimit(limit);
     }
 
     @Override
@@ -615,11 +601,14 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
 
     @Override
     public void fluidlogistics$setAdditionalStock(int amount) {
-        fluidlogistics$additionalStock = FluidGaugeHelper.clampAdditionalStock(amount);
+        fluidlogistics$additionalStock = ResourceGaugeHelper
+                .policy((FactoryPanelBehaviour) (Object) this)
+                .clampAdditionalStock(amount);
         if (fluidlogistics$remainingAdditionalStock > fluidlogistics$additionalStock) {
             fluidlogistics$remainingAdditionalStock = fluidlogistics$additionalStock;
         }
-        if (fluidlogistics$shouldApplyFluidRestock() && !satisfied && fluidlogistics$remainingAdditionalStock <= 0
+        if (fluidlogistics$shouldApplyResourceRestock() && !satisfied
+            && fluidlogistics$remainingAdditionalStock <= 0
             && fluidlogistics$additionalStock > 0) {
             fluidlogistics$remainingAdditionalStock = fluidlogistics$additionalStock;
         }
@@ -641,8 +630,8 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         cancellable = true,
         remap = false
     )
-    private void fluidlogistics$tickFluidRestockStorageMonitor(CallbackInfo ci) {
-        if (!fluidlogistics$shouldApplyFluidRestock()) {
+    private void fluidlogistics$tickResourceRestockStorageMonitor(CallbackInfo ci) {
+        if (!fluidlogistics$shouldApplyResourceRestock()) {
             return;
         }
         ci.cancel();
@@ -655,9 +644,10 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
                 fluidlogistics$remainingAdditionalStock - (lastReportedLevelInStorage - inStorage));
         }
 
-        int threshold = FluidGaugeHelper.getEffectiveRestockThreshold(this);
+        PackageResourceDisplay.FactoryPanelRestockPolicy policy = ResourceGaugeHelper.policy(self);
+        int threshold = policy.effectiveThreshold(fluidlogistics$restockThreshold);
         int promised = self.getPromised();
-        int demand = self.getAmount() + fluidlogistics$remainingAdditionalStock;
+        int demand = policy.restockDemand(self.getAmount(), fluidlogistics$remainingAdditionalStock);
 
         boolean previousSatisfied = satisfied;
         boolean shouldSatisfy = demand - inStorage < threshold;
@@ -756,8 +746,9 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
             fluidlogistics$setAdditionalStock(fluidlogistics$DEFAULT_ADDITIONAL_STOCK);
         }
 
-        fluidlogistics$remainingAdditionalStock =
-            FluidGaugeHelper.clampRemainingAdditionalStock(tag.getInt(fluidlogistics$REMAINING_ADDITIONAL_STOCK_KEY));
+        fluidlogistics$remainingAdditionalStock = ResourceGaugeHelper
+                .policy(self)
+                .clampAdditionalStock(tag.getInt(fluidlogistics$REMAINING_ADDITIONAL_STOCK_KEY));
     }
 
     @Unique
@@ -777,8 +768,9 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
     }
 
     @Unique
-    private boolean fluidlogistics$shouldApplyFluidRestock() {
+    private boolean fluidlogistics$shouldApplyResourceRestock() {
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
-        return FluidGaugeHelper.isFluidRestocker(self);
+        return ResourceGaugeHelper.isResourceRestocker(self)
+                && ResourceGaugeHelper.policy(self).hasConfigurableSettings();
     }
 }

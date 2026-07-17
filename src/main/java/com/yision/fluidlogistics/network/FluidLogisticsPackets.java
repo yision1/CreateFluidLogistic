@@ -1,9 +1,8 @@
 package com.yision.fluidlogistics.network;
 
-import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidRestockThresholdPacket;
-import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidPromiseLimitPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetResourceRestockSettingPacket;
 import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidFilterPacket;
-import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidAdditionalStockPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetRequestSelectorPacket;
 import com.yision.fluidlogistics.content.fluids.faucet.network.FaucetDripParticlePacket;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.network.MechanicalFluidGunPackets;
 import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportPlacementRequestPacket;
@@ -30,9 +29,9 @@ public enum FluidLogisticsPackets implements BasePacketPayload.PacketTypeProvide
     CLIPBOARD_SET_ADDRESS(ClipboardSetAddressPacket.class, ClipboardSetAddressPacket.STREAM_CODEC),
     COPPER_FROGPORT_PLACEMENT_REQUEST(CopperFrogportPlacementRequestPacket.class, CopperFrogportPlacementRequestPacket.STREAM_CODEC),
     FACTORY_PANEL_SET_FLUID_FILTER(FactoryPanelSetFluidFilterPacket.class, FactoryPanelSetFluidFilterPacket.STREAM_CODEC),
-    FACTORY_PANEL_SET_FLUID_ADDITIONAL_STOCK(FactoryPanelSetFluidAdditionalStockPacket.class, FactoryPanelSetFluidAdditionalStockPacket.STREAM_CODEC),
-    FACTORY_PANEL_SET_FLUID_PROMISE_LIMIT(FactoryPanelSetFluidPromiseLimitPacket.class, FactoryPanelSetFluidPromiseLimitPacket.STREAM_CODEC),
-    FACTORY_PANEL_SET_FLUID_RESTOCK_THRESHOLD(FactoryPanelSetFluidRestockThresholdPacket.class, FactoryPanelSetFluidRestockThresholdPacket.STREAM_CODEC),
+    FACTORY_PANEL_SET_REQUEST_SELECTOR(FactoryPanelSetRequestSelectorPacket.class, FactoryPanelSetRequestSelectorPacket.STREAM_CODEC),
+    FACTORY_PANEL_SET_RESOURCE_RESTOCK_SETTING(FactoryPanelSetResourceRestockSettingPacket.class,
+            FactoryPanelSetResourceRestockSettingPacket.STREAM_CODEC),
     HAND_POINTER_AUTHORIZE_LOGISTICS_NETWORK(HandPointerAuthorizeLogisticsNetworkPacket.class, HandPointerAuthorizeLogisticsNetworkPacket.STREAM_CODEC),
     HAND_POINTER_ARM_PLACEMENT(HandPointerArmPlacementPacket.class, HandPointerArmPlacementPacket.STREAM_CODEC),
     HAND_POINTER_DISPLAY_LINK_CONFIGURATION(HandPointerDisplayLinkConfigurationPacket.class, HandPointerDisplayLinkConfigurationPacket.STREAM_CODEC),

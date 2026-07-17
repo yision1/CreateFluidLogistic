@@ -1,11 +1,11 @@
 package com.yision.fluidlogistics.util;
 
-public interface IPackagerOverrideData {
+import com.yision.fluidlogistics.api.handpointer.PackagerAddress;
+
+public interface IPackagerOverrideData extends PackagerAddress {
     boolean fluidlogistics$isManualOverrideLocked();
 
     void fluidlogistics$setManualOverrideLocked(boolean locked);
 
-    String fluidlogistics$getClipboardAddress();
-
-    void fluidlogistics$setClipboardAddress(String address);
+    int fluidlogistics$getQueuedPackageCount();
 }

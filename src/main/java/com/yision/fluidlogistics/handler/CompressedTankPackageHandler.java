@@ -6,8 +6,8 @@ import java.util.List;
 import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.api.packager.PackageResources;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageContentHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
@@ -80,8 +80,8 @@ public final class CompressedTankPackageHandler {
     }
 
     private static boolean shouldBlockOpen(ItemStack box) {
-        return box.getItem() instanceof PackageItem
-            && !(box.getItem() instanceof FluidPackageItem)
-            && FluidPackageContentHelper.containsFluidStack(box);
+        return !(box.getItem() instanceof FluidPackageItem)
+                && PackageResources.isBootstrapped()
+                && PackageResources.blocksManualOpen(box);
     }
 }

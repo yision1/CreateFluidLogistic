@@ -13,10 +13,6 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-/**
- * 龙头的滴液效果子系统：无目标时循环预览源流体并向附近玩家发滴液粒子。
- * 仅拥有滴液相关状态，其余（renderingFluid 清理、源查询、下方是否有目标）经 {@link FaucetBlockEntity} 回调。
- */
 class FaucetDrips {
 
     private static final int DRIP_CACHE_REFRESH_INTERVAL = 120;

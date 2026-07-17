@@ -12,6 +12,7 @@ import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.client.MechanicalFluidGunItemSelectionHandler;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
 import com.yision.fluidlogistics.content.equipment.handPointer.logistics.LogisticsLinkResolver;
 import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterTargetResolver;
 import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerItem;
@@ -192,7 +193,7 @@ public class HandPointerInteractionHandler {
         HandPointerPackagerClickRouting.PackagerClickAction packagerClickAction =
             HandPointerPackagerClickRouting.route(HandPointerModeManager.getCurrentMode(),
                 PackagerTargetHelper.isToggleTarget(blockEntity, state)
-                    || player.isShiftKeyDown() && PackagerTargetHelper.isClipboardAddressTarget(blockEntity, state));
+                    || player.isShiftKeyDown() && PackagerAddresses.isTarget(level, pos));
 
         if (packagerClickAction == HandPointerPackagerClickRouting.PackagerClickAction.EXIT_MODE) {
             HandPointerModeManager.exitMode(player, level);
@@ -588,7 +589,7 @@ public class HandPointerInteractionHandler {
     private boolean tryTogglePackager(Player player, Level level, BlockPos pos, BlockState state) {
         BlockEntity blockEntity = level.getBlockEntity(pos);
 
-        if (player.isShiftKeyDown() && PackagerTargetHelper.isClipboardAddressTarget(blockEntity, state)) {
+        if (player.isShiftKeyDown() && PackagerAddresses.isTarget(level, pos)) {
             HandPointerClearClipboardAddressPacket.send(pos);
             playBlockSound(level, pos, SoundEvents.LEVER_CLICK, 0.3f, 0.85f);
             return true;

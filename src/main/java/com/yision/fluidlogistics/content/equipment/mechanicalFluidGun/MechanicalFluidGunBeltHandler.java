@@ -365,10 +365,6 @@ class MechanicalFluidGunBeltHandler {
 		clearActiveBeltSession();
 	}
 
-	/**
-	 * Redstone unlock recovery: scan configured belt targets for items waiting
-	 * to be filled and re-establish a held belt session for the first match.
-	 */
 	boolean resumeWaitingBeltItem() {
 		if (be.getSpeed() == 0 || be.isRedstoneLocked())
 			return false;

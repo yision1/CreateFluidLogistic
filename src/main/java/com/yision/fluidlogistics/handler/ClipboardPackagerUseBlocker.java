@@ -2,7 +2,7 @@ package com.yision.fluidlogistics.handler;
 
 import com.simibubi.create.AllBlocks;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.util.PackagerTargetHelper;
+import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
@@ -59,6 +59,6 @@ public class ClipboardPackagerUseBlocker {
     }
 
     private static boolean isBlockedPackager(Level level, BlockPos pos) {
-        return PackagerTargetHelper.isClipboardAddressBlock(level.getBlockState(pos));
+        return PackagerAddresses.isTarget(level, pos);
     }
 }

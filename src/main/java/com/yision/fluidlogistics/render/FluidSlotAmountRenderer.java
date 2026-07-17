@@ -23,7 +23,7 @@ public class FluidSlotAmountRenderer {
             return;
         }
         if (text.equals("\u221e")){
-            text = "+"; //Stock ticker wants "+" character to represent infinity
+            text = "+";
         }
 
         int textWidth = calculateTextWidth(text);

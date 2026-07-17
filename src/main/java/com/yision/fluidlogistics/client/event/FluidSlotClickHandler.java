@@ -7,14 +7,12 @@ import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemMen
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelSetItemScreen;
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterMenu;
 import com.simibubi.create.content.logistics.redstoneRequester.RedstoneRequesterScreen;
-import com.simibubi.create.foundation.gui.menu.GhostItemSubmitPacket;
+import com.yision.fluidlogistics.api.packager.client.PackageResourceClient;
+import com.yision.fluidlogistics.api.packager.PackageResourceTypes;
 import com.yision.fluidlogistics.client.RedstoneRequesterAmountsAccess;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
-import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
 import net.createmod.catnip.data.Pair;
-import net.createmod.catnip.platform.CatnipServices;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -37,10 +35,16 @@ public final class FluidSlotClickHandler {
         if (button != InputConstants.MOUSE_BUTTON_LEFT && button != InputConstants.MOUSE_BUTTON_RIGHT) {
             return;
         }
+        if (handleRequestSelector(event.getScreen())) {
+            swallowReleaseScreen = event.getScreen();
+            swallowReleaseButton = button;
+            event.setCanceled(true);
+            return;
+        }
         if (!Screen.hasAltDown()) {
             return;
         }
-        if (handle(event.getScreen())) {
+        if (handleContainedFluid(event.getScreen())) {
             swallowReleaseScreen = event.getScreen();
             swallowReleaseButton = button;
             event.setCanceled(true);
@@ -60,7 +64,29 @@ public final class FluidSlotClickHandler {
         }
     }
 
-    private static boolean handle(Screen screen) {
+    private static boolean handleRequestSelector(Screen screen) {
+        if (screen instanceof RedstoneRequesterScreen requesterScreen) {
+            Slot slot = requesterScreen.getSlotUnderMouse();
+            if (!(slot instanceof SlotItemHandler)) {
+                return false;
+            }
+            RedstoneRequesterMenu menu = requesterScreen.getMenu();
+            return PackageResourceClient.trySubmitRequestSelector(
+                    menu, slot.getSlotIndex(), menu.getCarried());
+        }
+        if (screen instanceof FactoryPanelSetItemScreen panelScreen) {
+            Slot slot = panelScreen.getSlotUnderMouse();
+            if (!(slot instanceof SlotItemHandler)) {
+                return false;
+            }
+            FactoryPanelSetItemMenu menu = panelScreen.getMenu();
+            return PackageResourceClient.trySubmitRequestSelector(
+                    menu, slot.getSlotIndex(), menu.getCarried());
+        }
+        return false;
+    }
+
+    private static boolean handleContainedFluid(Screen screen) {
         if (screen instanceof RedstoneRequesterScreen requesterScreen) {
             Slot slot = requesterScreen.getSlotUnderMouse();
             return slot instanceof SlotItemHandler && handleRedstoneRequester(requesterScreen, slot);
@@ -86,7 +112,8 @@ public final class FluidSlotClickHandler {
         }
 
         int slotIndex = slot.getSlotIndex();
-        submit(menu, slotIndex, createFluidKey(emptyResult.getFirst()));
+        PackageResourceClient.submitGhostItem(
+                menu, slotIndex, PackageResourceTypes.createFluidKey(emptyResult.getFirst()));
         ((RedstoneRequesterAmountsAccess) screen).fluidlogistics$getAmounts()
             .set(slotIndex, FluidAmountHelper.DEFAULT_FLUID_REQUEST_AMOUNT);
         return true;
@@ -109,23 +136,9 @@ public final class FluidSlotClickHandler {
             return false;
         }
 
-        submit(menu, slot.getSlotIndex(), createFluidKey(emptyResult.getFirst()));
+        PackageResourceClient.submitGhostItem(
+                menu, slot.getSlotIndex(), PackageResourceTypes.createFluidKey(emptyResult.getFirst()));
         return true;
     }
 
-    private static ItemStack createFluidKey(FluidStack fluid) {
-        ItemStack fluidTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluid(fluidTank, fluid.copyWithAmount(1));
-        return fluidTank;
-    }
-
-    private static void submit(RedstoneRequesterMenu menu, int slotIndex, ItemStack stack) {
-        menu.ghostInventory.setStackInSlot(slotIndex, stack);
-        CatnipServices.NETWORK.sendToServer(new GhostItemSubmitPacket(stack, slotIndex));
-    }
-
-    private static void submit(FactoryPanelSetItemMenu menu, int slotIndex, ItemStack stack) {
-        menu.ghostInventory.setStackInSlot(slotIndex, stack);
-        CatnipServices.NETWORK.sendToServer(new GhostItemSubmitPacket(stack, slotIndex));
-    }
 }

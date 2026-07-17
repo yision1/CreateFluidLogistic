@@ -9,6 +9,9 @@ import com.simibubi.create.foundation.item.KineticStats;
 import com.simibubi.create.foundation.item.TooltipModifier;
 import net.createmod.catnip.lang.FontHelper;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.api.packager.PackageResourceTypes;
+import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
 import com.yision.fluidlogistics.content.fluids.waterContainingCopperCasing.WaterContainingCopperCasingFluidHandler;
 import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpNetworkUpdater;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
@@ -103,8 +106,11 @@ public class FluidLogistics {
         AllFluidLogisticsParticleTypes.register(modEventBus);
         FluidLogisticsPackagePortTargetTypes.register(modEventBus);
         AllBlocks.register();
+        PackagerAddresses.register(com.simibubi.create.AllBlocks.PACKAGER);
+        PackagerAddresses.register(AllBlocks.FLUID_PACKAGER);
         AllBlockEntities.register();
         AllItems.register();
+        PackageResourceTypes.registerBuiltIns();
         AllMenuTypes.register();
         FluidLogisticsArmInteractionPointTypes.ARM_INTERACTION_POINT_TYPES.register(modEventBus);
 
@@ -122,6 +128,7 @@ public class FluidLogistics {
 
     private void commonSetup(final FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            PackageResources.bootstrap();
             FluidLogisticsPackets.register();
             ArmInteractionPointType.init();
             AllMountedStorageTypes.register();

@@ -2,6 +2,8 @@ package com.yision.fluidlogistics;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.content.contraptions.wrench.RadialWrenchMenu;
+import com.yision.fluidlogistics.api.packager.PackageResourceTypes;
+import com.yision.fluidlogistics.api.packager.client.PackageResourceClient;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.FrogportSelectionHandler;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerModeManager;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerInteractionHandler;
@@ -14,6 +16,8 @@ import com.yision.fluidlogistics.registry.AllBlocks;
 import com.yision.fluidlogistics.registry.AllPartialModels;
 import com.yision.fluidlogistics.registry.AllSpriteShifts;
 import com.yision.fluidlogistics.registry.AllFluidLogisticsParticleTypes;
+import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
+import com.yision.fluidlogistics.render.FactoryPanelFluidPreviewRenderer;
 import net.createmod.ponder.foundation.PonderIndex;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.model.ModelResourceLocation;
@@ -43,6 +47,10 @@ import net.neoforged.neoforge.event.AddPackFindersEvent;
 @EventBusSubscriber(modid = FluidLogistics.MODID, value = Dist.CLIENT, bus = EventBusSubscriber.Bus.MOD)
 public class FluidLogisticsClient {
     public FluidLogisticsClient(ModContainer container) {
+        PackageResourceClient.registerStockKeeperAmountRenderer(
+                PackageResourceTypes.FLUID, FluidSlotAmountRenderer::renderInStockKeeper);
+        PackageResourceClient.registerFactoryPanelPreviewRenderer(
+                PackageResourceTypes.FLUID, FactoryPanelFluidPreviewRenderer::render);
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
         NeoForge.EVENT_BUS.register(new HandPointerInteractionHandler());
         NeoForge.EVENT_BUS.register(FluidSlotClickHandler.class);

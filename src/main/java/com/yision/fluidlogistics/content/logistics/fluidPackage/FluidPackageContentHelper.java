@@ -4,10 +4,10 @@ import com.simibubi.create.AllDataComponents;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.foundation.item.ItemHelper;
 import com.yision.fluidlogistics.config.Config;
-import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidPackageSplitting;
 import com.yision.fluidlogistics.registry.AllItems;
 
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.ItemContainerContents;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.items.ItemStackHandler;
@@ -18,25 +18,12 @@ public final class FluidPackageContentHelper {
     private FluidPackageContentHelper() {
     }
 
-    public static boolean containsFluidStack(ItemStack box) {
-        if (!PackageItem.isPackage(box)) {
-            return false;
-        }
-        ItemStackHandler contents = PackageItem.getContents(box);
-        for (int i = 0; i < contents.getSlots(); i++) {
-            if (CompressedTankItem.isFluidStack(contents.getStackInSlot(i))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public static FluidStack getSingleContainedFluid(ItemStack packageStack) {
         if (packageStack == null || !PackageItem.isPackage(packageStack)) {
             return FluidStack.EMPTY;
         }
 
-        ItemStackHandler contents = FluidPackageSplitting.readRawContents(packageStack);
+        ItemStackHandler contents = readRawContents(packageStack);
         if (!isCanonicalContents(contents, Config.getFluidPerPackage())) {
             return FluidStack.EMPTY;
         }
@@ -45,7 +32,15 @@ public final class FluidPackageContentHelper {
 
     public static boolean isCanonicalPackage(ItemStack packageStack) {
         return packageStack != null && PackageItem.isPackage(packageStack)
-                && isCanonicalContents(FluidPackageSplitting.readRawContents(packageStack), Config.getFluidPerPackage());
+                && isCanonicalContents(readRawContents(packageStack), Config.getFluidPerPackage());
+    }
+
+    public static ItemStackHandler readRawContents(ItemStack packageStack) {
+        ItemStackHandler contents = new ItemStackHandler(PackageItem.SLOTS);
+        ItemContainerContents component = packageStack.getOrDefault(
+                AllDataComponents.PACKAGE_CONTENTS, ItemContainerContents.EMPTY);
+        ItemHelper.fillItemStackHandler(component, contents);
+        return contents;
     }
 
     public static boolean isCanonicalContents(ItemStackHandler contents, int capacity) {
@@ -93,11 +88,7 @@ public final class FluidPackageContentHelper {
     }
 
     public static FluidStack peekDrainOneBucket(ItemStack packageStack) {
-        FluidStack contained = getSingleContainedFluid(packageStack);
-        if (contained.isEmpty() || contained.getAmount() < PACKAGE_DRAIN_AMOUNT) {
-            return FluidStack.EMPTY;
-        }
-        return contained.copyWithAmount(PACKAGE_DRAIN_AMOUNT);
+        return drainOneBucket(packageStack, true);
     }
 
     public static FluidStack drainOneBucket(ItemStack packageStack, boolean simulate) {
@@ -112,13 +103,9 @@ public final class FluidPackageContentHelper {
             if (remaining <= 0) {
                 packageStack.shrink(1);
             } else {
-                writeSingleFluid(packageStack, contained.copyWithAmount(remaining));
+                setCanonicalContents(packageStack, contained.copyWithAmount(remaining));
             }
         }
         return drained;
-    }
-
-    private static void writeSingleFluid(ItemStack packageStack, FluidStack remainingFluid) {
-        setCanonicalContents(packageStack, remainingFluid);
     }
 }

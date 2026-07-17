@@ -10,6 +10,7 @@ import com.simibubi.create.content.logistics.box.PackageStyles;
 import com.simibubi.create.content.logistics.box.PackageStyles.PackageStyle;
 import com.simibubi.create.foundation.item.render.SimpleCustomRenderer;
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.api.packager.PackageResources;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
 import com.yision.fluidlogistics.util.FluidAmountHelper;
 
@@ -64,7 +65,7 @@ public class FluidPackageItem extends PackageItem {
     @Override
     public InteractionResultHolder<ItemStack> open(Level level, Player player, InteractionHand hand) {
         ItemStack box = player.getItemInHand(hand);
-        if (FluidPackageContentHelper.containsFluidStack(box)) {
+        if (PackageResources.isBootstrapped() && PackageResources.blocksManualOpen(box)) {
             return InteractionResultHolder.pass(box);
         }
         return super.open(level, player, hand);

@@ -55,7 +55,7 @@ final class MechanicalFluidGunMount {
 		ms.translate(0.5, 0.5, 0.5);
 
 		switch (mountFace) {
-			case UP -> {} // default, no rotation
+			case UP -> {}
 			case DOWN -> ms.mulPose(Axis.XP.rotationDegrees(180));
 			case NORTH -> ms.mulPose(Axis.XP.rotationDegrees(-90));
 			case SOUTH -> ms.mulPose(Axis.XP.rotationDegrees(90));

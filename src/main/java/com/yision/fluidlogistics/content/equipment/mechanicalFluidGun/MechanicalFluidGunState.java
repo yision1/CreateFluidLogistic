@@ -247,12 +247,6 @@ class MechanicalFluidGunItemFilling {
 		processingBeltAimPoint = beltAimPoint;
 	}
 
-	/**
-	 * Unified entry point for starting item filling (depot or belt).
-	 * Handles: required amount check, simulate drain, filling init, spray start, sound, notify.
-	 *
-	 * @return true if filling was started successfully
-	 */
 	static boolean startFilling(MechanicalFluidGunBlockEntity be,
 								IFluidHandler sourceHandler,
 								ItemStack item,

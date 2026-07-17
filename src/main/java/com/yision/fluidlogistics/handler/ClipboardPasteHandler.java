@@ -2,8 +2,8 @@ package com.yision.fluidlogistics.handler;
 
 import com.simibubi.create.AllBlocks;
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
 import com.yision.fluidlogistics.network.ClipboardSetAddressPacket;
-import com.yision.fluidlogistics.util.PackagerTargetHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
@@ -29,7 +29,7 @@ public class ClipboardPasteHandler {
 
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
-        if (!PackagerTargetHelper.isClipboardAddressBlock(level.getBlockState(pos))) {
+        if (!PackagerAddresses.isTarget(level, pos)) {
             return;
         }
 

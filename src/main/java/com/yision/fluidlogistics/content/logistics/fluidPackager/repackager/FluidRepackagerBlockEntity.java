@@ -20,6 +20,10 @@ import com.simibubi.create.content.logistics.packager.PackagingRequest;
 import com.simibubi.create.content.logistics.stockTicker.PackageOrderWithCrafts;
 import com.simibubi.create.foundation.item.ItemHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.PackagerGoggleInfo;
+import com.yision.fluidlogistics.api.packager.PackageInspection;
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.api.packager.PackageUnpackContext;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageContentHelper;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 
@@ -38,17 +42,13 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.fluids.FluidStack;
-import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 public class FluidRepackagerBlockEntity extends PackagerBlockEntity
-	implements Clearable, IPackagerOverrideData, IHaveGoggleInformation {
+	implements Clearable, IHaveGoggleInformation {
 
 	private final List<ItemStack> stalledPackages;
-	private boolean manualOverrideLocked;
-	private int syncedQueuedPackageCount;
 	private final IItemHandler externalItemHandler;
 
 	public FluidRepackagerBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
@@ -69,25 +69,23 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 
 	@Override
 	public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
-
+		IPackagerOverrideData overrideData = fluidlogistics$overrideData();
 		int cachedPackageCount = getCachedPackageCount();
-		if (!manualOverrideLocked && cachedPackageCount <= 0) {
+		if (!overrideData.fluidlogistics$isManualOverrideLocked() && cachedPackageCount <= 0) {
 			return false;
 		}
 
-		PackagerGoggleInfo.addFluidRepackagerToTooltip(tooltip, "", manualOverrideLocked, cachedPackageCount);
+		PackagerGoggleInfo.addFluidRepackagerToTooltip(
+			tooltip, "", overrideData.fluidlogistics$isManualOverrideLocked(), cachedPackageCount);
 		return true;
 	}
 
 	private int getCachedPackageCount() {
-		int count = stalledPackages.size();
-		if (level != null && level.isClientSide) {
-			return count + syncedQueuedPackageCount;
-		}
-		for (BigItemStack entry : queuedExitingPackages) {
-			count += Math.max(0, entry.count);
-		}
-		return count;
+		return stalledPackages.size() + fluidlogistics$overrideData().fluidlogistics$getQueuedPackageCount();
+	}
+
+	private IPackagerOverrideData fluidlogistics$overrideData() {
+		return (IPackagerOverrideData) (Object) this;
 	}
 
 	@Override
@@ -114,13 +112,12 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 		BlockState targetState = level.getBlockState(targetPos);
 		BlockEntity targetBE = level.getBlockEntity(targetPos);
 
-		if (!isSolidLiquidMixedTarget(targetPos, targetState, targetBE, facing)) {
-			return insertPackageIntoTargetInventory(box, simulate);
-		}
-
-		List<ItemStack> splitResults = FluidPackageSplitting.split(box);
+		List<ItemStack> splitResults = PackageResources.splitPackage(box);
 		if (splitResults.isEmpty()) {
 			return false;
+		}
+		if (!canDeliverSplitResults(splitResults, targetPos, targetState, targetBE, facing)) {
+			return insertPackageIntoTargetInventory(box, simulate);
 		}
 
 		if (simulate) {
@@ -196,15 +193,13 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 		BlockState targetState = level.getBlockState(targetPos);
 		BlockEntity targetBE = level.getBlockEntity(targetPos);
 
-		boolean mixedTarget = isSolidLiquidMixedTarget(targetPos, targetState, targetBE, facing);
-
 		for (int slot = 0; slot < targetInv.getSlots(); slot++) {
 			ItemStack extracted = targetInv.extractItem(slot, 1, true);
 			if (extracted.isEmpty() || !PackageItem.isPackage(extracted)) {
 				continue;
 			}
 
-			List<ItemStack> splitResults = FluidPackageSplitting.split(extracted);
+			List<ItemStack> splitResults = PackageResources.splitPackage(extracted);
 			if (splitResults.isEmpty()) {
 				continue;
 			}
@@ -213,7 +208,7 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 
 			computerBehaviour.prepareComputerEvent(new PackageEvent(extracted, "package_received"));
 
-			if (mixedTarget) {
+			if (canDeliverSplitResults(splitResults, targetPos, targetState, targetBE, facing)) {
 				previouslyUnwrapped = extracted.copyWithCount(1);
 				animationInward = true;
 				animationTicks = CYCLE;
@@ -258,15 +253,14 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 		BlockState targetState = level.getBlockState(targetPos);
 		BlockEntity targetBE = level.getBlockEntity(targetPos);
 
-		if (!isSolidLiquidMixedTarget(targetPos, targetState, targetBE, facing)) {
+		if (!canDeliverSplitResults(stalledPackages, targetPos, targetState, targetBE, facing)) {
 			return;
 		}
 
 		Iterator<ItemStack> it = stalledPackages.iterator();
 		while (it.hasNext()) {
 			ItemStack pkg = it.next();
-			if (simulateSinglePackage(pkg, targetPos, targetState, targetBE, facing)
-				&& executeSinglePackage(pkg, targetPos, targetState, targetBE, facing)) {
+			if (deliverSinglePackage(pkg, targetPos, targetState, targetBE, facing)) {
 				previouslyUnwrapped = pkg.copyWithCount(1);
 				animationInward = true;
 				animationTicks = CYCLE;
@@ -282,8 +276,7 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 								 BlockEntity targetBE, Direction facing) {
 		boolean stalledAny = false;
 		for (ItemStack pkg : packages) {
-			if (simulateSinglePackage(pkg, targetPos, targetState, targetBE, facing)
-				&& executeSinglePackage(pkg, targetPos, targetState, targetBE, facing)) {
+			if (deliverSinglePackage(pkg, targetPos, targetState, targetBE, facing)) {
 				continue;
 			}
 
@@ -302,44 +295,27 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 		setChanged();
 	}
 
-	private boolean simulateSinglePackage(ItemStack pkg, BlockPos targetPos, BlockState targetState,
-										  BlockEntity targetBE, Direction facing) {
-		if (FluidPackageSplitting.isFluidPackage(pkg)) {
-			return unpackFluidToTarget(pkg, targetPos, targetState, targetBE, facing, true);
+	private boolean deliverSinglePackage(ItemStack pkg, BlockPos targetPos, BlockState targetState,
+										BlockEntity targetBE, Direction facing) {
+		PackageInspection inspection = PackageResources.inspectPackage(pkg);
+		if (inspection.hasResources()) {
+			return unpackResourceToTarget(pkg, targetPos, targetState, targetBE, facing, false);
 		}
-		return unpackItemsToTarget(pkg, targetPos, targetState, targetBE, facing, true);
+		return unpackItemsToTarget(pkg, targetPos, targetState, targetBE, facing, true)
+			&& unpackItemsToTarget(pkg, targetPos, targetState, targetBE, facing, false);
 	}
 
-	private boolean executeSinglePackage(ItemStack pkg, BlockPos targetPos, BlockState targetState,
-										 BlockEntity targetBE, Direction facing) {
-		if (FluidPackageSplitting.isFluidPackage(pkg)) {
-			return unpackFluidToTarget(pkg, targetPos, targetState, targetBE, facing, false);
-		}
-		return unpackItemsToTarget(pkg, targetPos, targetState, targetBE, facing, false);
-	}
-
-	private boolean unpackFluidToTarget(ItemStack fluidPackage, BlockPos targetPos, BlockState targetState,
+	private boolean unpackResourceToTarget(ItemStack resourcePackage, BlockPos targetPos, BlockState targetState,
 										@Nullable BlockEntity targetBE, Direction facing, boolean simulate) {
-		IFluidHandler fluidHandler = level.getCapability(
-			Capabilities.FluidHandler.BLOCK, targetPos, targetState, targetBE, facing);
-		if (fluidHandler == null) {
-			return false;
-		}
-
-		ItemStackHandler contents = FluidPackageSplitting.readRawContents(fluidPackage);
-		FluidStack fluid = FluidPackageSplitting.collectFluid(contents);
-		if (fluid.isEmpty()) {
-			return true;
-		}
-
-		int accepted = fluidHandler.fill(fluid.copy(),
-			simulate ? IFluidHandler.FluidAction.SIMULATE : IFluidHandler.FluidAction.EXECUTE);
-		return accepted == fluid.getAmount();
+		PackageUnpackContext context = new PackageUnpackContext(
+			level, targetPos, targetState, targetBE, facing, resourcePackage,
+			PackageItem.getOrderContext(resourcePackage));
+		return PackageResources.unpackPackage(context, simulate);
 	}
 
 	private boolean unpackItemsToTarget(ItemStack itemPackage, BlockPos targetPos, BlockState targetState,
 										@Nullable BlockEntity targetBE, Direction facing, boolean simulate) {
-		ItemStackHandler contents = FluidPackageSplitting.readRawContents(itemPackage);
+		ItemStackHandler contents = FluidPackageContentHelper.readRawContents(itemPackage);
 		List<ItemStack> items = ItemHelper.getNonEmptyStacks(contents);
 		if (items.isEmpty()) {
 			return true;
@@ -351,20 +327,33 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 		return toUse.unpack(level, targetPos, targetState, facing, items, orderContext, simulate);
 	}
 
-	private boolean isSolidLiquidMixedTarget(BlockPos targetPos, BlockState targetState,
+	private boolean canDeliverSplitResults(List<ItemStack> packages, BlockPos targetPos, BlockState targetState,
 											 @Nullable BlockEntity targetBE, Direction facing) {
-		boolean hasItemHandler = UnpackingHandler.REGISTRY.get(targetState) != null
+		boolean hasResources = false;
+		boolean resourceAccepted = false;
+		boolean hasOrdinaryItems = false;
+		for (ItemStack pkg : packages) {
+			PackageInspection inspection = PackageResources.inspectPackage(pkg);
+			if (inspection.hasResources()) {
+				hasResources = true;
+				resourceAccepted |= unpackResourceToTarget(pkg, targetPos, targetState, targetBE, facing, true);
+			} else {
+				hasOrdinaryItems = true;
+			}
+		}
+		if (!hasResources || !resourceAccepted) {
+			return false;
+		}
+		if (!hasOrdinaryItems) {
+			return true;
+		}
+		return UnpackingHandler.REGISTRY.get(targetState) != null
 			|| level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, targetState, targetBE, facing) != null;
-		boolean hasFluidHandler = level.getCapability(
-			Capabilities.FluidHandler.BLOCK, targetPos, targetState, targetBE, facing) != null;
-		return hasItemHandler && hasFluidHandler;
 	}
 
 	@Override
 	protected void read(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
 		super.read(compound, registries, clientPacket);
-		manualOverrideLocked = compound.getBoolean("FluidLogisticsManualOverrideLocked");
-		syncedQueuedPackageCount = compound.getInt("FluidLogisticsQueuedPackageCount");
 
 		stalledPackages.clear();
 		ListTag list = compound.getList("StalledPackages", Tag.TAG_COMPOUND);
@@ -379,22 +368,12 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 	@Override
 	protected void write(CompoundTag compound, HolderLookup.Provider registries, boolean clientPacket) {
 		super.write(compound, registries, clientPacket);
-		compound.putBoolean("FluidLogisticsManualOverrideLocked", manualOverrideLocked);
-		compound.putInt("FluidLogisticsQueuedPackageCount", countQueuedPackages());
 
 		ListTag list = new ListTag();
 		for (ItemStack stack : stalledPackages) {
 			list.add(stack.saveOptional(registries));
 		}
 		compound.put("StalledPackages", list);
-	}
-
-	private int countQueuedPackages() {
-		int count = 0;
-		for (BigItemStack entry : queuedExitingPackages) {
-			count += Math.max(0, entry.count);
-		}
-		return count;
 	}
 
 	@Override
@@ -411,25 +390,6 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 				stack.copy());
 		}
 		stalledPackages.clear();
-	}
-
-	@Override
-	public boolean fluidlogistics$isManualOverrideLocked() {
-		return manualOverrideLocked;
-	}
-
-	@Override
-	public void fluidlogistics$setManualOverrideLocked(boolean locked) {
-		manualOverrideLocked = locked;
-	}
-
-	@Override
-	public String fluidlogistics$getClipboardAddress() {
-		return "";
-	}
-
-	@Override
-	public void fluidlogistics$setClipboardAddress(String address) {
 	}
 
 	private class FluidRepackagerItemHandler implements IItemHandler {

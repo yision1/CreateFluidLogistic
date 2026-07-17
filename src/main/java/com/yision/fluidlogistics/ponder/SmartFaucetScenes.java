@@ -208,7 +208,6 @@ public class SmartFaucetScenes {
         scene.world().removeItemsFromBelt(faucet2Pos.below());
         bucketItem = scene.world().createItemOnBelt(faucet2Pos.below(), Direction.UP, new ItemStack(Items.WATER_BUCKET));
         scene.world().stallBeltItem(bucketItem, true);
-        //scene.idle(5);
         scene.world().stallBeltItem(bucketItem, false);
         scene.idle(40);
 

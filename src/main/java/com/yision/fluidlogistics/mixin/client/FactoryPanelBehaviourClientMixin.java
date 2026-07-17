@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.api.packager.client.PackageResourceClient;
 import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidFilterPacket;
 
 import net.createmod.catnip.platform.CatnipServices;
@@ -49,7 +50,17 @@ public class FactoryPanelBehaviourClientMixin {
             heldItem = player.getOffhandItem();
         }
 
-        if (heldItem.isEmpty() || !GenericItemEmptying.canItemBeEmptied(player.level(), heldItem)) {
+        if (heldItem.isEmpty()) {
+            return;
+        }
+
+        var selectorHint = PackageResourceClient.getRequestSelectorHint(heldItem);
+        if (selectorHint.isPresent()) {
+            cir.setReturnValue((MutableComponent) selectorHint.orElseThrow());
+            return;
+        }
+
+        if (!GenericItemEmptying.canItemBeEmptied(player.level(), heldItem)) {
             return;
         }
 
@@ -67,27 +78,31 @@ public class FactoryPanelBehaviourClientMixin {
         if (!player.level().isClientSide()) {
             return;
         }
-        
-        if (!net.minecraft.client.gui.screens.Screen.hasAltDown()) {
-            return;
-        }
-        
+
         ItemStack heldItem = player.getItemInHand(hand);
         if (heldItem.isEmpty()) {
             return;
         }
-        
+
         LocalPlayer localPlayer = Minecraft.getInstance().player;
         if (localPlayer == null || localPlayer != player) {
             return;
         }
-        
+
+        FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
+        if (PackageResourceClient.trySetFactoryPanelRequestSelector(self, player, hand)) {
+            ci.cancel();
+            return;
+        }
+
+        if (!net.minecraft.client.gui.screens.Screen.hasAltDown()) {
+            return;
+        }
+
         if (!GenericItemEmptying.canItemBeEmptied(player.level(), heldItem)) {
             return;
         }
-        
-        FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
-        
+
         FactoryPanelSetFluidFilterPacket packet = new FactoryPanelSetFluidFilterPacket(
                 self.getPanelPosition(),
                 hand
