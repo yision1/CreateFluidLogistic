@@ -1,11 +1,9 @@
 package com.yision.fluidlogistics.content.logistics.copperFrogport;
 
-import com.simibubi.create.compat.Mods;
 import com.simibubi.create.content.logistics.packagePort.PackagePortMenu;
 import com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.registry.AllMenuTypes;
-import dan200.computercraft.api.peripheral.PeripheralCapability;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Inventory;
@@ -31,14 +29,6 @@ public class CopperFrogportBlockEntity extends FrogportBlockEntity {
             AllBlockEntities.COPPER_FROGPORT.get(),
             (be, context) -> be.itemHandler
         );
-
-        if (Mods.COMPUTERCRAFT.isLoaded()) {
-            event.registerBlockEntity(
-                PeripheralCapability.get(),
-                AllBlockEntities.COPPER_FROGPORT.get(),
-                (be, context) -> be.computerBehaviour.getPeripheralCapability()
-            );
-        }
     }
 
     @Override

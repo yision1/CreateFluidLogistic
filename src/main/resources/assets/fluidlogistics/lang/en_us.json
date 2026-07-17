@@ -9,6 +9,7 @@
   "item.fluidlogistics.hand_pointer.tooltip.behaviour1": "Packagers / Re-Packagers / Package Frogports / Postboxes / Mechanical Arms / Mechanical Fluid Guns / Threshold Switch / Weighted Ejectors / Display Links / logistics-network components / Any filter",
   "item.fluidlogistics.fluid_package": "Fluid Package",
   "itemGroup.fluidlogistics.fluidlogistics_tab": "Create: Fluid Logistics",
+  "gui.fluidlogistics.creative_banner.title": "FLogistics",
   "block.fluidlogistics.copper_basin": "Copper Basin",
   "block.fluidlogistics.copper_frogport": "Copper Frogport",
   "block.fluidlogistics.copper_basin.tooltip.summary": "A Basin with a total capacity of _40B_.",

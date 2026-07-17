@@ -16,7 +16,6 @@ import com.yision.fluidlogistics.api.packager.PackageResourceType;
 import com.yision.fluidlogistics.api.packager.PackageResources;
 import com.yision.fluidlogistics.api.packager.ResourcePackager;
 
-import com.simibubi.create.compat.computercraft.events.PackageEvent;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
@@ -158,7 +157,6 @@ public final class ResourcePackagerEngine {
             throw new IllegalStateException("insert execution accepted " + inserted
                     + " after simulation accepted " + amount);
         }
-        sendComputerEvent(owner, packageStack, "package_received");
         owner.previouslyUnwrapped = packageStack.copyWithCount(1);
         owner.animationInward = true;
         owner.animationTicks = PackagerBlockEntity.CYCLE;
@@ -243,7 +241,6 @@ public final class ResourcePackagerEngine {
 
     private static void output(
             PackagerBlockEntity owner, ResourcePackager packager, ItemStack packageStack) {
-        sendComputerEvent(owner, packageStack, "package_created");
         if (owner.getLevel() != null) {
             AdvancementBehaviour.tryAward(
                     owner.getLevel(), owner.getBlockPos(), AllAdvancements.PACKAGER);
@@ -257,12 +254,6 @@ public final class ResourcePackagerEngine {
         owner.animationTicks = PackagerBlockEntity.CYCLE;
         triggerStockCheck(packager);
         owner.notifyUpdate();
-    }
-
-    private static void sendComputerEvent(PackagerBlockEntity owner, ItemStack stack, String eventName) {
-        if (owner.computerBehaviour != null) {
-            owner.computerBehaviour.prepareComputerEvent(new PackageEvent(stack, eventName));
-        }
     }
 
     @Nullable
