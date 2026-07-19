@@ -9,6 +9,7 @@ import com.simibubi.create.api.packager.InventoryIdentifier;
 import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour;
 import com.simibubi.create.content.logistics.packagerLink.LogisticsManager;
 import com.yision.fluidlogistics.api.packager.ResourcePackagers;
+import com.yision.fluidlogistics.content.logistics.packageResource.ResourcePackagerInventoryIdentifier;
 
 @Mixin(LogisticsManager.class)
 public abstract class LogisticsManagerMixin {
@@ -16,7 +17,9 @@ public abstract class LogisticsManagerMixin {
     private static void fluidlogistics$identifyResourcePackagerInventory(
             LogisticallyLinkedBehaviour link,
             CallbackInfoReturnable<InventoryIdentifier> cir) {
-        ResourcePackagers.fromLink(link).ifPresent(packager ->
-                cir.setReturnValue(new InventoryIdentifier.Single(packager.owner().getBlockPos())));
+        ResourcePackagers.fromLink(link)
+                .map(packager -> packager.scan().storageIdentity())
+                .map(ResourcePackagerInventoryIdentifier::new)
+                .ifPresent(cir::setReturnValue);
     }
 }
