@@ -9,6 +9,7 @@
     "create:blaze_burner",
     "create:item_drain",
     "minecraft:cauldron",
+    "minecraft:water_cauldron",
     {
       "id": "createmetallurgy:casting_basin",
       "required": false

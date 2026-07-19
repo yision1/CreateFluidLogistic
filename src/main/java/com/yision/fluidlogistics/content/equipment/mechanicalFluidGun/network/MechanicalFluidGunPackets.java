@@ -235,14 +235,15 @@ public final class MechanicalFluidGunPackets {
         public void handle(LocalPlayer player) {
             if (fluid.isEmpty()) return;
 
-            for (int i = 0; i < 4; i++) {
+            double distanceSqr = player.distanceToSqr(target.x, target.y, target.z);
+            int particleCount = distanceSqr <= 16 * 16 ? 3 : distanceSqr <= 32 * 32 ? 2 : 1;
+            for (int i = 0; i < particleCount; i++) {
                 double ox = (player.level().random.nextDouble() - 0.5) * 0.16;
                 double oy = player.level().random.nextDouble() * 0.12;
                 double oz = (player.level().random.nextDouble() - 0.5) * 0.16;
 
-                player.level().addAlwaysVisibleParticle(
+                player.level().addParticle(
                     FluidFX.getFluidParticle(fluid),
-                    true,
                     target.x + ox, target.y + oy, target.z + oz,
                     (player.level().random.nextDouble() - 0.5) * 0.03,
                     player.level().random.nextDouble() * 0.035 + 0.015,
@@ -254,6 +255,62 @@ public final class MechanicalFluidGunPackets {
         @Override
         public PacketTypeProvider getTypeProvider() {
             return FluidLogisticsPackets.MECHANICAL_FLUID_GUN_SPRAY_PARTICLE;
+        }
+    }
+
+    public record VisualStatePacket(BlockPos gunPos, int activeTargetIndex, boolean cycleActive,
+                                    @Nullable Vec3 dynamicAimPoint, boolean spraying,
+                                    FluidStack renderingFluid, boolean fillingItem) implements ClientboundPacketPayload {
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, VisualStatePacket> STREAM_CODEC =
+            StreamCodec.of(VisualStatePacket::encode, VisualStatePacket::decode);
+
+        private static void encode(RegistryFriendlyByteBuf buf, VisualStatePacket pkt) {
+            buf.writeBlockPos(pkt.gunPos);
+            buf.writeVarInt(pkt.activeTargetIndex + 1);
+            buf.writeBoolean(pkt.cycleActive);
+            buf.writeBoolean(pkt.dynamicAimPoint != null);
+            if (pkt.dynamicAimPoint != null) {
+                buf.writeDouble(pkt.dynamicAimPoint.x);
+                buf.writeDouble(pkt.dynamicAimPoint.y);
+                buf.writeDouble(pkt.dynamicAimPoint.z);
+            }
+            boolean spraying = pkt.spraying && !pkt.renderingFluid.isEmpty();
+            buf.writeBoolean(spraying);
+            if (spraying) {
+                FluidStack.STREAM_CODEC.encode(buf, pkt.renderingFluid);
+            }
+            buf.writeBoolean(pkt.fillingItem);
+        }
+
+        private static VisualStatePacket decode(RegistryFriendlyByteBuf buf) {
+            BlockPos gunPos = buf.readBlockPos();
+            int activeTargetIndex = buf.readVarInt() - 1;
+            boolean cycleActive = buf.readBoolean();
+            Vec3 dynamicAimPoint = buf.readBoolean()
+                ? new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble())
+                : null;
+            boolean spraying = buf.readBoolean();
+            FluidStack renderingFluid = spraying ? FluidStack.STREAM_CODEC.decode(buf) : FluidStack.EMPTY;
+            boolean fillingItem = buf.readBoolean();
+            return new VisualStatePacket(gunPos, activeTargetIndex, cycleActive, dynamicAimPoint,
+                spraying, renderingFluid, fillingItem);
+        }
+
+        @Override
+        @OnlyIn(Dist.CLIENT)
+        public void handle(LocalPlayer player) {
+            if (!player.level().isLoaded(gunPos)) return;
+            BlockEntity blockEntity = player.level().getBlockEntity(gunPos);
+            if (blockEntity instanceof MechanicalFluidGunBlockEntity gun) {
+                gun.applyVisualState(activeTargetIndex, cycleActive, dynamicAimPoint,
+                    spraying, renderingFluid, fillingItem);
+            }
+        }
+
+        @Override
+        public PacketTypeProvider getTypeProvider() {
+            return FluidLogisticsPackets.MECHANICAL_FLUID_GUN_VISUAL_STATE;
         }
     }
 }

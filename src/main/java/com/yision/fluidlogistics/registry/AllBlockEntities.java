@@ -33,6 +33,7 @@ import com.yision.fluidlogistics.content.processing.copperBasin.CopperBasinBlock
 import com.yision.fluidlogistics.content.processing.copperBasin.CopperBasinRenderer;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunRenderer;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunVisual;
 import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchBlockEntity;
 
 import static com.yision.fluidlogistics.FluidLogistics.REGISTRATE;
@@ -129,6 +130,7 @@ public class AllBlockEntities {
 
     public static final BlockEntityEntry<MechanicalFluidGunBlockEntity> MECHANICAL_FLUID_GUN = REGISTRATE
             .blockEntity("mechanical_fluid_gun", MechanicalFluidGunBlockEntity::new)
+            .visual(() -> MechanicalFluidGunVisual::new, true)
             .validBlocks(AllBlocks.MECHANICAL_FLUID_GUN)
             .renderer(() -> MechanicalFluidGunRenderer::new)
             .register();

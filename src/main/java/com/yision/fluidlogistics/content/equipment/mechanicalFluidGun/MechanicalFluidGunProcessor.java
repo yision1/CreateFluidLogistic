@@ -26,6 +26,7 @@ class MechanicalFluidGunProcessor {
 	private static final int IDLE_RECHECK_INTERVAL = 20;
 
 	private final MechanicalFluidGunBlockEntity be;
+	private PendingTarget pendingTarget;
 
 	MechanicalFluidGunProcessor(MechanicalFluidGunBlockEntity be) {
 		this.be = be;
@@ -111,19 +112,56 @@ class MechanicalFluidGunProcessor {
 		}
 
 		MechanicalFluidGunScheduleMode mode = be.getScheduleMode();
-		List<Integer> candidateIndices = getCandidateIndicesContinuingActiveTarget(mode, targets.size());
+		List<Integer> candidateIndices = getCandidateIndices(mode, targets.size());
+		List<FluidStack> sourceFluids = null;
+		int attemptedIndex = -1;
+
+		if (pendingTarget != null) {
+			PendingTarget pending = pendingTarget;
+			pendingTarget = null;
+			int index = pending.index();
+			if (index >= 0 && index < targets.size()) {
+				MechanicalFluidGunTargetConfig target = targets.get(index);
+				BlockPos absTarget = target.absoluteFrom(be.gunPos());
+				if (absTarget.equals(pending.pos())
+					&& targets.isTargetValid(be.getLevel(), be.gunPos(), absTarget)
+					&& !be.getBeltHandlerHelper().isBeltTarget(absTarget)) {
+					if (!be.aimAtTarget(index)) {
+						pendingTarget = pending;
+						cycle.setTransferCooldown(1);
+						return;
+					}
+					sourceFluids = snapshotSource(sourceHandler);
+					BlockState targetState = be.getLevel().getBlockState(absTarget);
+					ResolvedProcess process = resolveProcess(sourceFluids, target, targetState, absTarget);
+					if (process.kind() != ProcessKind.NONE
+						&& tryProcess(sourceHandler, target, absTarget, process)) {
+						cycle.markScheduledTarget(index);
+						cycle.setTransferCooldown(MechanicalFluidGunCycle.getSpeedAdjustedInterval(TRANSFER_INTERVAL, Math.abs(be.getSpeed())));
+						return;
+					}
+					attemptedIndex = index;
+				}
+			}
+		}
+
+		if (sourceFluids == null) {
+			sourceFluids = snapshotSource(sourceHandler);
+		}
 
 		for (int index : candidateIndices) {
+			if (index == attemptedIndex) continue;
 			MechanicalFluidGunTargetConfig target = targets.get(index);
 			BlockPos absTarget = target.absoluteFrom(be.gunPos());
 			if (!targets.isTargetValid(be.getLevel(), be.gunPos(), absTarget)) continue;
 			if (be.getBeltHandlerHelper().isBeltTarget(absTarget)) continue;
 
 			BlockState targetState = be.getLevel().getBlockState(absTarget);
-			ResolvedProcess process = resolveProcess(sourceHandler, target, targetState, absTarget);
+			ResolvedProcess process = resolveProcess(sourceFluids, target, targetState, absTarget);
 			if (process.kind() == ProcessKind.NONE) continue;
 
 			if (!be.aimAtTarget(index)) {
+				pendingTarget = new PendingTarget(index, absTarget);
 				cycle.setTransferCooldown(1);
 				return;
 			}
@@ -139,6 +177,21 @@ class MechanicalFluidGunProcessor {
 		}
 		cycle.setTransferCooldown(MechanicalFluidGunCycle.getSpeedAdjustedInterval(IDLE_RECHECK_INTERVAL, Math.abs(be.getSpeed())));
 		be.endWorkCycle();
+	}
+
+	void clearPendingTarget() {
+		pendingTarget = null;
+	}
+
+	private List<FluidStack> snapshotSource(IFluidHandler sourceHandler) {
+		List<FluidStack> sourceFluids = new ArrayList<>();
+		for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
+			FluidStack fluid = sourceHandler.getFluidInTank(tank);
+			if (!fluid.isEmpty()) {
+				sourceFluids.add(fluid.copy());
+			}
+		}
+		return sourceFluids;
 	}
 
 	private List<Integer> getCandidateIndices(MechanicalFluidGunScheduleMode mode, int size) {
@@ -165,24 +218,7 @@ class MechanicalFluidGunProcessor {
 		return indices;
 	}
 
-	private List<Integer> getCandidateIndicesContinuingActiveTarget(MechanicalFluidGunScheduleMode mode, int size) {
-		List<Integer> indices = getCandidateIndices(mode, size);
-		int activeTarget = be.getTargetsHelper().getActiveTargetIndex();
-		if (activeTarget < 0 || activeTarget >= size) {
-			return indices;
-		}
-
-		List<Integer> activeFirst = new ArrayList<>();
-		activeFirst.add(activeTarget);
-		for (int index : indices) {
-			if (index != activeTarget) {
-				activeFirst.add(index);
-			}
-		}
-		return activeFirst;
-	}
-
-	private ResolvedProcess resolveProcess(IFluidHandler sourceHandler, MechanicalFluidGunTargetConfig target,
+	private ResolvedProcess resolveProcess(List<FluidStack> sourceFluids, MechanicalFluidGunTargetConfig target,
 										   BlockState targetState, BlockPos absTarget) {
 		if (!targetState.is(MechanicalFluidGunBlock.TARGETS)) return ResolvedProcess.NONE;
 
@@ -193,10 +229,10 @@ class MechanicalFluidGunProcessor {
 			if (itemOnDepot.isEmpty() || !FaucetFilling.canItemBeFilled(be.getLevel(), itemOnDepot)) {
 				return ResolvedProcess.NONE;
 			}
-			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForItem(be, sourceHandler, itemOnDepot);
+			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForItem(be, sourceFluids, itemOnDepot);
 			return fillableFluid.isEmpty()
 				? ResolvedProcess.NONE
-				: new ResolvedProcess(ProcessKind.DEPOT, targetEntity, null, itemOnDepot.copy(), fillableFluid);
+				: new ResolvedProcess(ProcessKind.DEPOT, null, itemOnDepot.copy(), fillableFluid);
 		}
 
 		if (targetEntity != null && isBelt(targetEntity)) {
@@ -204,10 +240,10 @@ class MechanicalFluidGunProcessor {
 		}
 
 		if (targetState.is(Blocks.CAULDRON) || targetState.is(Blocks.WATER_CAULDRON)) {
-			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForCauldron(be, sourceHandler, targetState);
+			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForCauldron(be, sourceFluids, targetState);
 			return fillableFluid.isEmpty()
 				? ResolvedProcess.NONE
-				: new ResolvedProcess(ProcessKind.CAULDRON, targetEntity, null, ItemStack.EMPTY, fillableFluid);
+				: new ResolvedProcess(ProcessKind.CAULDRON, null, ItemStack.EMPTY, fillableFluid);
 		}
 
 		if (targetEntity == null) return ResolvedProcess.NONE;
@@ -215,15 +251,16 @@ class MechanicalFluidGunProcessor {
 		IFluidHandler targetHandler = MechanicalFluidGunFillOperations.getTargetFluidHandler(
 			be.getLevel(), targetEntity.getBlockPos(), target.face());
 		if (targetHandler != null) {
-			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForContainer(be, sourceHandler, targetHandler, absTarget);
+			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForContainer(be, sourceFluids, targetHandler, absTarget);
 			if (!fillableFluid.isEmpty()) {
-				return new ResolvedProcess(ProcessKind.CONTAINER, targetEntity, targetHandler, ItemStack.EMPTY, fillableFluid);
+				return new ResolvedProcess(ProcessKind.CONTAINER, targetHandler, ItemStack.EMPTY, fillableFluid);
 			}
 		}
 
-		return MechanicalFluidGunFillOperations.canFuel(be, sourceHandler, targetState, absTarget)
-			? new ResolvedProcess(ProcessKind.FUEL, targetEntity, null, ItemStack.EMPTY, FluidStack.EMPTY)
-			: ResolvedProcess.NONE;
+		FluidStack fuel = MechanicalFluidGunFillOperations.findFuelFluid(be, sourceFluids, targetState, absTarget);
+		return fuel.isEmpty()
+			? ResolvedProcess.NONE
+			: new ResolvedProcess(ProcessKind.FUEL, null, ItemStack.EMPTY, fuel);
 	}
 
 	private boolean tryProcess(IFluidHandler sourceHandler, MechanicalFluidGunTargetConfig target,
@@ -250,7 +287,8 @@ class MechanicalFluidGunProcessor {
 
 		if (process.kind() == ProcessKind.FUEL) {
 			MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
-			return MechanicalFluidGunFillOperations.tryFuel(be, visuals, sourceHandler, targetState, absTarget);
+			return MechanicalFluidGunFillOperations.tryFuel(be, visuals, sourceHandler, targetState, absTarget,
+				process.fluid());
 		}
 
 		return false;
@@ -273,7 +311,7 @@ class MechanicalFluidGunProcessor {
 		MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
 		MechanicalFluidGunCycle cycle = be.getCycleHelper();
 
-		if (!itemFilling.isFillingDepot() || itemFilling.getProcessingItem().isEmpty() || itemFilling.getPendingFluid().isEmpty()) {
+		if (!itemFilling.isFillingDepot()) {
 			abortFilling();
 			return;
 		}
@@ -291,7 +329,7 @@ class MechanicalFluidGunProcessor {
 		}
 
 		ItemStack currentItem = getItemOnDepot(targetEntity);
-		if (!ItemStack.isSameItemSameComponents(currentItem, itemFilling.getProcessingItem()) || currentItem.getCount() < 1) {
+		if (!itemFilling.canCommit(currentItem)) {
 			abortFilling();
 			return;
 		}
@@ -308,18 +346,20 @@ class MechanicalFluidGunProcessor {
 			return;
 		}
 
-		FluidStack drained = sourceHandler.drain(itemFilling.getPendingFluid().copy(), IFluidHandler.FluidAction.EXECUTE);
-		if (drained.isEmpty() || drained.getAmount() < itemFilling.getPendingFluid().getAmount()) {
+		FluidStack drained = itemFilling.drainPendingFluid(sourceHandler);
+		if (drained.isEmpty()) {
 			abortFilling();
 			return;
 		}
 
 		boolean completed = DepotFills.fillFirstMatchingItem(transportedHandler,
-			transported -> ItemStack.isSameItemSameComponents(transported.stack, itemFilling.getProcessingItem())
-				&& transported.stack.getCount() >= 1,
-			stack -> FaucetFilling.fillItem(be.getLevel(), itemFilling.getPendingFluid().getAmount(),
-				stack, itemFilling.getPendingFluid().copy()));
+			transported -> itemFilling.canCommit(transported.stack),
+			stack -> {
+				stack.shrink(1);
+				return itemFilling.getPreparedResult().copy();
+			});
 		if (!completed) {
+			MechanicalFluidGunFillOperations.restoreToSource(sourceHandler, drained);
 			abortFilling();
 			return;
 		}
@@ -342,6 +382,7 @@ class MechanicalFluidGunProcessor {
 		MechanicalFluidGunTargets targets = be.getTargetsHelper();
 		MechanicalFluidGunCycle cycle = be.getCycleHelper();
 
+		be.clearDynamicAimPoint();
 		if (processableTarget == -1) {
 			targets.resetActive();
 			cycle.setActive(false);
@@ -353,6 +394,8 @@ class MechanicalFluidGunProcessor {
 			targets.setActiveTargetIndex(processableTarget);
 			cycle.setActive(true);
 			cycle.setTransferCooldown(0);
+			pendingTarget = new PendingTarget(processableTarget,
+				targets.get(processableTarget).absoluteFrom(be.gunPos()));
 		}
 
 		be.updateVisuals();
@@ -367,14 +410,15 @@ class MechanicalFluidGunProcessor {
 		int size = targets.size();
 		if (size == 0) return -1;
 		MechanicalFluidGunScheduleMode mode = be.getScheduleMode();
+		List<FluidStack> sourceFluids = snapshotSource(sourceHandler);
 
-		for (int index : getCandidateIndicesContinuingActiveTarget(mode, size)) {
+		for (int index : getCandidateIndices(mode, size)) {
 			MechanicalFluidGunTargetConfig target = targets.get(index);
 			BlockPos absTarget = target.absoluteFrom(be.gunPos());
 			if (!targets.isTargetValid(be.getLevel(), be.gunPos(), absTarget)) continue;
 
 			BlockState targetState = be.getLevel().getBlockState(absTarget);
-			if (resolveProcess(sourceHandler, target, targetState, absTarget).kind() != ProcessKind.NONE) {
+			if (resolveProcess(sourceFluids, target, targetState, absTarget).kind() != ProcessKind.NONE) {
 				return index;
 			}
 		}
@@ -393,11 +437,14 @@ class MechanicalFluidGunProcessor {
 		return entity instanceof BeltBlockEntity;
 	}
 
-	private record ResolvedProcess(ProcessKind kind, @Nullable BlockEntity targetEntity,
-		@Nullable IFluidHandler targetHandler, ItemStack item, FluidStack fluid) {
+	private record ResolvedProcess(ProcessKind kind, @Nullable IFluidHandler targetHandler,
+		ItemStack item, FluidStack fluid) {
 
-		private static final ResolvedProcess NONE = new ResolvedProcess(ProcessKind.NONE, null, null,
+		private static final ResolvedProcess NONE = new ResolvedProcess(ProcessKind.NONE, null,
 			ItemStack.EMPTY, FluidStack.EMPTY);
+	}
+
+	private record PendingTarget(int index, BlockPos pos) {
 	}
 
 	private enum ProcessKind {

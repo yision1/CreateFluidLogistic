@@ -7,6 +7,7 @@ import com.simibubi.create.content.kinetics.base.KineticBlockEntityRenderer;
 import com.yision.fluidlogistics.registry.AllPartialModels;
 
 import dev.engine_room.flywheel.lib.model.baked.PartialModel;
+import dev.engine_room.flywheel.api.visualization.VisualizationManager;
 import net.createmod.catnip.render.CachedBuffers;
 import net.createmod.catnip.render.SuperByteBuffer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -24,6 +25,7 @@ public class MechanicalFluidGunRenderer extends KineticBlockEntityRenderer<Mecha
 	@Override
 	protected void renderSafe(MechanicalFluidGunBlockEntity be, float partialTicks, PoseStack ms,
 							  MultiBufferSource buffer, int light, int overlay) {
+		if (VisualizationManager.supportsVisualization(be.getLevel())) return;
 		ms.pushPose();
 		MechanicalFluidGunMount.rotateModel(ms, be.getBlockState());
 
@@ -90,13 +92,13 @@ public class MechanicalFluidGunRenderer extends KineticBlockEntityRenderer<Mecha
 			.renderInto(ms, buffer.getBuffer(RenderType.cutoutMipped()));
 	}
 
-	private void transformYaw(PoseStack ms, float yaw) {
+	static void transformYaw(PoseStack ms, float yaw) {
 		ms.translate(0.5, 14.0 / 16.0, 0.5);
 		ms.mulPose(Axis.YP.rotationDegrees(yaw));
 		ms.translate(-0.5, -14.0 / 16.0, -0.5);
 	}
 
-	private void transformPitch(PoseStack ms, float pitch) {
+	static void transformPitch(PoseStack ms, float pitch) {
 		ms.translate(MechanicalFluidGunTarget.PITCH_PIVOT_X, MechanicalFluidGunTarget.PITCH_PIVOT_Y,
 			MechanicalFluidGunTarget.PITCH_PIVOT_Z);
 		ms.mulPose(Axis.XP.rotationDegrees(pitch));

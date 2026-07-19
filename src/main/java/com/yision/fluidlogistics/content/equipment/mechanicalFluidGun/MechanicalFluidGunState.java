@@ -179,6 +179,55 @@ class MechanicalFluidGunCycle {
 	}
 }
 
+class MechanicalFluidGunAimState {
+
+	private int dynamicTargetIndex = -1;
+	private Vec3 dynamicAimPoint;
+
+	void setDynamicTarget(int targetIndex, Vec3 aimPoint) {
+		dynamicTargetIndex = targetIndex;
+		dynamicAimPoint = aimPoint;
+	}
+
+	boolean matches(int targetIndex) {
+		return dynamicAimPoint != null && dynamicTargetIndex == targetIndex;
+	}
+
+	@Nullable
+	Vec3 getAimPoint(int targetIndex) {
+		return matches(targetIndex) ? dynamicAimPoint : null;
+	}
+
+	void clear() {
+		dynamicTargetIndex = -1;
+		dynamicAimPoint = null;
+	}
+
+	void write(CompoundTag tag) {
+		if (dynamicAimPoint == null) return;
+		tag.putInt("DynamicAimTarget", dynamicTargetIndex);
+		tag.putDouble("DynamicAimX", dynamicAimPoint.x);
+		tag.putDouble("DynamicAimY", dynamicAimPoint.y);
+		tag.putDouble("DynamicAimZ", dynamicAimPoint.z);
+	}
+
+	void read(CompoundTag tag, int activeTargetIndex) {
+		if (tag.contains("DynamicAimX")) {
+			dynamicTargetIndex = tag.getInt("DynamicAimTarget");
+			dynamicAimPoint = new Vec3(tag.getDouble("DynamicAimX"), tag.getDouble("DynamicAimY"),
+				tag.getDouble("DynamicAimZ"));
+			return;
+		}
+		if (tag.contains("ProcessingBeltAimX") && activeTargetIndex >= 0) {
+			dynamicTargetIndex = activeTargetIndex;
+			dynamicAimPoint = new Vec3(tag.getDouble("ProcessingBeltAimX"), tag.getDouble("ProcessingBeltAimY"),
+				tag.getDouble("ProcessingBeltAimZ"));
+			return;
+		}
+		clear();
+	}
+}
+
 class MechanicalFluidGunItemFilling {
 
 	static final int FILLING_TIME = 20;
@@ -190,10 +239,10 @@ class MechanicalFluidGunItemFilling {
 	private boolean isFillingItem;
 	private ItemStack processingItem = ItemStack.EMPTY;
 	private FluidStack pendingFluid = FluidStack.EMPTY;
+	private ItemStack preparedResult = ItemStack.EMPTY;
 	private ProcessingTarget processingTarget = ProcessingTarget.NONE;
 	private int processingTicks;
 	private BlockPos processingBeltPos;
-	private Vec3 processingBeltAimPoint;
 
 	boolean isFilling() {
 		return isFillingItem;
@@ -216,35 +265,43 @@ class MechanicalFluidGunItemFilling {
 		return processingBeltPos;
 	}
 
-	@Nullable
-	Vec3 getProcessingBeltAimPoint() {
-		return processingBeltAimPoint;
-	}
-
 	FluidStack getPendingFluid() {
 		return pendingFluid;
+	}
+
+	ItemStack getPreparedResult() {
+		return preparedResult;
 	}
 
 	int getProcessingTicks() {
 		return processingTicks;
 	}
 
-	void startDepot(ItemStack item, FluidStack fluid, int ticks) {
+	void setClientFilling(boolean filling) {
+		if (filling) {
+			isFillingItem = true;
+			return;
+		}
+		clear();
+	}
+
+	void startDepot(ItemStack item, FluidStack fluid, ItemStack result, int ticks) {
 		isFillingItem = true;
 		processingTarget = ProcessingTarget.DEPOT;
 		processingItem = item.copyWithCount(1);
 		pendingFluid = fluid.copy();
+		preparedResult = result.copy();
 		processingTicks = ticks;
 	}
 
-	void startBelt(ItemStack item, FluidStack fluid, int ticks, BlockPos beltPos, Vec3 beltAimPoint) {
+	void startBelt(ItemStack item, FluidStack fluid, ItemStack result, int ticks, BlockPos beltPos) {
 		isFillingItem = true;
 		processingTarget = ProcessingTarget.BELT;
 		processingItem = item.copyWithCount(1);
 		pendingFluid = fluid.copy();
+		preparedResult = result.copy();
 		processingTicks = ticks;
 		processingBeltPos = beltPos.immutable();
-		processingBeltAimPoint = beltAimPoint;
 	}
 
 	static boolean startFilling(MechanicalFluidGunBlockEntity be,
@@ -253,16 +310,6 @@ class MechanicalFluidGunItemFilling {
 								FluidStack availableFluid,
 								ProcessingTarget targetType,
 								@Nullable BlockPos beltPos) {
-		return startFilling(be, sourceHandler, item, availableFluid, targetType, beltPos, null);
-	}
-
-	static boolean startFilling(MechanicalFluidGunBlockEntity be,
-								IFluidHandler sourceHandler,
-								ItemStack item,
-								FluidStack availableFluid,
-								ProcessingTarget targetType,
-								@Nullable BlockPos beltPos,
-								@Nullable Vec3 beltAimPoint) {
 		int requiredAmount = FaucetFilling
 			.getRequiredAmountForItem(be.getLevel(), item, availableFluid.copy());
 		if (requiredAmount <= 0 || requiredAmount > availableFluid.getAmount()) return false;
@@ -270,6 +317,10 @@ class MechanicalFluidGunItemFilling {
 		FluidStack simulatedDrain = sourceHandler.drain(
 			availableFluid.copyWithAmount(requiredAmount), IFluidHandler.FluidAction.SIMULATE);
 		if (simulatedDrain.isEmpty() || simulatedDrain.getAmount() < requiredAmount) return false;
+		ItemStack preparedInput = item.copyWithCount(1);
+		ItemStack preparedResult = FaucetFilling.fillItem(be.getLevel(), requiredAmount,
+			preparedInput, simulatedDrain.copy());
+		if (preparedResult.isEmpty() || !preparedInput.isEmpty()) return false;
 
 		MechanicalFluidGunItemFilling itemFilling = be.getItemFillingHelper();
 		MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
@@ -277,10 +328,10 @@ class MechanicalFluidGunItemFilling {
 		int fillingTicks = MechanicalFluidGunCycle.getSpeedAdjustedInterval(
 			FILLING_TIME, Math.abs(be.getSpeed()));
 
-		if (targetType == ProcessingTarget.BELT && beltPos != null && beltAimPoint != null) {
-			itemFilling.startBelt(item, simulatedDrain, fillingTicks, beltPos, beltAimPoint);
+		if (targetType == ProcessingTarget.BELT && beltPos != null) {
+			itemFilling.startBelt(item, simulatedDrain, preparedResult, fillingTicks, beltPos);
 		} else {
-			itemFilling.startDepot(item, simulatedDrain, fillingTicks);
+			itemFilling.startDepot(item, simulatedDrain, preparedResult, fillingTicks);
 		}
 		visuals.startSpraying(simulatedDrain, be.getSpeed(), false);
 		AllSoundEvents.SPOUTING.playOnServer(
@@ -299,14 +350,40 @@ class MechanicalFluidGunItemFilling {
 			&& processingBeltPos.equals(beltPos);
 	}
 
+	boolean canCommit(ItemStack item) {
+		return isFillingItem
+			&& !processingItem.isEmpty()
+			&& !pendingFluid.isEmpty()
+			&& !preparedResult.isEmpty()
+			&& item.getCount() >= 1
+			&& ItemStack.isSameItemSameComponents(item.copyWithCount(1), processingItem);
+	}
+
+	FluidStack drainPendingFluid(IFluidHandler sourceHandler) {
+		if (pendingFluid.isEmpty()) return FluidStack.EMPTY;
+		FluidStack simulated = sourceHandler.drain(pendingFluid.copy(), IFluidHandler.FluidAction.SIMULATE);
+		if (!isExactPendingFluid(simulated)) return FluidStack.EMPTY;
+		FluidStack drained = sourceHandler.drain(pendingFluid.copy(), IFluidHandler.FluidAction.EXECUTE);
+		if (isExactPendingFluid(drained)) return drained;
+		if (!drained.isEmpty()) {
+			MechanicalFluidGunFillOperations.restoreToSource(sourceHandler, drained);
+		}
+		return FluidStack.EMPTY;
+	}
+
+	private boolean isExactPendingFluid(FluidStack stack) {
+		return FluidStack.isSameFluidSameComponents(stack, pendingFluid)
+			&& stack.getAmount() == pendingFluid.getAmount();
+	}
+
 	void clear() {
 		isFillingItem = false;
 		processingTarget = ProcessingTarget.NONE;
 		processingTicks = 0;
 		processingItem = ItemStack.EMPTY;
 		pendingFluid = FluidStack.EMPTY;
+		preparedResult = ItemStack.EMPTY;
 		processingBeltPos = null;
-		processingBeltAimPoint = null;
 	}
 
 	void write(CompoundTag tag, HolderLookup.Provider registries) {
@@ -319,13 +396,11 @@ class MechanicalFluidGunItemFilling {
 		if (!pendingFluid.isEmpty()) {
 			tag.put("PendingFluid", pendingFluid.save(registries));
 		}
+		if (!preparedResult.isEmpty()) {
+			tag.put("PreparedResult", preparedResult.save(registries));
+		}
 		if (processingBeltPos != null) {
 			tag.putLong("ProcessingBeltPos", processingBeltPos.asLong());
-		}
-		if (processingBeltAimPoint != null) {
-			tag.putDouble("ProcessingBeltAimX", processingBeltAimPoint.x);
-			tag.putDouble("ProcessingBeltAimY", processingBeltAimPoint.y);
-			tag.putDouble("ProcessingBeltAimZ", processingBeltAimPoint.z);
 		}
 	}
 
@@ -341,12 +416,11 @@ class MechanicalFluidGunItemFilling {
 		pendingFluid = tag.contains("PendingFluid")
 			? FluidStack.parse(registries, tag.getCompound("PendingFluid")).orElse(FluidStack.EMPTY)
 			: FluidStack.EMPTY;
+		preparedResult = tag.contains("PreparedResult")
+			? ItemStack.parse(registries, tag.getCompound("PreparedResult")).orElse(ItemStack.EMPTY)
+			: ItemStack.EMPTY;
 		processingBeltPos = tag.contains("ProcessingBeltPos")
 			? BlockPos.of(tag.getLong("ProcessingBeltPos"))
-			: null;
-		processingBeltAimPoint = tag.contains("ProcessingBeltAimX")
-			? new Vec3(tag.getDouble("ProcessingBeltAimX"), tag.getDouble("ProcessingBeltAimY"),
-				tag.getDouble("ProcessingBeltAimZ"))
 			: null;
 	}
 }

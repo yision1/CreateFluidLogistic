@@ -4,9 +4,12 @@ import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlock;
 import com.simibubi.create.content.processing.burner.BlazeBurnerBlockEntity;
+import com.yision.fluidlogistics.content.fluids.faucet.FaucetFilling;
 import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchFluidHandlerForwarder;
 import com.yision.fluidlogistics.foundation.fluid.CauldronFills;
 import com.yision.fluidlogistics.foundation.fluid.FluidSourceScans;
+
+import java.util.List;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -55,11 +58,30 @@ class MechanicalFluidGunFillOperations {
 		return FluidSourceScans.findForItem(ctx.level(), sourceHandler, ctx::testFilter, item, false);
 	}
 
-	static FluidStack findFillableFluidForContainer(MechanicalFluidGunContext ctx, IFluidHandler sourceHandler,
-															IFluidHandler targetHandler, BlockPos targetPos) {
-		FluidStack fillable = FluidSourceScans.findForContainer(sourceHandler, ctx::testFilter, targetHandler,
-			TRANSFER_RATE, candidate -> ctx.canFillFluidContainer(targetPos, targetHandler, candidate), false);
-		if (!fillable.isEmpty()) return fillable;
+	static FluidStack findFillableFluidForItem(MechanicalFluidGunContext ctx, List<FluidStack> sourceFluids,
+											   ItemStack item) {
+		for (FluidStack candidate : sourceFluids) {
+			if (candidate.isEmpty() || !ctx.testFilter(candidate)) continue;
+			int requiredAmount = FaucetFilling.getRequiredAmountForItem(ctx.level(), item, candidate.copy());
+			if (requiredAmount > 0 && requiredAmount <= candidate.getAmount()) {
+				return candidate.copy();
+			}
+		}
+		return FluidStack.EMPTY;
+	}
+
+	static FluidStack findFillableFluidForContainer(MechanicalFluidGunContext ctx, List<FluidStack> sourceFluids,
+												  IFluidHandler targetHandler, BlockPos targetPos) {
+		for (FluidStack candidate : sourceFluids) {
+			if (candidate.isEmpty() || !ctx.testFilter(candidate)) continue;
+			FluidStack preview = candidate.copyWithAmount(Math.min(candidate.getAmount(), TRANSFER_RATE));
+			int accepted = targetHandler.fill(preview, IFluidHandler.FluidAction.SIMULATE);
+			if (accepted <= 0) continue;
+			FluidStack acceptedFluid = preview.copyWithAmount(Math.min(preview.getAmount(), accepted));
+			if (ctx.canFillFluidContainer(targetPos, targetHandler, acceptedFluid)) {
+				return preview;
+			}
+		}
 		ctx.finishFluidContainerFill(targetPos);
 		return FluidStack.EMPTY;
 	}
@@ -88,27 +110,16 @@ class MechanicalFluidGunFillOperations {
 		return capacity > 0 && amount * 2 < capacity;
 	}
 
-	static FluidStack findFillableFluidForCauldron(MechanicalFluidGunContext ctx, IFluidHandler sourceHandler,
-												   BlockState targetState) {
-		return FluidSourceScans.findForCauldron(sourceHandler, ctx::testFilter, targetState, 1000, false);
-	}
-
-	static boolean tryFillContainerWithActiveTarget(MechanicalFluidGunContext ctx, MechanicalFluidGunVisuals visuals,
-													MechanicalFluidGunTargetConfig target, BlockPos absTarget) {
-		Level level = ctx.level();
-		IFluidHandler sourceHandler = ctx.sourceHandler();
-		if (sourceHandler == null) return false;
-
-		var targetEntity = level.getBlockEntity(absTarget);
-		if (targetEntity == null) return false;
-
-		IFluidHandler targetHandler = getTargetFluidHandler(level, targetEntity.getBlockPos(), target.face());
-		if (targetHandler == null) return false;
-
-		FluidStack availableFluid = findFillableFluidForContainer(ctx, sourceHandler, targetHandler, absTarget);
-		if (availableFluid.isEmpty()) return false;
-
-		return tryFillContainer(ctx, visuals, absTarget, sourceHandler, targetHandler, availableFluid);
+	static FluidStack findFillableFluidForCauldron(MechanicalFluidGunContext ctx, List<FluidStack> sourceFluids,
+												 BlockState targetState) {
+		for (FluidStack candidate : sourceFluids) {
+			if (candidate.isEmpty() || !ctx.testFilter(candidate)) continue;
+			FluidStack preview = candidate.copyWithAmount(Math.min(candidate.getAmount(), BUCKET_AMOUNT));
+			if (CauldronFills.canFill(targetState, preview)) {
+				return preview;
+			}
+		}
+		return FluidStack.EMPTY;
 	}
 
 	static boolean tryFillContainer(MechanicalFluidGunContext ctx, MechanicalFluidGunVisuals visuals,
@@ -169,24 +180,17 @@ class MechanicalFluidGunFillOperations {
 		return true;
 	}
 
-	static boolean canFuel(MechanicalFluidGunContext ctx, IFluidHandler source,
-						   BlockState state, BlockPos pos) {
-		if (!isBlazeBurnerWithEntity(ctx.level(), state, pos)) return false;
-		return !findFuelFluid(ctx, source, state, pos).isEmpty();
-	}
-
 	static boolean tryFuel(MechanicalFluidGunContext ctx, MechanicalFluidGunVisuals visuals,
-						   IFluidHandler source, BlockState state, BlockPos pos) {
+						   IFluidHandler source, BlockState state, BlockPos pos, FluidStack fuel) {
 		if (!isBlazeBurnerWithEntity(ctx.level(), state, pos)) return false;
-
-		FluidStack fuel = findFuelFluid(ctx, source, state, pos);
 		if (fuel.isEmpty()) return false;
 
 		FluidStack simulatedDrain = source.drain(fuel, IFluidHandler.FluidAction.SIMULATE);
-		if (simulatedDrain.getAmount() < BUCKET_AMOUNT) return false;
+		if (!FluidStack.isSameFluidSameComponents(simulatedDrain, fuel)
+			|| simulatedDrain.getAmount() != BUCKET_AMOUNT) return false;
 
 		FluidStack drained = source.drain(fuel, IFluidHandler.FluidAction.EXECUTE);
-		if (drained.getAmount() < BUCKET_AMOUNT) {
+		if (!FluidStack.isSameFluidSameComponents(drained, fuel) || drained.getAmount() != BUCKET_AMOUNT) {
 			if (!drained.isEmpty() && !restoreToSource(source, drained)) {
 				return false;
 			}
@@ -211,10 +215,9 @@ class MechanicalFluidGunFillOperations {
 		return true;
 	}
 
-	static FluidStack findFuelFluid(MechanicalFluidGunContext ctx, IFluidHandler source,
-									 BlockState state, BlockPos pos) {
-		for (int tank = 0; tank < source.getTanks(); tank++) {
-			FluidStack candidate = source.getFluidInTank(tank);
+	static FluidStack findFuelFluid(MechanicalFluidGunContext ctx, List<FluidStack> sourceFluids,
+									BlockState state, BlockPos pos) {
+		for (FluidStack candidate : sourceFluids) {
 			if (candidate.isEmpty() || candidate.getAmount() < BUCKET_AMOUNT) continue;
 			if (!ctx.testFilter(candidate)) continue;
 
@@ -230,7 +233,7 @@ class MechanicalFluidGunFillOperations {
 		return FluidStack.EMPTY;
 	}
 
-	private static boolean restoreToSource(IFluidHandler source, FluidStack stack) {
+	static boolean restoreToSource(IFluidHandler source, FluidStack stack) {
 		if (stack.isEmpty()) return true;
 		int restored = source.fill(stack.copy(), IFluidHandler.FluidAction.EXECUTE);
 		return restored >= stack.getAmount();

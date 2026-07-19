@@ -58,14 +58,17 @@ class MechanicalFluidGunBeltHandler {
 			&& activeBeltPos.equals(handler.blockEntity.getBlockPos());
 	}
 
-	private void bindActiveBeltSession(TransportedItemStack transported, BlockPos beltPos) {
+	private void bindActiveBeltSession(TransportedItemStack transported,
+									  TransportedItemStackHandlerBehaviour handler, int targetIndex) {
 		activeBeltItem = transported;
-		activeBeltPos = beltPos.immutable();
+		activeBeltPos = handler.blockEntity.getBlockPos().immutable();
+		be.setDynamicAimPoint(targetIndex, getBeltItemAimPoint(transported, handler));
 	}
 
 	private void clearActiveBeltSession() {
 		activeBeltItem = null;
 		activeBeltPos = null;
+		be.clearDynamicAimPoint();
 	}
 
 	private boolean isImmediateDownstreamBeltPos(BlockPos currentPos, BlockPos candidatePos) {
@@ -137,16 +140,16 @@ class MechanicalFluidGunBeltHandler {
 		if (itemFilling.isFillingBelt()) {
 			if (canPreemptWithNextBeltItem(transported, handler, fillable)) {
 				cancelBeltItemFilling();
+				bindActiveBeltSession(transported, handler, targetIndex);
 				be.setActiveTarget(targetIndex);
-				bindActiveBeltSession(transported, handler.blockEntity.getBlockPos());
 				keepBeltTargetAlive();
 				return HOLD;
 			}
 			return PASS;
 		}
 
+		bindActiveBeltSession(transported, handler, targetIndex);
 		be.setActiveTarget(targetIndex);
-		bindActiveBeltSession(transported, handler.blockEntity.getBlockPos());
 		keepBeltTargetAlive();
 		return HOLD;
 	}
@@ -235,7 +238,7 @@ class MechanicalFluidGunBeltHandler {
 		}
 
 		boolean started = startBeltFilling(source, transported.stack, fillableFluid,
-			handler.blockEntity.getBlockPos(), getBeltItemAimPoint(transported, handler));
+			handler.blockEntity.getBlockPos());
 		if (started) {
 			be.getCycleHelper().markScheduledTarget(targetIndex);
 		}
@@ -270,10 +273,10 @@ class MechanicalFluidGunBeltHandler {
 	}
 
 	private boolean startBeltFilling(IFluidHandler sourceHandler, ItemStack item, FluidStack availableFluid,
-									 BlockPos beltPos, Vec3 beltAimPoint) {
+									 BlockPos beltPos) {
 		return MechanicalFluidGunItemFilling.startFilling(
 			be, sourceHandler, item, availableFluid,
-			MechanicalFluidGunItemFilling.ProcessingTarget.BELT, beltPos, beltAimPoint);
+			MechanicalFluidGunItemFilling.ProcessingTarget.BELT, beltPos);
 	}
 
 	private Vec3 getBeltItemAimPoint(TransportedItemStack transported,
@@ -296,7 +299,11 @@ class MechanicalFluidGunBeltHandler {
 		MechanicalFluidGunItemFilling itemFilling = be.getItemFillingHelper();
 		MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
 
-		if (!itemFilling.isFillingBelt() || itemFilling.getPendingFluid().isEmpty()) {
+		if (!itemFilling.isFillingBelt()) {
+			return PASS;
+		}
+		if (!itemFilling.canCommit(transported.stack)) {
+			cancelBeltItemFilling();
 			return PASS;
 		}
 
@@ -306,19 +313,14 @@ class MechanicalFluidGunBeltHandler {
 			return PASS;
 		}
 
-		FluidStack drained = sourceHandler.drain(itemFilling.getPendingFluid().copy(), IFluidHandler.FluidAction.EXECUTE);
-		if (drained.isEmpty() || drained.getAmount() < itemFilling.getPendingFluid().getAmount()) {
+		FluidStack drained = itemFilling.drainPendingFluid(sourceHandler);
+		if (drained.isEmpty()) {
 			cancelItemFilling();
 			return PASS;
 		}
 
-		ItemStack resultStack = FaucetFilling.fillItem(be.getLevel(), itemFilling.getPendingFluid().getAmount(),
-			transported.stack, itemFilling.getPendingFluid().copy());
-		if (resultStack.isEmpty()) {
-			cancelItemFilling();
-			return PASS;
-		}
-
+		ItemStack resultStack = itemFilling.getPreparedResult().copy();
+		transported.stack.shrink(1);
 		DepotFills.completeItemFill(handler, transported, resultStack);
 
 		MechanicalFluidGunTargetConfig activeTarget = be.getTargetsHelper().getActiveTarget();
@@ -329,7 +331,6 @@ class MechanicalFluidGunBeltHandler {
 		clearActiveBeltSession();
 		itemFilling.clear();
 		be.endWorkCycle();
-		be.notifyGunUpdate();
 		return HOLD;
 	}
 
@@ -414,8 +415,8 @@ class MechanicalFluidGunBeltHandler {
 				held.locked = true;
 				held.lockedExternally = false;
 
+				bindActiveBeltSession(held, handler, targetIndex);
 				be.setActiveTarget(targetIndex);
-				bindActiveBeltSession(held, absTarget);
 				keepBeltTargetAlive();
 
 				return TransportedResult.convertToAndLeaveHeld(List.of(), held);
@@ -478,7 +479,6 @@ class MechanicalFluidGunBeltHandler {
 	private void cancelItemFilling() {
 		be.getItemFillingHelper().clear();
 		be.endWorkCycle();
-		be.notifyGunUpdate();
 	}
 
 	private void cancelBeltItemFilling() {

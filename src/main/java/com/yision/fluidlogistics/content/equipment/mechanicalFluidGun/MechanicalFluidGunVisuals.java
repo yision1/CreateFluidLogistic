@@ -10,6 +10,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -19,7 +20,9 @@ import org.jetbrains.annotations.Nullable;
 
 class MechanicalFluidGunVisuals {
 
-	private static final int STREAM_PARTICLES_PER_TICK = 12;
+	private static final int STREAM_PARTICLES_NEAR = 6;
+	private static final int STREAM_PARTICLES_MID = 3;
+	private static final int STREAM_PARTICLES_FAR = 1;
 	private static final double STREAM_TRAIL_START = 0.03;
 	private static final double STREAM_TRAIL_END = 0.92;
 	private static final double STREAM_BASE_RADIUS = 0.018;
@@ -54,6 +57,15 @@ class MechanicalFluidGunVisuals {
 		return spraying;
 	}
 
+	void applyClientState(boolean spraying, FluidStack fluid) {
+		if (!spraying || fluid.isEmpty()) {
+			clearSpray();
+			return;
+		}
+		this.spraying = true;
+		renderingFluid = fluid.copy();
+	}
+
 	boolean shouldAdvanceAfterSpray() {
 		return advanceTargetAfterSpray;
 	}
@@ -70,6 +82,8 @@ class MechanicalFluidGunVisuals {
 		Vec3 nozzle = MechanicalFluidGunTarget.getNozzleWorldPos(gunPos, blockState, yaw.getValue(), pitch.getValue());
 		Vec3 motion = aimPoint.subtract(nozzle);
 		if (motion.lengthSqr() < 0.001) return;
+		int particleCount = getStreamParticleCount(level, gunPos);
+		if (particleCount == 0) return;
 
 		double travelDistance = motion.length();
 		Vec3 direction = motion.normalize();
@@ -80,9 +94,9 @@ class MechanicalFluidGunVisuals {
 		side = side.normalize();
 		Vec3 up = side.cross(direction).normalize();
 
-		for (int i = 0; i < STREAM_PARTICLES_PER_TICK; i++) {
+		for (int i = 0; i < particleCount; i++) {
 			double trail = STREAM_TRAIL_START
-				+ (STREAM_TRAIL_END - STREAM_TRAIL_START) * ((i + level.random.nextDouble()) / STREAM_PARTICLES_PER_TICK);
+				+ (STREAM_TRAIL_END - STREAM_TRAIL_START) * ((i + level.random.nextDouble()) / particleCount);
 			double radius = STREAM_BASE_RADIUS + (STREAM_END_RADIUS - STREAM_BASE_RADIUS) * trail;
 			Vec3 offset = side.scale(randomSigned(level, radius))
 				.add(up.scale(randomSigned(level, radius)));
@@ -95,9 +109,20 @@ class MechanicalFluidGunVisuals {
 				.add(side.scale(randomSigned(level, STREAM_SPREAD_SPEED)))
 				.add(up.scale(randomSigned(level, STREAM_SPREAD_SPEED)));
 
-			level.addAlwaysVisibleParticle(new MechanicalFluidGunStreamParticleData(renderingFluid),
+			level.addParticle(new MechanicalFluidGunStreamParticleData(renderingFluid),
 				pos.x, pos.y, pos.z, velocity.x, velocity.y, velocity.z);
 		}
+	}
+
+	private static int getStreamParticleCount(Level level, BlockPos gunPos) {
+		Player nearestPlayer = level.getNearestPlayer(gunPos.getX() + 0.5, gunPos.getY() + 0.5,
+			gunPos.getZ() + 0.5, 64, false);
+		if (nearestPlayer == null) return 0;
+		double distanceSqr = nearestPlayer.distanceToSqr(gunPos.getX() + 0.5, gunPos.getY() + 0.5,
+			gunPos.getZ() + 0.5);
+		if (distanceSqr <= 16 * 16) return STREAM_PARTICLES_NEAR;
+		if (distanceSqr <= 32 * 32) return STREAM_PARTICLES_MID;
+		return STREAM_PARTICLES_FAR;
 	}
 
 	private static double randomSigned(Level level, double scale) {
@@ -105,6 +130,10 @@ class MechanicalFluidGunVisuals {
 	}
 
 	void startSpraying(FluidStack fluid, float speed, boolean advanceAfterSpray) {
+		if (fluid.isEmpty()) {
+			clearSpray();
+			return;
+		}
 		renderingFluid = fluid.copy();
 		spraying = true;
 		this.advanceTargetAfterSpray = advanceAfterSpray;

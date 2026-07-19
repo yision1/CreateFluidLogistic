@@ -172,7 +172,8 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
         if (InfiniteFluidHandlerHelper.canAcceptInfinitely(handler, fluid)) {
             return maxAmount;
         }
-        return handler.fill(fluid, simulate ? FluidAction.SIMULATE : FluidAction.EXECUTE);
+        int filled = handler.fill(fluid, simulate ? FluidAction.SIMULATE : FluidAction.EXECUTE);
+        return Math.clamp(filled, 0, maxAmount);
     }
 
     private Map<FluidTypeKey, Integer> scanAvailableFluids(IFluidHandler fluidHandler) {
