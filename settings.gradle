@@ -4,7 +4,3 @@ pluginManagement {
         maven { url = "https://maven.firstdark.dev/releases" }
     }
 }
-
-plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
-}

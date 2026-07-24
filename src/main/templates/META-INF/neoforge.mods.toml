@@ -7,8 +7,8 @@ modId="${mod_id}"
 version="${mod_version}" 
 displayName="${mod_name}" 
 displayURL="https://modrinth.com/mod/createfluidlogistic"
-logoFile="icon.png" #optional
-authors="${mod_authors}" #optional
+logoFile="icon.png"
+authors="${mod_authors}"
 description='''${mod_description}'''
 
 [[mixins]]
@@ -53,13 +53,6 @@ config="fluidlogistics.mixins.json"
     modId="jade"
     type="optional"
     versionRange="[15.0.0,)"
-    ordering="AFTER"
-    side="BOTH"
-
-[[dependencies.${mod_id}]]
-    modId="fluid"
-    type="optional"
-    versionRange="[1.2.5,)"
     ordering="AFTER"
     side="BOTH"
 

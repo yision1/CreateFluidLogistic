@@ -87,6 +87,7 @@ neoForge {
             sourceSet(sourceSets.main)
         }
     }
+
 }
 
 sourceSets.main.resources {
@@ -181,7 +182,7 @@ publisher {
     setDebug(false)
     setModrinthID("g4AWLVIr")
     setCurseID("1475079")
-    setVersionType("release")
+    setVersionType("beta")
     setVersion("${project.mod_version}")
     setDisplayName("Create: FluidLogistic ${project.mod_version}")
     setChangelog(latestChangelogForPublisher)
