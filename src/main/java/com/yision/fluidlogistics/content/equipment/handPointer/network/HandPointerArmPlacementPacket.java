@@ -75,10 +75,6 @@ public record HandPointerArmPlacementPacket(ListTag pointsTag, BlockPos armPos) 
             return;
         }
 
-        if (player.distanceToSqr(armPos.getX() + 0.5D, armPos.getY() + 0.5D, armPos.getZ() + 0.5D) > 64.0D) {
-            return;
-        }
-
         BlockEntity blockEntity = level.getBlockEntity(armPos);
         if (!(blockEntity instanceof ArmBlockEntity arm)) {
             return;

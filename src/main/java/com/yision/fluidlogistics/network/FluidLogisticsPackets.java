@@ -15,6 +15,7 @@ import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPoint
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerClearClipboardAddressPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerAuthorizeLogisticsNetworkPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerArmPlacementPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerCrafterConnectionPacket;
 import java.util.Locale;
 
 import com.yision.fluidlogistics.FluidLogistics;
@@ -34,6 +35,7 @@ public enum FluidLogisticsPackets implements BasePacketPayload.PacketTypeProvide
             FactoryPanelSetResourceRestockSettingPacket.STREAM_CODEC),
     HAND_POINTER_AUTHORIZE_LOGISTICS_NETWORK(HandPointerAuthorizeLogisticsNetworkPacket.class, HandPointerAuthorizeLogisticsNetworkPacket.STREAM_CODEC),
     HAND_POINTER_ARM_PLACEMENT(HandPointerArmPlacementPacket.class, HandPointerArmPlacementPacket.STREAM_CODEC),
+    HAND_POINTER_CRAFTER_CONNECTION(HandPointerCrafterConnectionPacket.class, HandPointerCrafterConnectionPacket.STREAM_CODEC),
     HAND_POINTER_DISPLAY_LINK_CONFIGURATION(HandPointerDisplayLinkConfigurationPacket.class, HandPointerDisplayLinkConfigurationPacket.STREAM_CODEC),
     HAND_POINTER_FROGPORT_CONNECTION(HandPointerFrogportConnectionPacket.class, HandPointerFrogportConnectionPacket.STREAM_CODEC),
     HAND_POINTER_MAILBOX_STATION_CONNECTION(HandPointerMailboxStationConnectionPacket.class, HandPointerMailboxStationConnectionPacket.STREAM_CODEC),

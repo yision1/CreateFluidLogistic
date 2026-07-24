@@ -16,6 +16,7 @@ import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
 import com.yision.fluidlogistics.content.equipment.handPointer.logistics.LogisticsLinkResolver;
 import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterTargetResolver;
 import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerItem;
+import com.yision.fluidlogistics.content.equipment.handPointer.MechanicalCrafterConnectionPlanner.Plan;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerAuthorizeLogisticsNetworkPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerClearClipboardAddressPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerDisplayLinkConfigurationPacket;
@@ -253,6 +254,14 @@ public class HandPointerInteractionHandler {
             return true;
         }
 
+        if (MechanicalCrafterSelectionHandler.isCrafter(level, pos)) {
+            if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.MECHANICAL_CRAFTER)) {
+                MechanicalCrafterSelectionHandler.enterMode(pos);
+                playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
+            }
+            return true;
+        }
+
         if (LogisticsSelectionHandler.isLogisticsBlockEntity(blockEntity)) {
             if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.LOGISTICS)) {
                 LogisticsSelectionHandler.handleNetworkClick(blockEntity, pos, player, level, state, clickLocation);
@@ -324,6 +333,24 @@ public class HandPointerInteractionHandler {
     private void handleSelectionClick(Player player, Level level, BlockPos pos, BlockState state, BlockHitResult hitResult) {
         Vec3 clickLocation = hitResult.getLocation();
         BlockEntity blockEntity = level.getBlockEntity(pos);
+
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.MECHANICAL_CRAFTER) {
+            if (!MechanicalCrafterSelectionHandler.isCrafter(level, pos)) {
+                HandPointerModeManager.exitMode(player, level);
+                sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
+                return;
+            }
+
+            Plan plan = MechanicalCrafterSelectionHandler.clickTerminal(level, pos);
+            if (plan == null) {
+                playDenySound(level, pos);
+                sendStatus(player, "fluidlogistics.hand_pointer.crafter.cannot_connect", STATUS_INVALID_COLOR);
+                return;
+            }
+
+            HandPointerModeManager.exitMode(player, level);
+            return;
+        }
 
         if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.MECHANICAL_FLUID_GUN) {
             if (MechanicalFluidGunSelectionHandler.isSelectedGun(pos)) {

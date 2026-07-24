@@ -12,6 +12,8 @@ import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.api.packager.PackageResources;
 import com.yision.fluidlogistics.api.packager.PackageResourceTypes;
 import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
+import com.yision.fluidlogistics.api.handpointer.crafter.HandPointerCrafterAdapters;
+import com.yision.fluidlogistics.content.equipment.handPointer.CreateMechanicalCrafterAdapter;
 import com.yision.fluidlogistics.content.fluids.waterContainingCopperCasing.WaterContainingCopperCasingFluidHandler;
 import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpNetworkUpdater;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
@@ -108,6 +110,8 @@ public class FluidLogistics {
         AllBlocks.register();
         PackagerAddresses.register(com.simibubi.create.AllBlocks.PACKAGER);
         PackagerAddresses.register(AllBlocks.FLUID_PACKAGER);
+        HandPointerCrafterAdapters.register(
+                asResource("create_mechanical_crafter"), CreateMechanicalCrafterAdapter.INSTANCE);
         AllBlockEntities.register();
         AllItems.register();
         PackageResourceTypes.registerBuiltIns();

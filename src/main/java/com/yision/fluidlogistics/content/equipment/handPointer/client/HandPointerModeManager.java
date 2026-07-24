@@ -16,6 +16,7 @@ public class HandPointerModeManager {
         FROGPORT,
         MAILBOX,
         LOGISTICS,
+        MECHANICAL_CRAFTER,
         MECHANICAL_FLUID_GUN
     }
 
@@ -115,6 +116,18 @@ public class HandPointerModeManager {
                 MechanicalFluidGunSelectionHandler.clearSelection();
             }
         });
+        MODES.put(SelectionMode.MECHANICAL_CRAFTER, new HandPointerMode() {
+            @Override
+            public void tick(Minecraft mc) {
+                MechanicalCrafterSelectionHandler.renderSelection(mc);
+                clearHoverPreviewsExcept(SelectionMode.MECHANICAL_CRAFTER);
+            }
+
+            @Override
+            public void clear(Player player, Level level) {
+                MechanicalCrafterSelectionHandler.clearSelection();
+            }
+        });
     }
 
     public static SelectionMode getCurrentMode() {
@@ -169,6 +182,9 @@ public class HandPointerModeManager {
         }
         if (mode != SelectionMode.MECHANICAL_FLUID_GUN) {
             MechanicalFluidGunSelectionHandler.clearHoverPreview();
+        }
+        if (mode != SelectionMode.MECHANICAL_CRAFTER) {
+            MechanicalCrafterSelectionHandler.clearHoverPreview();
         }
     }
 }
