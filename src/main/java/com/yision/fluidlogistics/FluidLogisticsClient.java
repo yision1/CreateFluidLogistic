@@ -11,6 +11,7 @@ import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPack
 import com.yision.fluidlogistics.client.event.FluidSlotClickHandler;
 import net.createmod.catnip.render.DefaultSuperRenderTypeBuffer;
 import net.createmod.catnip.render.SuperRenderTypeBuffer;
+import com.yision.fluidlogistics.ponder.CopperFrogportPonderPlugin;
 import com.yision.fluidlogistics.ponder.FluidLogisticsPonderPlugin;
 import com.yision.fluidlogistics.registry.AllBlocks;
 import com.yision.fluidlogistics.registry.AllPartialModels;
@@ -59,6 +60,7 @@ public class FluidLogisticsClient {
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
         AllSpriteShifts.register();
+        PonderIndex.addPlugin(new CopperFrogportPonderPlugin());
         PonderIndex.addPlugin(new FluidLogisticsPonderPlugin());
         event.enqueueWork(() -> {
             RadialWrenchMenu
