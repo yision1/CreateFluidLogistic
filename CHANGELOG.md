@@ -1,5 +1,3 @@
-- Update fluid tootlip
-- Update fluid package style
-- Update fluid hatch texture 
-- Update hand pointer to support more targets
-- Add filter slot drag into fluid icon support
+- Add Copper Frogport
+- Update hand pointer to support mechanical crafter
+- Support packaging FE through FL-Addons
