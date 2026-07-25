@@ -36,13 +36,6 @@ config="fluidlogistics.mixins.json"
     side="BOTH"
 
 [[dependencies.${mod_id}]]
-    modId="fluid"
-    mandatory=false
-    versionRange="[1.2.5,)"
-    ordering="AFTER"
-    side="BOTH"
-
-[[dependencies.${mod_id}]]
     modId="emi"
     mandatory=false
     versionRange="[1.1.22,)"

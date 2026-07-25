@@ -11,7 +11,7 @@ import com.tterrag.registrate.providers.ProviderType;
 import com.tterrag.registrate.util.entry.BlockEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Blocks;
@@ -24,10 +24,13 @@ import net.minecraft.world.level.storage.loot.functions.CopyNbtFunction;
 import net.minecraft.world.level.storage.loot.providers.nbt.ContextNbtProvider;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 import net.minecraftforge.client.model.generators.ModelFile;
+import net.minecraftforge.client.model.generators.ConfiguredModel;
 import com.yision.fluidlogistics.content.processing.copperBasin.CopperBasinBlock;
 import com.yision.fluidlogistics.content.fluids.faucet.FaucetBlock;
 import com.yision.fluidlogistics.content.fluids.faucet.FaucetGenerator;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlock;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlock;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerGenerator;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidRepackagerBlock;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidRepackagerGenerator;
@@ -66,6 +69,62 @@ import static com.yision.fluidlogistics.FluidLogistics.REGISTRATE;
 
 @SuppressWarnings("removal")
 public class AllBlocks {
+
+    public static final BlockEntry<CopperFrogportBlock> COPPER_FROGPORT =
+        REGISTRATE.block("copper_frogport", CopperFrogportBlock::new)
+            .initialProperties(SharedProperties::softMetal)
+            .properties(p -> p.noOcclusion()
+                .mapColor(MapColor.TERRACOTTA_BLUE)
+                .sound(SoundType.NETHERITE_BLOCK))
+            .transform(pickaxeOnly())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .addLayer(() -> RenderType::cutoutMipped)
+            .blockstate((context, provider) -> provider.getVariantBuilder(context.getEntry())
+                .forAllStates(state -> {
+                    Direction attachedDirection = state.getValue(CopperFrogportBlock.ATTACHED_DIRECTION);
+                    int rotationX;
+                    int rotationY;
+                    switch (attachedDirection) {
+                        case DOWN -> {
+                            rotationX = 0;
+                            rotationY = 0;
+                        }
+                        case UP -> {
+                            rotationX = 180;
+                            rotationY = 0;
+                        }
+                        case NORTH -> {
+                            rotationX = 270;
+                            rotationY = 0;
+                        }
+                        case SOUTH -> {
+                            rotationX = 90;
+                            rotationY = 0;
+                        }
+                        case WEST -> {
+                            rotationX = 90;
+                            rotationY = 90;
+                        }
+                        case EAST -> {
+                            rotationX = 90;
+                            rotationY = 270;
+                        }
+                        default -> throw new IllegalStateException(
+                            "Unexpected Copper Frogport attachment direction: " + attachedDirection);
+                    }
+                    return ConfiguredModel.builder()
+                        .modelFile(new ModelFile.UncheckedModelFile(
+                            provider.modLoc("block/copper_frogport/block")))
+                        .rotationX(rotationX)
+                        .rotationY(rotationY)
+                        .build();
+                }))
+            .item(CopperFrogportItem::new)
+            .model((context, provider) -> provider.getBuilder(context.getName())
+                .parent(new ModelFile.UncheckedModelFile(
+                    provider.modLoc("block/copper_frogport/item"))))
+            .build()
+            .register();
 
     public static final BlockEntry<FluidTransporterBlock> FLUID_TRANSPORTER = REGISTRATE
             .block("fluid_transporter", FluidTransporterBlock::new)
@@ -333,7 +392,4 @@ public class AllBlocks {
     public static void register() {
     }
 
-    private static ResourceLocation createLoc(String path) {
-        return new ResourceLocation("create", path);
-    }
 }

@@ -11,6 +11,8 @@ import com.simibubi.create.content.logistics.packagePort.PackagePortTarget.Chain
 import com.simibubi.create.foundation.networking.SimplePacketBase;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerPackagePortRules;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlockEntity;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -75,7 +77,7 @@ public class HandPointerFrogportConnectionPacket extends SimplePacketBase {
             }
 
             Level level = player.level();
-            if (!level.isLoaded(chainConveyorPos)) {
+            if (!HandPointerInteractionGuard.canUseHandPointer(player) || !level.isLoaded(chainConveyorPos)) {
                 return;
             }
 
@@ -91,7 +93,7 @@ public class HandPointerFrogportConnectionPacket extends SimplePacketBase {
 
             List<PendingFrogportUpdate> pendingUpdates = new ArrayList<>(uniqueFrogports.size());
             for (BlockPos frogportPos : uniqueFrogports) {
-                if (!HandPointerInteractionGuard.canUseHandPointer(player, frogportPos)) {
+                if (!level.isLoaded(frogportPos)) {
                     return;
                 }
 
@@ -107,9 +109,19 @@ public class HandPointerFrogportConnectionPacket extends SimplePacketBase {
                 }
 
                 Vec3 targetLocation = newTarget.getExactTargetLocation(frogport, level, frogportPos);
-                if (targetLocation == Vec3.ZERO || !targetLocation.closerThan(
-                    Vec3.atBottomCenterOf(frogportPos),
-                    AllConfigs.server().logistics.packagePortRange.get() + 2)) {
+                if (targetLocation == Vec3.ZERO) {
+                    return;
+                }
+                double maxRange = AllConfigs.server().logistics.packagePortRange.get();
+                if (frogport instanceof CopperFrogportBlockEntity) {
+                    if (!HandPointerPackagePortRules.isWithinRange(
+                        targetLocation.x, targetLocation.y, targetLocation.z,
+                        frogportPos.getX(), frogportPos.getY(), frogportPos.getZ(), maxRange)) {
+                        return;
+                    }
+                } else if (!HandPointerPackagePortRules.isCreateFrogportReachable(
+                    targetLocation.x, targetLocation.y, targetLocation.z,
+                    frogportPos.getX(), frogportPos.getY(), frogportPos.getZ(), maxRange)) {
                     return;
                 }
 

@@ -1,11 +1,9 @@
 package com.yision.fluidlogistics.content.equipment.mechanicalFluidGun;
 
-import com.simibubi.create.content.kinetics.belt.transport.TransportedItemStack;
-import com.simibubi.create.content.logistics.depot.DepotBehaviour;
-import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
+import com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
 import com.yision.fluidlogistics.content.fluids.faucet.FaucetFilling;
+import com.yision.fluidlogistics.foundation.fluid.DepotFills;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -19,15 +17,15 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.items.ItemStackHandler;
+import org.jetbrains.annotations.Nullable;
 
 class MechanicalFluidGunProcessor {
 
 	static final int TRANSFER_INTERVAL = 10;
 	private static final int IDLE_RECHECK_INTERVAL = 20;
-	private static Field depotOutputBufferField;
 
 	private final MechanicalFluidGunBlockEntity be;
+	private PendingTarget pendingTarget;
 
 	MechanicalFluidGunProcessor(MechanicalFluidGunBlockEntity be) {
 		this.be = be;
@@ -113,22 +111,61 @@ class MechanicalFluidGunProcessor {
 		}
 
 		MechanicalFluidGunScheduleMode mode = be.getScheduleMode();
-		List<Integer> candidateIndices = getCandidateIndicesContinuingActiveTarget(mode, targets.size());
+		List<Integer> candidateIndices = getCandidateIndices(mode, targets.size());
+		List<FluidStack> sourceFluids = null;
+		int attemptedIndex = -1;
+
+		if (pendingTarget != null) {
+			PendingTarget pending = pendingTarget;
+			pendingTarget = null;
+			int index = pending.index();
+			if (index >= 0 && index < targets.size()) {
+				MechanicalFluidGunTargetConfig target = targets.get(index);
+				BlockPos absTarget = target.absoluteFrom(be.gunPos());
+				if (absTarget.equals(pending.pos())
+					&& targets.isTargetValid(be.getLevel(), be.gunPos(), absTarget)
+					&& !be.getBeltHandlerHelper().isBeltTarget(absTarget)) {
+					if (!be.aimAtTarget(index)) {
+						pendingTarget = pending;
+						cycle.setTransferCooldown(1);
+						return;
+					}
+					sourceFluids = snapshotSource(sourceHandler);
+					BlockState targetState = be.getLevel().getBlockState(absTarget);
+					ResolvedProcess process = resolveProcess(sourceFluids, target, targetState, absTarget);
+					if (process.kind() != ProcessKind.NONE
+						&& tryProcess(sourceHandler, target, absTarget, process)) {
+						cycle.markScheduledTarget(index);
+						cycle.setTransferCooldown(MechanicalFluidGunCycle.getSpeedAdjustedInterval(
+							TRANSFER_INTERVAL, Math.abs(be.getSpeed())));
+						return;
+					}
+					attemptedIndex = index;
+				}
+			}
+		}
+
+		if (sourceFluids == null) {
+			sourceFluids = snapshotSource(sourceHandler);
+		}
 
 		for (int index : candidateIndices) {
+			if (index == attemptedIndex) continue;
 			MechanicalFluidGunTargetConfig target = targets.get(index);
 			BlockPos absTarget = target.absoluteFrom(be.gunPos());
 			if (!targets.isTargetValid(be.getLevel(), be.gunPos(), absTarget)) continue;
 			if (be.getBeltHandlerHelper().isBeltTarget(absTarget)) continue;
 
 			BlockState targetState = be.getLevel().getBlockState(absTarget);
-			if (!canProcess(sourceHandler, target, targetState, absTarget)) continue;
+			ResolvedProcess process = resolveProcess(sourceFluids, target, targetState, absTarget);
+			if (process.kind() == ProcessKind.NONE) continue;
 
 			if (!be.aimAtTarget(index)) {
+				pendingTarget = new PendingTarget(index, absTarget);
 				cycle.setTransferCooldown(1);
 				return;
 			}
-			if (tryProcess(sourceHandler, target, absTarget)) {
+			if (tryProcess(sourceHandler, target, absTarget, process)) {
 				cycle.markScheduledTarget(index);
 				cycle.setTransferCooldown(MechanicalFluidGunCycle.getSpeedAdjustedInterval(TRANSFER_INTERVAL, Math.abs(be.getSpeed())));
 				return;
@@ -140,6 +177,21 @@ class MechanicalFluidGunProcessor {
 		}
 		cycle.setTransferCooldown(MechanicalFluidGunCycle.getSpeedAdjustedInterval(IDLE_RECHECK_INTERVAL, Math.abs(be.getSpeed())));
 		be.endWorkCycle();
+	}
+
+	void clearPendingTarget() {
+		pendingTarget = null;
+	}
+
+	private List<FluidStack> snapshotSource(IFluidHandler sourceHandler) {
+		List<FluidStack> sourceFluids = new ArrayList<>();
+		for (int tank = 0; tank < sourceHandler.getTanks(); tank++) {
+			FluidStack fluid = sourceHandler.getFluidInTank(tank);
+			if (!fluid.isEmpty()) {
+				sourceFluids.add(fluid.copy());
+			}
+		}
+		return sourceFluids;
 	}
 
 	private List<Integer> getCandidateIndices(MechanicalFluidGunScheduleMode mode, int size) {
@@ -166,89 +218,77 @@ class MechanicalFluidGunProcessor {
 		return indices;
 	}
 
-	private List<Integer> getCandidateIndicesContinuingActiveTarget(MechanicalFluidGunScheduleMode mode, int size) {
-		List<Integer> indices = getCandidateIndices(mode, size);
-		int activeTarget = be.getTargetsHelper().getActiveTargetIndex();
-		if (activeTarget < 0 || activeTarget >= size) {
-			return indices;
-		}
-
-		List<Integer> activeFirst = new ArrayList<>();
-		activeFirst.add(activeTarget);
-		for (int index : indices) {
-			if (index != activeTarget) {
-				activeFirst.add(index);
-			}
-		}
-		return activeFirst;
-	}
-	private boolean canProcess(IFluidHandler sourceHandler, MechanicalFluidGunTargetConfig target,
-							   BlockState targetState, BlockPos absTarget) {
-		if (!targetState.is(MechanicalFluidGunBlock.TARGETS)) return false;
+	private ResolvedProcess resolveProcess(List<FluidStack> sourceFluids, MechanicalFluidGunTargetConfig target,
+										   BlockState targetState, BlockPos absTarget) {
+		if (!targetState.is(MechanicalFluidGunBlock.TARGETS)) return ResolvedProcess.NONE;
 
 		BlockEntity targetEntity = be.getLevel().getBlockEntity(absTarget);
 
 		if (targetEntity != null && isDepot(targetEntity)) {
 			ItemStack itemOnDepot = getItemOnDepot(targetEntity);
-			return !itemOnDepot.isEmpty()
-				&& FaucetFilling.canItemBeFilled(be.getLevel(), itemOnDepot)
-				&& !MechanicalFluidGunFillOperations.findFillableFluidForItem(be, sourceHandler, itemOnDepot).isEmpty();
+			if (itemOnDepot.isEmpty() || !FaucetFilling.canItemBeFilled(be.getLevel(), itemOnDepot)) {
+				return ResolvedProcess.NONE;
+			}
+			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForItem(be, sourceFluids, itemOnDepot);
+			return fillableFluid.isEmpty()
+				? ResolvedProcess.NONE
+				: new ResolvedProcess(ProcessKind.DEPOT, null, itemOnDepot.copy(), fillableFluid);
 		}
 
 		if (targetEntity != null && isBelt(targetEntity)) {
-			return false;
+			return ResolvedProcess.NONE;
 		}
 
 		if (targetState.is(Blocks.CAULDRON) || targetState.is(Blocks.WATER_CAULDRON)) {
-			return !MechanicalFluidGunFillOperations.findFillableFluidForCauldron(be, sourceHandler, targetState).isEmpty();
+			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForCauldron(be, sourceFluids, targetState);
+			return fillableFluid.isEmpty()
+				? ResolvedProcess.NONE
+				: new ResolvedProcess(ProcessKind.CAULDRON, null, ItemStack.EMPTY, fillableFluid);
 		}
 
-		if (targetEntity == null) return false;
+		if (targetEntity == null) return ResolvedProcess.NONE;
 
 		IFluidHandler targetHandler = MechanicalFluidGunFillOperations.getTargetFluidHandler(
 			be.getLevel(), targetEntity.getBlockPos(), target.face());
 		if (targetHandler != null) {
-			return !MechanicalFluidGunFillOperations.findFillableFluidForContainer(be, sourceHandler, targetHandler, absTarget).isEmpty();
+			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForContainer(be, sourceFluids, targetHandler, absTarget);
+			if (!fillableFluid.isEmpty()) {
+				return new ResolvedProcess(ProcessKind.CONTAINER, targetHandler, ItemStack.EMPTY, fillableFluid);
+			}
 		}
 
-		return MechanicalFluidGunFillOperations.canFuel(be, sourceHandler, targetState, absTarget);
+		FluidStack fuel = MechanicalFluidGunFillOperations.findFuelFluid(be, sourceFluids, targetState, absTarget);
+		return fuel.isEmpty()
+			? ResolvedProcess.NONE
+			: new ResolvedProcess(ProcessKind.FUEL, null, ItemStack.EMPTY, fuel);
 	}
 
 	private boolean tryProcess(IFluidHandler sourceHandler, MechanicalFluidGunTargetConfig target,
-							   BlockPos absTarget) {
+							   BlockPos absTarget, ResolvedProcess process) {
 		Level level = be.getLevel();
-		BlockEntity targetEntity = level.getBlockEntity(absTarget);
 		BlockState targetState = level.getBlockState(absTarget);
 
 		if (!targetState.is(MechanicalFluidGunBlock.TARGETS)) return false;
 
-		if (targetEntity != null && isDepot(targetEntity)) {
-			ItemStack itemOnDepot = getItemOnDepot(targetEntity);
-			if (!itemOnDepot.isEmpty() && FaucetFilling.canItemBeFilled(level, itemOnDepot)) {
-				FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForItem(be, sourceHandler, itemOnDepot);
-				if (!fillableFluid.isEmpty()) {
-					return startDepotItemFilling(sourceHandler, itemOnDepot, fillableFluid);
-				}
-			}
-			return false;
+		if (process.kind() == ProcessKind.DEPOT) {
+			return startDepotItemFilling(sourceHandler, process.item(), process.fluid());
 		}
 
-		if (targetState.is(Blocks.CAULDRON) || targetState.is(Blocks.WATER_CAULDRON)) {
-			FluidStack fillableFluid = MechanicalFluidGunFillOperations.findFillableFluidForCauldron(be, sourceHandler, targetState);
-			if (!fillableFluid.isEmpty()) {
-				MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
-				return MechanicalFluidGunFillOperations.tryFillCauldron(be, visuals, absTarget, targetState, fillableFluid);
-			}
-			return false;
-		}
-
-		if (targetEntity != null) {
+		if (process.kind() == ProcessKind.CAULDRON) {
 			MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
-			if (MechanicalFluidGunFillOperations.tryFillContainerWithActiveTarget(be, visuals, target, absTarget)) {
-				return true;
-			}
+			return MechanicalFluidGunFillOperations.tryFillCauldron(be, visuals, absTarget, targetState, process.fluid());
+		}
 
-			return MechanicalFluidGunFillOperations.tryFuel(be, visuals, sourceHandler, targetState, absTarget);
+		if (process.kind() == ProcessKind.CONTAINER && process.targetHandler() != null) {
+			MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
+			return MechanicalFluidGunFillOperations.tryFillContainer(be, visuals, absTarget, sourceHandler,
+				process.targetHandler(), process.fluid());
+		}
+
+		if (process.kind() == ProcessKind.FUEL) {
+			MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
+			return MechanicalFluidGunFillOperations.tryFuel(be, visuals, sourceHandler, targetState, absTarget,
+				process.fluid());
 		}
 
 		return false;
@@ -260,81 +300,72 @@ class MechanicalFluidGunProcessor {
 			MechanicalFluidGunItemFilling.ProcessingTarget.DEPOT, null);
 	}
 
+	private void abortFilling() {
+		be.getItemFillingHelper().clear();
+		be.endWorkCycle();
+	}
+
 	private void finishDepotItemFilling() {
 		MechanicalFluidGunTargets targets = be.getTargetsHelper();
 		MechanicalFluidGunItemFilling itemFilling = be.getItemFillingHelper();
 		MechanicalFluidGunVisuals visuals = be.getVisualsHelper();
 		MechanicalFluidGunCycle cycle = be.getCycleHelper();
 
-		if (!itemFilling.isFillingDepot() || itemFilling.getProcessingItem().isEmpty() || itemFilling.getPendingFluid().isEmpty()) {
-			itemFilling.clear();
-			be.endWorkCycle();
+		if (!itemFilling.isFillingDepot()) {
+			abortFilling();
 			return;
 		}
 
 		BlockPos absTarget = targets.getAbsoluteTarget(be.gunPos());
 		if (absTarget == null) {
-			itemFilling.clear();
-			be.endWorkCycle();
+			abortFilling();
 			return;
 		}
 
 		BlockEntity targetEntity = be.getLevel().getBlockEntity(absTarget);
 		if (!isDepot(targetEntity)) {
-			itemFilling.clear();
-			be.endWorkCycle();
+			abortFilling();
 			return;
 		}
 
 		ItemStack currentItem = getItemOnDepot(targetEntity);
-		ItemStack processingCopy = itemFilling.getProcessingItem().copy();
-		processingCopy.setCount(1);
-		ItemStack currentCopy = currentItem.copy();
-		currentCopy.setCount(1);
-		if (!ItemStack.isSameItemSameTags(currentCopy, processingCopy) || currentItem.getCount() < 1) {
-			itemFilling.clear();
-			be.endWorkCycle();
+		if (!itemFilling.canCommit(currentItem)) {
+			abortFilling();
 			return;
 		}
 
-		DepotBehaviour behaviour = BlockEntityBehaviour.get(targetEntity, DepotBehaviour.TYPE);
-		if (behaviour == null) {
-			itemFilling.clear();
-			be.endWorkCycle();
-			return;
-		}
-
-		ItemStack result = FaucetFilling.fillItem(be.getLevel(), itemFilling.getPendingFluid().getAmount(),
-			currentItem, itemFilling.getPendingFluid().copy());
-		if (result.isEmpty()) {
-			itemFilling.clear();
-			be.endWorkCycle();
+		var transportedHandler = DepotFills.getTransportedHandler(be.getLevel(), targetEntity);
+		if (transportedHandler == null) {
+			abortFilling();
 			return;
 		}
 
 		IFluidHandler sourceHandler = be.sourceHandler();
 		if (sourceHandler == null) {
-			itemFilling.clear();
-			be.endWorkCycle();
+			abortFilling();
 			return;
 		}
 
-		FluidStack drained = sourceHandler.drain(itemFilling.getPendingFluid().copy(), IFluidHandler.FluidAction.EXECUTE);
-		if (drained.isEmpty() || drained.getAmount() < itemFilling.getPendingFluid().getAmount()) {
-			itemFilling.clear();
-			be.endWorkCycle();
+		FluidStack drained = itemFilling.drainPendingFluid(sourceHandler);
+		if (drained.isEmpty()) {
+			abortFilling();
 			return;
 		}
 
-		if (currentItem.isEmpty()) {
-			behaviour.setHeldItem(new TransportedItemStack(result));
-		} else {
-			behaviour.setHeldItem(new TransportedItemStack(currentItem.copy()));
-			storeDepotOutput(behaviour, result, absTarget);
+		boolean completed = DepotFills.fillFirstMatchingItem(transportedHandler,
+			transported -> itemFilling.canCommit(transported.stack),
+			stack -> {
+				stack.shrink(1);
+				return itemFilling.getPreparedResult().copy();
+			});
+		if (!completed) {
+			MechanicalFluidGunFillOperations.restoreToSource(sourceHandler, drained);
+			abortFilling();
+			return;
 		}
 
 		targetEntity.setChanged();
-		be.getLevel().sendBlockUpdated(absTarget, targetEntity.getBlockState(), targetEntity.getBlockState(), 3);
+		DepotFills.notifyTargetUpdate(be.getLevel(), targetEntity);
 		be.getLevel().playSound(null, absTarget, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 0.5f, 1.0f + be.getLevel().random.nextFloat() * 0.2f);
 
 		MechanicalFluidGunTargetConfig activeTarget = targets.getActiveTarget();
@@ -351,6 +382,7 @@ class MechanicalFluidGunProcessor {
 		MechanicalFluidGunTargets targets = be.getTargetsHelper();
 		MechanicalFluidGunCycle cycle = be.getCycleHelper();
 
+		be.clearDynamicAimPoint();
 		if (processableTarget == -1) {
 			targets.resetActive();
 			cycle.setActive(false);
@@ -362,6 +394,8 @@ class MechanicalFluidGunProcessor {
 			targets.setActiveTargetIndex(processableTarget);
 			cycle.setActive(true);
 			cycle.setTransferCooldown(0);
+			pendingTarget = new PendingTarget(processableTarget,
+				targets.get(processableTarget).absoluteFrom(be.gunPos()));
 		}
 
 		be.updateVisuals();
@@ -375,64 +409,49 @@ class MechanicalFluidGunProcessor {
 
 		int size = targets.size();
 		if (size == 0) return -1;
-			MechanicalFluidGunScheduleMode mode = be.getScheduleMode();
+		MechanicalFluidGunScheduleMode mode = be.getScheduleMode();
+		List<FluidStack> sourceFluids = snapshotSource(sourceHandler);
 
-			for (int index : getCandidateIndicesContinuingActiveTarget(mode, size)) {
-				MechanicalFluidGunTargetConfig target = targets.get(index);
-				BlockPos absTarget = target.absoluteFrom(be.gunPos());
-				if (!targets.isTargetValid(be.getLevel(), be.gunPos(), absTarget)) continue;
+		for (int index : getCandidateIndices(mode, size)) {
+			MechanicalFluidGunTargetConfig target = targets.get(index);
+			BlockPos absTarget = target.absoluteFrom(be.gunPos());
+			if (!targets.isTargetValid(be.getLevel(), be.gunPos(), absTarget)) continue;
 
-				BlockState targetState = be.getLevel().getBlockState(absTarget);
-				if (canProcess(sourceHandler, target, targetState, absTarget)) {
-					return index;
-				}
+			BlockState targetState = be.getLevel().getBlockState(absTarget);
+			if (resolveProcess(sourceFluids, target, targetState, absTarget).kind() != ProcessKind.NONE) {
+				return index;
 			}
-			return -1;
+		}
+		return -1;
 	}
 
 	boolean isDepot(BlockEntity entity) {
-		return entity != null && BlockEntityBehaviour.get(entity, DepotBehaviour.TYPE) != null;
+		return DepotFills.isDepot(entity);
 	}
 
 	ItemStack getItemOnDepot(BlockEntity depot) {
-		DepotBehaviour behaviour = BlockEntityBehaviour.get(depot, DepotBehaviour.TYPE);
-		return behaviour == null ? ItemStack.EMPTY : behaviour.getHeldItemStack();
-	}
-
-	private void storeDepotOutput(DepotBehaviour behaviour, ItemStack result, BlockPos targetPos) {
-		try {
-			ItemStackHandler outputBuffer = getDepotOutputBuffer(behaviour);
-			ItemStack remainder = insertIntoOutputBuffer(outputBuffer, result);
-			if (!remainder.isEmpty()) {
-				dropDepotOutput(remainder, targetPos);
-			}
-		} catch (ReflectiveOperationException | ClassCastException exception) {
-			dropDepotOutput(result, targetPos);
-		}
-	}
-
-	private static ItemStackHandler getDepotOutputBuffer(DepotBehaviour behaviour) throws ReflectiveOperationException {
-		if (depotOutputBufferField == null) {
-			depotOutputBufferField = DepotBehaviour.class.getDeclaredField("processingOutputBuffer");
-			depotOutputBufferField.setAccessible(true);
-		}
-		return (ItemStackHandler) depotOutputBufferField.get(behaviour);
-	}
-
-	static ItemStack insertIntoOutputBuffer(ItemStackHandler outputBuffer, ItemStack result) {
-		ItemStack remainder = result.copy();
-		for (int slot = 0; slot < outputBuffer.getSlots() && !remainder.isEmpty(); slot++) {
-			remainder = outputBuffer.insertItem(slot, remainder, false);
-		}
-		return remainder;
-	}
-
-	private void dropDepotOutput(ItemStack stack, BlockPos targetPos) {
-		net.minecraft.world.Containers.dropItemStack(be.getLevel(),
-			targetPos.getX() + 0.5, targetPos.getY() + 0.75, targetPos.getZ() + 0.5, stack);
+		return DepotFills.getItemOnDepot(depot);
 	}
 
 	private boolean isBelt(BlockEntity entity) {
-		return entity instanceof com.simibubi.create.content.kinetics.belt.BeltBlockEntity;
+		return entity instanceof BeltBlockEntity;
+	}
+
+	private record ResolvedProcess(ProcessKind kind, @Nullable IFluidHandler targetHandler,
+		ItemStack item, FluidStack fluid) {
+
+		private static final ResolvedProcess NONE = new ResolvedProcess(ProcessKind.NONE, null,
+			ItemStack.EMPTY, FluidStack.EMPTY);
+	}
+
+	private record PendingTarget(int index, BlockPos pos) {
+	}
+
+	private enum ProcessKind {
+		NONE,
+		DEPOT,
+		CAULDRON,
+		CONTAINER,
+		FUEL
 	}
 }

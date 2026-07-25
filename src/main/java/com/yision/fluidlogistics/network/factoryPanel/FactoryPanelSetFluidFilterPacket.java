@@ -62,12 +62,12 @@ public class FactoryPanelSetFluidFilterPacket extends SimplePacketBase {
                 return;
             }
 
-            ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+            ItemStack fluidTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
             FluidStack template = fluidStack.copy();
             template.setAmount(1);
-            CompressedTankItem.setFluidVirtual(virtualTank, template);
+            CompressedTankItem.setFluid(fluidTank, template);
 
-            if (!behaviour.setFilter(virtualTank)) {
+            if (!behaviour.setFilter(fluidTank)) {
                 return;
             }
 

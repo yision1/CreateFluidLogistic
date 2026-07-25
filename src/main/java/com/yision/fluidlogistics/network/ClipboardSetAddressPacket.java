@@ -3,16 +3,11 @@ package com.yision.fluidlogistics.network;
 import org.joml.Vector3f;
 
 import com.simibubi.create.AllBlocks;
-import com.simibubi.create.content.logistics.packager.PackagerBlock;
-import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.foundation.networking.SimplePacketBase;
+import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
 import com.yision.fluidlogistics.util.ClipboardAddressUtil;
-import com.yision.fluidlogistics.util.IPackagerOverrideData;
-import com.yision.fluidlogistics.util.PackagerTargetHelper;
 
-import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -24,9 +19,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.SignBlockEntity;
-import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.network.NetworkEvent.Context;
 
@@ -71,46 +63,38 @@ public class ClipboardSetAddressPacket extends SimplePacketBase {
                 return;
             }
 
-            BlockState state = level.getBlockState(pos);
-            BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (!PackagerTargetHelper.isClipboardAddressTarget(blockEntity, state)) {
-                return;
-            }
-
-            if (!(blockEntity instanceof IPackagerOverrideData data)) {
-                return;
-            }
-
             String address = ClipboardAddressUtil.extractFirstAddress(heldItem);
             if (address == null) {
+                if (!PackagerAddresses.isTarget(level, pos)) {
+                    return;
+                }
                 fluidlogistics$sendStatus(player, STATUS_INVALID_COLOR, "create.fluidlogistics.clipboard.no_valid_address");
                 fluidlogistics$sendFeedback(level, pos, false);
                 return;
             }
 
-            String blockTypeName = fluidlogistics$getBlockTypeName(state, level, pos);
-            if (fluidlogistics$hasSignAddress(level, pos)) {
-                fluidlogistics$sendStatus(player, STATUS_INVALID_COLOR,
-                    Component.translatable("create.fluidlogistics.clipboard.address_set_by_sign", blockTypeName));
-                fluidlogistics$sendFeedback(level, pos, false);
-                return;
+            PackagerAddresses.EditResult result = PackagerAddresses.set(level, pos, address);
+            switch (result) {
+                case NOT_TARGET, ALREADY_EMPTY -> {
+                    return;
+                }
+                case SIGN_CONTROLLED -> {
+                    String blockTypeName = fluidlogistics$getBlockTypeName(level.getBlockState(pos));
+                    fluidlogistics$sendStatus(player, STATUS_INVALID_COLOR,
+                        Component.translatable("create.fluidlogistics.clipboard.address_set_by_sign", blockTypeName));
+                    fluidlogistics$sendFeedback(level, pos, false);
+                    return;
+                }
+                case NETWORK_LINKED -> {
+                    fluidlogistics$sendStatus(player, STATUS_INVALID_COLOR, "logistically_linked.protected");
+                    fluidlogistics$sendFeedback(level, pos, false);
+                    return;
+                }
+                case UPDATED -> {
+                }
             }
 
-            boolean linkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
-            if (linkedToNetwork) {
-                fluidlogistics$sendStatus(player, STATUS_INVALID_COLOR, "logistically_linked.protected");
-                fluidlogistics$sendFeedback(level, pos, false);
-                return;
-            }
-
-            data.fluidlogistics$setClipboardAddress(address);
-
-            if (blockEntity instanceof PackagerBlockEntity packager) {
-                packager.signBasedAddress = address;
-                packager.setChanged();
-                packager.notifyUpdate();
-            }
-
+            String blockTypeName = fluidlogistics$getBlockTypeName(level.getBlockState(pos));
             fluidlogistics$sendStatus(player, STATUS_CONNECTABLE_COLOR,
                 Component.translatable("create.fluidlogistics.clipboard.address_set", blockTypeName, address));
             fluidlogistics$sendFeedback(level, pos, true);
@@ -118,11 +102,8 @@ public class ClipboardSetAddressPacket extends SimplePacketBase {
         return true;
     }
 
-    private static String fluidlogistics$getBlockTypeName(BlockState state, Level level, BlockPos pos) {
-        if (com.yision.fluidlogistics.registry.AllBlocks.FLUID_PACKAGER.has(state)) {
-            return Component.translatable("block.fluidlogistics.fluid_packager").getString();
-        }
-        return Component.translatable("block.create.packager").getString();
+    private static String fluidlogistics$getBlockTypeName(BlockState state) {
+        return state.getBlock().getName().getString();
     }
 
     private static void fluidlogistics$sendStatus(ServerPlayer player, int color, String key) {
@@ -153,28 +134,4 @@ public class ClipboardSetAddressPacket extends SimplePacketBase {
             SoundSource.BLOCKS, 0.5F, success ? 1.0F : 0.85F);
     }
 
-    private static boolean fluidlogistics$hasSignAddress(Level level, BlockPos pos) {
-        for (Direction direction : Iterate.directions) {
-            BlockEntity blockEntity = level.getBlockEntity(pos.relative(direction));
-            if (!(blockEntity instanceof SignBlockEntity sign)) {
-                continue;
-            }
-
-            for (boolean front : Iterate.trueAndFalse) {
-                SignText text = sign.getText(front);
-                StringBuilder address = new StringBuilder();
-                for (Component component : text.getMessages(false)) {
-                    String line = component.getString();
-                    if (!line.isBlank()) {
-                        address.append(line.trim()).append(' ');
-                    }
-                }
-                if (address.length() > 0) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
 }

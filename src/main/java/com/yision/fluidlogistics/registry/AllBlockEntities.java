@@ -7,9 +7,13 @@ import com.yision.fluidlogistics.content.processing.copperBasin.CopperBasinBlock
 import com.yision.fluidlogistics.content.processing.copperBasin.CopperBasinRenderer;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunRenderer;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunVisual;
 import com.yision.fluidlogistics.content.fluids.faucet.FaucetBlockEntity;
 import com.yision.fluidlogistics.content.fluids.faucet.FaucetRenderer;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlockEntity;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportRenderer;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportVisual;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerRenderer;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerVisual;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.repackager.FluidRepackagerBlockEntity;
@@ -28,14 +32,19 @@ import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidA
 import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortRenderer;
 import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankBlockEntity;
 import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankRenderer;
-import com.yision.fluidlogistics.content.fluids.faucet.SmartFaucetBlockEntity;
-import com.yision.fluidlogistics.content.fluids.faucet.SmartFaucetRenderer;
 import com.yision.fluidlogistics.content.logistics.smartHopper.SmartHopperBlockEntity;
 import com.yision.fluidlogistics.content.logistics.smartHopper.SmartHopperRenderer;
 
 import static com.yision.fluidlogistics.FluidLogistics.REGISTRATE;
 
 public class AllBlockEntities {
+
+    public static final BlockEntityEntry<CopperFrogportBlockEntity> COPPER_FROGPORT = REGISTRATE
+            .blockEntity("copper_frogport", CopperFrogportBlockEntity::new)
+            .visual(() -> CopperFrogportVisual::new, true)
+            .validBlocks(AllBlocks.COPPER_FROGPORT)
+            .renderer(() -> CopperFrogportRenderer::new)
+            .register();
 
     public static final BlockEntityEntry<FluidTransporterBlockEntity> FLUID_TRANSPORTER = REGISTRATE
             .blockEntity("fluid_transporter", FluidTransporterBlockEntity::new)
@@ -57,10 +66,10 @@ public class AllBlockEntities {
             .renderer(() -> FluidRepackagerRenderer::new)
             .register();
 
-    public static final BlockEntityEntry<SmartFaucetBlockEntity> SMART_FAUCET = REGISTRATE
-            .blockEntity("smart_faucet", SmartFaucetBlockEntity::new)
+    public static final BlockEntityEntry<FaucetBlockEntity> SMART_FAUCET = REGISTRATE
+            .blockEntity("smart_faucet", FaucetBlockEntity::new)
             .validBlocks(AllBlocks.SMART_FAUCET)
-            .renderer(() -> SmartFaucetRenderer::new)
+            .renderer(() -> FaucetRenderer::new)
             .register();
 
     public static final BlockEntityEntry<FaucetBlockEntity> FAUCET = REGISTRATE
@@ -114,6 +123,7 @@ public class AllBlockEntities {
 
     public static final BlockEntityEntry<MechanicalFluidGunBlockEntity> MECHANICAL_FLUID_GUN = REGISTRATE
             .blockEntity("mechanical_fluid_gun", MechanicalFluidGunBlockEntity::new)
+            .visual(() -> MechanicalFluidGunVisual::new, true)
             .validBlocks(AllBlocks.MECHANICAL_FLUID_GUN)
             .renderer(() -> MechanicalFluidGunRenderer::new)
             .register();

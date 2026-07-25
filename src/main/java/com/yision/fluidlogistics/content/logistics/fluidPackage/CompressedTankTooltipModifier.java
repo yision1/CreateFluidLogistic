@@ -21,7 +21,7 @@ public class CompressedTankTooltipModifier extends ItemDescription.Modifier {
     public void modify(ItemTooltipEvent context) {
         ItemStack stack = context.getItemStack();
         List<Component> fluidTooltip =
-            FluidTooltipHelper.getVirtualCompressedTankTooltipLines(stack, context.getFlags(), false);
+            FluidTooltipHelper.getCompressedTankTooltipLines(stack, context.getFlags(), false);
 
         if (!fluidTooltip.isEmpty()) {
             List<Component> tooltip = context.getToolTip();

@@ -3,7 +3,7 @@ package com.yision.fluidlogistics.ponder;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.content.processing.basin.BasinBlockEntity;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
-import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlock;
+import com.yision.fluidlogistics.content.fluids.faucet.FaucetBlock;
 import com.yision.fluidlogistics.content.fluids.faucet.FaucetBlockEntity;
 import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankBlockEntity;
 import net.createmod.ponder.api.element.ElementLink;
@@ -74,7 +74,7 @@ public class FaucetScenes {
         scene.world().createItemOnBeltLike(depotPos, Direction.NORTH, new ItemStack(Items.BUCKET));
         scene.idle(20);
 
-        scene.world().modifyBlock(faucetPos, s -> s.setValue(AbstractFaucetBlock.OPEN, true), false);
+        scene.world().modifyBlock(faucetPos, s -> s.setValue(FaucetBlock.OPEN, true), false);
 
         showFaucetFluid(scene, faucetS, waterTag);
         scene.idle(25);

@@ -6,6 +6,7 @@ import com.simibubi.create.foundation.item.render.CustomRenderedItemModelRendere
 import com.simibubi.create.foundation.item.render.PartialItemModelRenderer;
 import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidTankItem;
 import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidSupplyRules;
+import com.yision.fluidlogistics.render.FluidItemRenderHelper;
 
 import net.createmod.catnip.platform.ForgeCatnipServices;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -29,10 +30,11 @@ public class InfiniteFluidTankItemRenderer extends CustomRenderedItemModelRender
 		if (fluid.isEmpty())
 			return;
 
-		renderFluidInTank(fluid, ms, buffer, light);
+		renderFluidInTank(fluid, ms, buffer, light, displayContext);
 	}
 
-	private static void renderFluidInTank(FluidStack fluid, PoseStack ms, MultiBufferSource buffer, int light) {
+	private static void renderFluidInTank(FluidStack fluid, PoseStack ms, MultiBufferSource buffer, int light,
+	                                      ItemDisplayContext displayContext) {
 		float capHeight = 1 / 4f;
 		float tankHullWidth = 1 / 16f + 1 / 128f;
 		float minPuddleHeight = 1 / 16f;
@@ -58,7 +60,7 @@ public class InfiniteFluidTankItemRenderer extends CustomRenderedItemModelRender
 		ms.pushPose();
 		ms.translate(-0.5f, -0.5f, -0.5f);
 		ForgeCatnipServices.FLUID_RENDERER.renderFluidBox(fluid, xMin, yMin, zMin, xMax, yMax, zMax,
-			buffer, ms, light, true, false);
+			FluidItemRenderHelper.getFluidBuilder(buffer, displayContext), ms, light, true, false);
 		ms.popPose();
 	}
 }

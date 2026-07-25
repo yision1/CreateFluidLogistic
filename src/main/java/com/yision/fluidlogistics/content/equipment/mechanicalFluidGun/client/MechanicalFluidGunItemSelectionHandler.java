@@ -152,7 +152,6 @@ public class MechanicalFluidGunItemSelectionHandler {
             }
             currentItem = held;
             currentSlot = heldSlot;
-            // Rebuild local cache from item NBT instead of unconditionally clearing
             rebuildTargetsFromNBT(held);
             return;
         }

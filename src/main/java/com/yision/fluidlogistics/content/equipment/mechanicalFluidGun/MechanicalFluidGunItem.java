@@ -58,8 +58,6 @@ public class MechanicalFluidGunItem extends BlockItem {
 		return !MechanicalFluidGunBlock.isTargetTagged(level, pos);
 	}
 
-	// --- NBT helpers for pre-bound targets on held item stack ---
-
 	public static void addSelectedTarget(ItemStack stack, Level level, BlockPos targetPos, @Nullable Direction face) {
 		CompoundTag tag = stack.getOrCreateTag();
 		String dimension = level.dimension().location().toString();
@@ -72,7 +70,6 @@ public class MechanicalFluidGunItem extends BlockItem {
 			? tag.getList(TAG_SELECTED_TARGETS, Tag.TAG_COMPOUND)
 			: new ListTag();
 
-		// Remove existing entry for same position to avoid duplicates
 		for (int i = list.size() - 1; i >= 0; i--) {
 			CompoundTag entry = list.getCompound(i);
 			if (entry.getInt("X") == targetPos.getX()

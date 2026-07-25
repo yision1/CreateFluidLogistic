@@ -49,18 +49,18 @@ public final class FluidTooltipHelper {
         return lines;
     }
 
-    public static List<Component> getVirtualCompressedTankTooltipLines(ItemStack stack, TooltipFlag tooltipFlag) {
-        return getVirtualCompressedTankTooltipLines(stack, tooltipFlag, true);
+    public static List<Component> getCompressedTankTooltipLines(ItemStack stack, TooltipFlag tooltipFlag) {
+        return getCompressedTankTooltipLines(stack, tooltipFlag, true);
     }
 
-    public static List<Component> getVirtualCompressedTankTooltipLines(ItemStack stack, TooltipFlag tooltipFlag,
+    public static List<Component> getCompressedTankTooltipLines(ItemStack stack, TooltipFlag tooltipFlag,
             boolean includeModName) {
-        FluidStack fluid = getVirtualCompressedTankFluid(stack);
+        FluidStack fluid = getCompressedTankFluid(stack);
         return fluid.isEmpty() ? List.of() : getTooltipLines(fluid, tooltipFlag, includeModName);
     }
 
-    public static FluidStack getVirtualCompressedTankFluid(ItemStack stack) {
-        if (!(stack.getItem() instanceof CompressedTankItem) || !CompressedTankItem.isVirtual(stack)) {
+    public static FluidStack getCompressedTankFluid(ItemStack stack) {
+        if (!CompressedTankItem.isFluidStack(stack)) {
             return FluidStack.EMPTY;
         }
         return CompressedTankItem.getFluid(stack);

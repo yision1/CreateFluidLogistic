@@ -32,7 +32,7 @@ public class StockKeeperRequestFluidGuiHandler implements IGuiContainerHandler<S
         }
 
         ItemStack stack = hovered.get().getFirst();
-        if (!(stack.getItem() instanceof CompressedTankItem) || !CompressedTankItem.isVirtual(stack)) {
+        if (!CompressedTankItem.isFluidStack(stack)) {
             return Optional.empty();
         }
 

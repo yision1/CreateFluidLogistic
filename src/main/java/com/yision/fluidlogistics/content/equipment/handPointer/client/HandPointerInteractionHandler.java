@@ -9,7 +9,9 @@ import com.simibubi.create.content.logistics.packager.repackager.RepackagerBlock
 import com.simibubi.create.content.redstone.thresholdSwitch.ThresholdSwitchBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
+import com.yision.fluidlogistics.content.equipment.handPointer.MechanicalCrafterConnectionPlanner.Plan;
 import com.yision.fluidlogistics.content.equipment.handPointer.filter.HandPointerFilterTargetResolver;
 import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerItem;
 import com.yision.fluidlogistics.content.equipment.handPointer.logistics.LogisticsLinkResolver;
@@ -217,7 +219,9 @@ public class HandPointerInteractionHandler {
         BlockEntity blockEntity = level.getBlockEntity(pos);
 
         HandPointerPackagerClickRouting.PackagerClickAction packagerClickAction =
-            HandPointerPackagerClickRouting.route(HandPointerModeManager.getCurrentMode(), PackagerTargetHelper.isToggleTarget(blockEntity, state));
+            HandPointerPackagerClickRouting.route(HandPointerModeManager.getCurrentMode(),
+                PackagerTargetHelper.isToggleTarget(blockEntity, state)
+                    || player.isShiftKeyDown() && PackagerAddresses.isTarget(level, pos));
 
         if (!shouldHandleRightClick(level, player, pos, hitResult, state, blockEntity, packagerClickAction)) {
             return;
@@ -271,6 +275,16 @@ public class HandPointerInteractionHandler {
             event.setCancellationResult(InteractionResult.SUCCESS);
             FluidLogisticsPackets.getChannel().sendToServer(new HandPointerOpenFilterMenuPacket(
                 pos, hitResult.getDirection(), hitResult.getLocation()));
+            return;
+        }
+
+        if (MechanicalCrafterSelectionHandler.isCrafter(level, pos)) {
+            event.setCanceled(true);
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            if (HandPointerModeManager.tryEnterMode(HandPointerModeManager.SelectionMode.MECHANICAL_CRAFTER)) {
+                MechanicalCrafterSelectionHandler.enterMode(pos);
+                playBlockSound(level, pos, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.5f, 1.0f);
+            }
             return;
         }
 
@@ -392,6 +406,7 @@ public class HandPointerInteractionHandler {
             || isDisplayBoard(level, pos, state)
             || FrogportSelectionHandler.isFrogport(level, pos)
             || MailboxSelectionHandler.isMailbox(level, pos)
+            || MechanicalCrafterSelectionHandler.isCrafter(level, pos)
             || LogisticsSelectionHandler.isLogisticsBlockEntity(blockEntity)) {
             return true;
         }
@@ -412,6 +427,24 @@ public class HandPointerInteractionHandler {
 
     private static void handleSelectionClick(Player player, Level level, BlockPos pos, BlockState state, Direction targetFace) {
         BlockEntity blockEntity = level.getBlockEntity(pos);
+
+        if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.MECHANICAL_CRAFTER) {
+            if (!MechanicalCrafterSelectionHandler.isCrafter(level, pos)) {
+                HandPointerModeManager.exitMode(player, level);
+                sendStatus(player, "fluidlogistics.hand_pointer.mode_exited", STATUS_NEUTRAL_COLOR);
+                return;
+            }
+
+            Plan plan = MechanicalCrafterSelectionHandler.clickTerminal(level, pos);
+            if (plan == null) {
+                playDenySound(level, pos);
+                sendStatus(player, "fluidlogistics.hand_pointer.crafter.cannot_connect", STATUS_INVALID_COLOR);
+                return;
+            }
+
+            HandPointerModeManager.exitMode(player, level);
+            return;
+        }
 
         if (HandPointerModeManager.getCurrentMode() == HandPointerModeManager.SelectionMode.ARM) {
             if (!ArmSelectionHandler.isArmInteractable(blockEntity, state, level, pos)) {
@@ -613,14 +646,14 @@ public class HandPointerInteractionHandler {
 
     private static boolean tryTogglePackager(Player player, Level level, BlockPos pos, BlockState state) {
         BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (!PackagerTargetHelper.isToggleTarget(blockEntity, state)) {
-            return false;
-        }
-
-        if (player.isShiftKeyDown() && PackagerTargetHelper.isClipboardAddressTarget(blockEntity, state)) {
+        if (player.isShiftKeyDown() && PackagerAddresses.isTarget(level, pos)) {
             FluidLogisticsPackets.getChannel().sendToServer(new HandPointerClearClipboardAddressPacket(pos));
             playBlockSound(level, pos, SoundEvents.LEVER_CLICK, 0.3f, 0.85f);
             return true;
+        }
+
+        if (!PackagerTargetHelper.isToggleTarget(blockEntity, state)) {
+            return false;
         }
 
         FluidLogisticsPackets.getChannel().sendToServer(new HandPointerPackagerTogglePacket(pos));

@@ -3,7 +3,7 @@ package com.yision.fluidlogistics.compat.kaleidoscopetavern;
 import com.github.ysbbbbbb.kaleidoscopetavern.api.blockentity.ITapBehavior;
 import com.github.ysbbbbbb.kaleidoscopetavern.game.tap.TapBehaviorManager;
 import com.yision.fluidlogistics.compat.CompatMods;
-import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlock;
+import com.yision.fluidlogistics.content.fluids.faucet.FaucetBlock;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
@@ -105,7 +105,7 @@ public final class KaleidoscopeTavernCompat {
     }
 
     private static TapContext resolve(Level level, BlockPos faucetPos, BlockState faucetState) {
-        Direction facing = faucetState.getValue(AbstractFaucetBlock.FACING);
+        Direction facing = faucetState.getValue(FaucetBlock.FACING);
         BlockPos sourcePos = faucetPos.relative(facing.getOpposite());
         BlockPos destinationPos = faucetPos.below();
         return new TapContext(level.getBlockState(sourcePos), level.getBlockState(destinationPos));

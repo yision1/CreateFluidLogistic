@@ -3,9 +3,16 @@ package com.yision.fluidlogistics;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.FrogportSelectionHandler;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerModeManager;
+import com.yision.fluidlogistics.client.event.FluidSlotClickHandler;
+import com.yision.fluidlogistics.api.packager.PackageResourceTypes;
+import com.yision.fluidlogistics.api.packager.client.PackageResourceClient;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageClientRendering;
+import com.yision.fluidlogistics.ponder.CopperFrogportPonderPlugin;
 import com.yision.fluidlogistics.ponder.FluidLogisticsPonderPlugin;
 import com.yision.fluidlogistics.registry.AllFluidLogisticsParticleTypes;
 import com.yision.fluidlogistics.registry.AllPartialModels;
+import com.yision.fluidlogistics.render.FactoryPanelFluidPreviewRenderer;
+import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
 import net.createmod.catnip.render.DefaultSuperRenderTypeBuffer;
 import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import net.createmod.ponder.foundation.PonderIndex;
@@ -19,10 +26,13 @@ import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.client.event.ModelEvent;
 import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.event.AddPackFindersEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
@@ -37,9 +47,23 @@ public class FluidLogisticsClient {
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
+        PonderIndex.addPlugin(new CopperFrogportPonderPlugin());
         PonderIndex.addPlugin(new FluidLogisticsPonderPlugin());
-        event.enqueueWork(() -> com.simibubi.create.content.contraptions.wrench.RadialWrenchMenu
-            .registerBlacklistedBlock(com.yision.fluidlogistics.registry.AllBlocks.MECHANICAL_FLUID_GUN.getId()));
+        PackageResourceClient.registerStockKeeperAmountRenderer(
+            PackageResourceTypes.FLUID, FluidSlotAmountRenderer::renderInStockKeeper);
+        PackageResourceClient.registerFactoryPanelPreviewRenderer(
+            PackageResourceTypes.FLUID, FactoryPanelFluidPreviewRenderer::render);
+        MinecraftForge.EVENT_BUS.register(FluidSlotClickHandler.class);
+        event.enqueueWork(() -> {
+            com.simibubi.create.content.contraptions.wrench.RadialWrenchMenu
+                .registerBlacklistedBlock(com.yision.fluidlogistics.registry.AllBlocks.MECHANICAL_FLUID_GUN.getId());
+            FluidPackageClientRendering.registerFlywheelVisualizer();
+        });
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    static void onRegisterEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        FluidPackageClientRendering.registerEntityRenderers(event);
     }
 
     @SubscribeEvent

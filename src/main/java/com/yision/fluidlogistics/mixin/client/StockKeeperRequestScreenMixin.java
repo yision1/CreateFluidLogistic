@@ -1,47 +1,41 @@
 package com.yision.fluidlogistics.mixin.client;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
+import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import com.simibubi.create.content.logistics.stockTicker.StockTickerBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
-import com.yision.fluidlogistics.client.FluidTooltipHelper;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
-import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
-import com.yision.fluidlogistics.util.FluidAmountHelper;
-import com.yision.fluidlogistics.util.FluidGaugeHelper;
-import com.yision.fluidlogistics.util.IFluidCraftableBigItemStack;
-
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.api.packager.PackageResourceCrafting;
+import com.yision.fluidlogistics.api.packager.PackageResourceCraftingData;
+import com.yision.fluidlogistics.api.packager.PackageResourceDisplay;
+import com.yision.fluidlogistics.api.packager.client.StockKeeperAmountRenderer;
+import com.yision.fluidlogistics.content.logistics.packageResource.client.PackageResourceClientRegistry;
 import net.createmod.catnip.data.Couple;
 import net.createmod.catnip.data.Pair;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.util.Mth;
-import net.minecraftforge.fluids.FluidStack;
+import net.minecraft.world.item.ItemStack;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(value = StockKeeperRequestScreen.class, remap = false)
+import java.util.ArrayList;
+import java.util.List;
+
+@Mixin(StockKeeperRequestScreen.class)
 public abstract class StockKeeperRequestScreenMixin {
 
     @Shadow(remap = false)
@@ -64,7 +58,7 @@ public abstract class StockKeeperRequestScreenMixin {
 
     @Shadow(remap = false)
     protected abstract Pair<Integer, List<List<BigItemStack>>> maxCraftable(CraftableBigItemStack cbis, InventorySummary summary,
-        java.util.function.Function<ItemStack, Integer> countModifier, int newTypeLimit);
+            java.util.function.Function<ItemStack, Integer> countModifier, int newTypeLimit);
 
     @Shadow(remap = false)
     protected abstract Couple<Integer> getHoveredSlot(int mouseX, int mouseY);
@@ -78,57 +72,40 @@ public abstract class StockKeeperRequestScreenMixin {
     private void drawItemCount(GuiGraphics graphics, int count, int customCount) {
     }
 
-    @WrapOperation(
-        method = "refreshSearchResults",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/item/ItemStack;getHoverName()Lnet/minecraft/network/chat/Component;",
-            remap = true
-        ),
-        remap = false
-    )
-    private Component fluidlogistics$useFluidNameForVirtualTankSearch(ItemStack stack,
-        Operation<Component> original) {
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(stack);
-            return fluid.getDisplayName();
-        }
-        return original.call(stack);
-    }
-
     @Unique
-    private boolean fluidlogistics$isCompressedTank = false;
+    private StockKeeperAmountRenderer fluidlogistics$customAmountRenderer;
 
-    @Inject(method = "renderItemEntry", at = @At("HEAD"), remap = false, cancellable = true)
+    @Inject(
+        method = "renderItemEntry",
+        at = @At("HEAD"),
+        remap = false,
+        cancellable = true
+    )
     private void fluidlogistics$onRenderItemEntryHead(GuiGraphics graphics, float scale, BigItemStack entry,
-        boolean isStackHovered, boolean isRenderingOrders, CallbackInfo ci) {
-        fluidlogistics$isCompressedTank = false;
-
-        ItemStack stack = entry.stack;
-        if (stack.getItem() instanceof CompressedTankItem && CompressedTankItem.isVirtual(stack)) {
-            FluidStack fluid = CompressedTankItem.getFluid(stack);
-            fluidlogistics$isCompressedTank = true;
-        }
+            boolean isStackHovered, boolean isRenderingOrders, CallbackInfo ci) {
+        fluidlogistics$customAmountRenderer =
+                PackageResourceClientRegistry.stockKeeperRendererFor(entry.stack);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderItemEntry",
         at = @At(
             value = "INVOKE",
-            target = "Lcom/simibubi/create/content/logistics/stockTicker/StockKeeperRequestScreen;drawItemCount(Lnet/minecraft/client/gui/GuiGraphics;II)V",
+            target = "Lcom/simibubi/create/content/logistics/stockTicker/StockKeeperRequestScreen;" +
+                     "drawItemCount(Lnet/minecraft/client/gui/GuiGraphics;II)V",
             remap = false
         ),
         remap = false
     )
-    private void fluidlogistics$redirectDrawItemCount(StockKeeperRequestScreen instance, GuiGraphics graphics,
-        int count, int customCount) {
-        if (fluidlogistics$isCompressedTank) {
+    private void fluidlogistics$redirectDrawItemCount(StockKeeperRequestScreen instance,
+            GuiGraphics graphics, int count, int customCount, Operation<Void> original) {
+        if (fluidlogistics$customAmountRenderer != null) {
             return;
         }
-        drawItemCount(graphics, count, customCount);
+        original.call(instance, graphics, count, customCount);
     }
 
-    @Redirect(
+    @WrapOperation(
         method = "renderItemEntry",
         at = @At(
             value = "INVOKE",
@@ -139,16 +116,22 @@ public abstract class StockKeeperRequestScreenMixin {
         remap = false
     )
     private void fluidlogistics$redirectRenderItemDecorations(GuiGraphics graphics, Font font, ItemStack stack, int x,
-            int y, String text, @Local(ordinal = 0) int customCount) {
-        if (fluidlogistics$isVirtualCompressedTank(stack) && customCount > 0) {
-            FluidSlotAmountRenderer.renderInStockKeeper(graphics, customCount);
+            int y, String text, Operation<Void> original, @Local(ordinal = 0) int customCount) {
+        if (fluidlogistics$customAmountRenderer != null && customCount > 0) {
+            fluidlogistics$customAmountRenderer.render(graphics, customCount);
             return;
         }
-        graphics.renderItemDecorations(font, stack, x, y, text);
+        original.call(graphics, font, stack, x, y, text);
+    }
+
+    @Inject(method = "renderItemEntry", at = @At("RETURN"), remap = false)
+    private void fluidlogistics$afterRenderItemEntry(GuiGraphics graphics, float scale, BigItemStack entry,
+            boolean isStackHovered, boolean isRenderingOrders, CallbackInfo ci) {
+        fluidlogistics$customAmountRenderer = null;
     }
 
     @Inject(method = "mouseClicked(DDI)Z", at = @At("HEAD"), cancellable = true, remap = true)
-    private void fluidlogistics$handleDirectFluidClick(double mouseX, double mouseY, int button,
+    private void fluidlogistics$handleDirectResourceClick(double mouseX, double mouseY, int button,
             CallbackInfoReturnable<Boolean> cir) {
         boolean lmb = button == 0;
         boolean rmb = button == 1;
@@ -164,16 +147,16 @@ public abstract class StockKeeperRequestScreenMixin {
         boolean orderClicked = hoveredSlot.getFirst() == -1;
         BigItemStack entry = orderClicked ? itemsToOrder.get(hoveredSlot.getSecond())
             : displayedItems.get(hoveredSlot.getFirst()).get(hoveredSlot.getSecond());
-        if (!fluidlogistics$isVirtualCompressedTank(entry.stack)) {
+        if (!fluidlogistics$changeDirectResourceOrder(
+                entry, orderClicked, !(rmb || orderClicked), entry.count)) {
             return;
         }
 
-        fluidlogistics$changeDirectFluidOrder(entry, orderClicked, !(rmb || orderClicked), entry.count);
         cir.setReturnValue(true);
     }
 
     @Inject(method = "mouseScrolled(DDD)Z", at = @At("HEAD"), cancellable = true, remap = true)
-    private void fluidlogistics$handleDirectFluidScroll(double mouseX, double mouseY, double scrollDelta,
+    private void fluidlogistics$handleDirectResourceScroll(double mouseX, double mouseY, double scrollDelta,
             CallbackInfoReturnable<Boolean> cir) {
         Couple<Integer> hoveredSlot = getHoveredSlot((int) mouseX, (int) mouseY);
         if (fluidlogistics$isNoHoveredSlot(hoveredSlot)) {
@@ -189,25 +172,26 @@ public abstract class StockKeeperRequestScreenMixin {
         boolean orderClicked = hoveredSlot.getFirst() == -1;
         BigItemStack entry = orderClicked ? itemsToOrder.get(hoveredSlot.getSecond())
             : displayedItems.get(hoveredSlot.getFirst()).get(hoveredSlot.getSecond());
-        if (!fluidlogistics$isVirtualCompressedTank(entry.stack)) {
-            return;
-        }
-
         int steps = Mth.ceil(Math.abs(scrollDelta));
         if (steps <= 0) {
-            cir.setReturnValue(true);
+            if (PackageResources.findType(entry.stack).isPresent()) {
+                cir.setReturnValue(true);
+            }
             return;
         }
 
         boolean forward = scrollDelta > 0;
         int maxAvailable = blockEntity.getLastClientsideStockSnapshotAsSummary().getCountOf(entry.stack);
-        fluidlogistics$changeDirectFluidOrder(entry, orderClicked, forward, maxAvailable, steps);
+        if (!fluidlogistics$changeDirectResourceOrder(
+                entry, orderClicked, forward, maxAvailable, steps)) {
+            return;
+        }
         cir.setReturnValue(true);
     }
 
     @Inject(method = "mouseClicked(DDI)Z", at = @At("HEAD"), cancellable = true, remap = true)
-    private void fluidlogistics$handleCustomFluidRecipeClick(double mouseX, double mouseY, int button,
-        CallbackInfoReturnable<Boolean> cir) {
+    private void fluidlogistics$handleCustomResourceRecipeClick(double mouseX, double mouseY, int button,
+            CallbackInfoReturnable<Boolean> cir) {
         if (button != 0 && button != 1) {
             return;
         }
@@ -218,29 +202,29 @@ public abstract class StockKeeperRequestScreenMixin {
         }
 
         CraftableBigItemStack cbis = recipesToOrder.get(hoveredSlot.getSecond());
-        if (!fluidlogistics$isCustomFluidCraftable(cbis)) {
+        if (!fluidlogistics$isCustomResourceCraftable(cbis)) {
             return;
         }
 
-        int delta = fluidlogistics$getFluidRecipeStepAmount();
+        int delta = fluidlogistics$getResourceRecipeStepAmount(cbis.stack);
         if (button == 1) {
             delta = -delta;
         }
 
-        fluidlogistics$handleCustomFluidCraftableRequest(cbis, delta);
+        fluidlogistics$handleCustomResourceCraftableRequest(cbis, delta);
         cir.setReturnValue(true);
     }
 
     @Inject(method = "mouseScrolled(DDD)Z", at = @At("HEAD"), cancellable = true, remap = true)
-    private void fluidlogistics$handleCustomFluidRecipeScroll(double mouseX, double mouseY, double scrollDelta,
-        CallbackInfoReturnable<Boolean> cir) {
+    private void fluidlogistics$handleCustomResourceRecipeScroll(double mouseX, double mouseY, double scrollDelta,
+            CallbackInfoReturnable<Boolean> cir) {
         Couple<Integer> hoveredSlot = getHoveredSlot((int) mouseX, (int) mouseY);
         if (hoveredSlot.getFirst() != -2) {
             return;
         }
 
         CraftableBigItemStack cbis = recipesToOrder.get(hoveredSlot.getSecond());
-        if (!fluidlogistics$isCustomFluidCraftable(cbis)) {
+        if (!fluidlogistics$isCustomResourceCraftable(cbis)) {
             return;
         }
 
@@ -250,29 +234,29 @@ public abstract class StockKeeperRequestScreenMixin {
             return;
         }
 
-        int delta = fluidlogistics$getFluidRecipeStepAmount() * steps;
+        int delta = fluidlogistics$getResourceRecipeStepAmount(cbis.stack) * steps;
         if (scrollDelta < 0) {
             delta = -delta;
         }
 
-        fluidlogistics$handleCustomFluidCraftableRequest(cbis, delta);
+        fluidlogistics$handleCustomResourceCraftableRequest(cbis, delta);
         cir.setReturnValue(true);
     }
 
     @Inject(method = "requestCraftable", at = @At("HEAD"), cancellable = true, remap = false)
-    private void fluidlogistics$requestCustomFluidRecipe(CraftableBigItemStack cbis, int requestedDifference, CallbackInfo ci) {
+    private void fluidlogistics$requestCustomResourceRecipe(CraftableBigItemStack cbis, int requestedDifference, CallbackInfo ci) {
         if (!fluidlogistics$hasCustomRecipeData(cbis)) {
             return;
         }
 
-        fluidlogistics$handleCustomFluidCraftableRequest(cbis, requestedDifference);
+        fluidlogistics$handleCustomResourceCraftableRequest(cbis, requestedDifference);
         ci.cancel();
     }
 
     @Inject(method = "updateCraftableAmounts", at = @At("HEAD"), cancellable = true, remap = false)
     private void fluidlogistics$handleCustomRecipeAmountUpdates(CallbackInfo ci) {
         for (CraftableBigItemStack cbis : recipesToOrder) {
-            if (cbis instanceof IFluidCraftableBigItemStack data && data.fluidlogistics$hasCustomRecipeData()) {
+            if (PackageResourceCrafting.has(cbis)) {
                 fluidlogistics$updateCraftableAmountsWithCustomEntries();
                 ci.cancel();
                 return;
@@ -280,51 +264,32 @@ public abstract class StockKeeperRequestScreenMixin {
         }
     }
 
-    @Redirect(
-        method = "renderForeground",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiGraphics;renderComponentTooltip(" +
-                     "Lnet/minecraft/client/gui/Font;Ljava/util/List;II)V",
-            ordinal = 0,
-            remap = true
-        ),
-        remap = false
-    )
-    private void fluidlogistics$recipeTooltip(GuiGraphics graphics, Font font, List<Component> tooltipLines, int mouseX,
-            int mouseY, @Local(name = "lines") ArrayList<Component> lines, @Local(name = "entry") BigItemStack entry) {
-        if (FluidGaugeHelper.isVirtualFluidFilter(entry.stack)) {
-            ArrayList<Component> fluidLines = fluidlogistics$getPreciseFluidTooltipLines(entry, true, true);
-            if (!fluidLines.isEmpty()) {
-                graphics.renderComponentTooltip(font, fluidLines, mouseX, mouseY);
-                return;
-            }
+    @WrapOperation(method = "renderForeground", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphics;renderComponentTooltip(Lnet/minecraft/client/gui/Font;Ljava/util/List;II)V", ordinal = 0))
+    private void fluidlogistics$recipeTooltip(GuiGraphics graphics, Font font, List<Component> tooltipLines,
+            int mouseX, int mouseY, Operation<Void> original,
+            @Local(name = "lines") ArrayList<Component> lines, @Local(name = "entry") BigItemStack entry){
+        ArrayList<Component> resourceLines = fluidlogistics$getResourceTooltipLines(
+                entry, PackageResourceDisplay.TooltipContext.STOCK_KEEPER_CRAFTABLE);
+        if (!resourceLines.isEmpty()) {
+            original.call(graphics, font, resourceLines, mouseX, mouseY);
+            return;
         }
-        graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
+        original.call(graphics, font, lines, mouseX, mouseY);
     }
 
-    @Redirect(
-        method = "renderForeground",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltip(" +
-                     "Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V",
-            ordinal = 0,
-            remap = true
-        ),
-        remap = false
-    )
+    @WrapOperation(method="renderForeground", at = @At(value="INVOKE",target = "Lnet/minecraft/client/gui/GuiGraphics;renderTooltip(Lnet/minecraft/client/gui/Font;Lnet/minecraft/world/item/ItemStack;II)V",ordinal = 0))
     private void fluidlogistics$itemTooltip(GuiGraphics graphics, Font font, ItemStack stack, int mouseX, int mouseY,
-            @Local(name = "entry") BigItemStack entry) {
-        if (fluidlogistics$isBottomOrderEntry(entry) && FluidGaugeHelper.isVirtualFluidFilter(entry.stack)) {
-            boolean orderHovered = getHoveredSlot(mouseX, mouseY).getFirst() == -1;
-            ArrayList<Component> lines = fluidlogistics$getPreciseFluidTooltipLines(entry, false, orderHovered);
-            if (!lines.isEmpty()) {
-                graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
-                return;
-            }
+            Operation<Void> original, @Local(name = "entry") BigItemStack entry){
+        boolean orderHovered = getHoveredSlot(mouseX, mouseY).getFirst() == -1;
+        PackageResourceDisplay.TooltipContext context = orderHovered
+                ? PackageResourceDisplay.TooltipContext.STOCK_KEEPER_ORDER
+                : PackageResourceDisplay.TooltipContext.STOCK_KEEPER_INVENTORY;
+        ArrayList<Component> lines = fluidlogistics$getResourceTooltipLines(entry, context);
+        if (!lines.isEmpty()) {
+            graphics.renderComponentTooltip(font, lines, mouseX, mouseY);
+            return;
         }
-        graphics.renderTooltip(font, entry.stack, mouseX, mouseY);
+        original.call(graphics, font, stack, mouseX, mouseY);
     }
 
     @Unique
@@ -339,21 +304,22 @@ public abstract class StockKeeperRequestScreenMixin {
         boolean hasCustomEntries = false;
 
         for (CraftableBigItemStack cbis : recipesToOrder) {
-            if (cbis instanceof IFluidCraftableBigItemStack data && data.fluidlogistics$hasCustomRecipeData()) {
+            PackageResourceCraftingData data = PackageResourceCrafting.get(cbis).orElse(null);
+            if (data != null) {
                 hasCustomEntries = true;
 
-                int outputCount = data.fluidlogistics$getCustomOutputCount();
+                int outputCount = data.outputCount();
                 if (outputCount <= 0) {
                     cbis.count = 0;
                     continue;
                 }
 
                 int maxSets = fluidlogistics$getCustomCraftableSets(
-                    availableItems, usedItems, data.fluidlogistics$getCustomRequirements());
+                    availableItems, usedItems, data.requirements());
                 cbis.count = Math.min(cbis.count, maxSets * outputCount);
 
                 int committedSets = cbis.count / outputCount;
-                for (BigItemStack requirement : data.fluidlogistics$getCustomRequirements()) {
+                for (BigItemStack requirement : data.requirements()) {
                     usedItems.add(requirement.stack, requirement.count * committedSets);
                 }
                 continue;
@@ -394,7 +360,7 @@ public abstract class StockKeeperRequestScreenMixin {
 
     @Unique
     private static int fluidlogistics$getCustomCraftableSets(InventorySummary availableItems, List<BigItemStack> existingOrders,
-        List<BigItemStack> requirements) {
+            List<BigItemStack> requirements) {
         int craftableSets = Integer.MAX_VALUE;
         for (BigItemStack requirement : requirements) {
             int orderedCount = fluidlogistics$getMatchingCount(existingOrders, requirement.stack);
@@ -406,7 +372,7 @@ public abstract class StockKeeperRequestScreenMixin {
 
     @Unique
     private static int fluidlogistics$getCustomCraftableSets(InventorySummary availableItems, InventorySummary usedItems,
-        List<BigItemStack> requirements) {
+            List<BigItemStack> requirements) {
         int craftableSets = Integer.MAX_VALUE;
         for (BigItemStack requirement : requirements) {
             int available = availableItems.getCountOf(requirement.stack) - usedItems.getCountOf(requirement.stack);
@@ -422,7 +388,7 @@ public abstract class StockKeeperRequestScreenMixin {
 
         for (BigItemStack requirement : requirements) {
             if (fluidlogistics$hasMatchingStack(existingOrders, requirement.stack)
-                || fluidlogistics$hasMatchingStack(newTypes, requirement.stack)) {
+                    || fluidlogistics$hasMatchingStack(newTypes, requirement.stack)) {
                 continue;
             }
             newTypes.add(requirement.stack);
@@ -459,20 +425,13 @@ public abstract class StockKeeperRequestScreenMixin {
 
     @Unique
     private boolean fluidlogistics$hasCustomRecipeData(CraftableBigItemStack cbis) {
-        return cbis instanceof IFluidCraftableBigItemStack data
-            && data.fluidlogistics$hasCustomRecipeData();
+        return PackageResourceCrafting.has(cbis);
     }
 
     @Unique
-    private boolean fluidlogistics$isCustomFluidCraftable(CraftableBigItemStack cbis) {
+    private boolean fluidlogistics$isCustomResourceCraftable(CraftableBigItemStack cbis) {
         return fluidlogistics$hasCustomRecipeData(cbis)
-            && fluidlogistics$isVirtualCompressedTank(cbis.stack);
-    }
-
-    @Unique
-    private static boolean fluidlogistics$isVirtualCompressedTank(ItemStack stack) {
-        return stack.getItem() instanceof CompressedTankItem
-            && CompressedTankItem.isVirtual(stack);
+            && PackageResources.findType(cbis.stack).isPresent();
     }
 
     @Unique
@@ -481,86 +440,84 @@ public abstract class StockKeeperRequestScreenMixin {
     }
 
     @Unique
-    private boolean fluidlogistics$isBottomOrderEntry(BigItemStack entry) {
-        for (BigItemStack ordered : itemsToOrder) {
-            if (ordered == entry) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Unique
-    private static ArrayList<Component> fluidlogistics$getPreciseFluidTooltipLines(BigItemStack entry,
-            boolean recipeHovered, boolean showAmount) {
-        ArrayList<Component> lines = new ArrayList<>(
-            FluidTooltipHelper.getVirtualCompressedTankTooltipLines(entry.stack, fluidlogistics$getFluidTooltipFlag()));
+    private static ArrayList<Component> fluidlogistics$getResourceTooltipLines(
+            BigItemStack entry, PackageResourceDisplay.TooltipContext context) {
+        boolean advanced = Minecraft.getInstance().options.advancedItemTooltips;
+        ArrayList<Component> lines = PackageResources.tooltipOf(
+                        entry.stack, entry.count, advanced, context)
+                .map(ArrayList::new)
+                .orElseGet(ArrayList::new);
         if (lines.isEmpty()) {
             return lines;
         }
-        if (recipeHovered) {
+        if (context == PackageResourceDisplay.TooltipContext.STOCK_KEEPER_CRAFTABLE) {
             lines.set(0, CreateLang.translateDirect("gui.stock_keeper.craft", lines.get(0).copy()));
-        }
-        if (showAmount) {
-            lines.add(1, CreateLang.text("x" + FluidAmountHelper.formatPrecise(entry.count))
-                .style(ChatFormatting.DARK_GRAY)
-                .component());
         }
         return lines;
     }
 
     @Unique
-    private static TooltipFlag fluidlogistics$getFluidTooltipFlag() {
-        return Minecraft.getInstance().options.advancedItemTooltips
-            ? TooltipFlag.Default.ADVANCED.asCreative()
-            : TooltipFlag.Default.NORMAL.asCreative();
-    }
-
-    @Unique
-    private void fluidlogistics$changeDirectFluidOrder(BigItemStack entry, boolean orderClicked, boolean forward,
+    private boolean fluidlogistics$changeDirectResourceOrder(BigItemStack entry, boolean orderClicked, boolean forward,
             int maxAvailable) {
-        fluidlogistics$changeDirectFluidOrder(entry, orderClicked, forward, maxAvailable, 1);
+        return fluidlogistics$changeDirectResourceOrder(entry, orderClicked, forward, maxAvailable, 1);
     }
 
     @Unique
-    private void fluidlogistics$changeDirectFluidOrder(BigItemStack entry, boolean orderClicked, boolean forward,
+    private boolean fluidlogistics$changeDirectResourceOrder(BigItemStack entry, boolean orderClicked, boolean forward,
             int maxAvailable, int steps) {
         BigItemStack existingOrder = orderClicked ? entry : getOrderForItem(entry.stack);
-        if (existingOrder == null) {
-            if (!forward || itemsToOrder.size() >= 9) {
-                return;
-            }
-            existingOrder = new BigItemStack(entry.stack.copyWithCount(1), 0);
-            itemsToOrder.add(existingOrder);
+        var adjusted = PackageResources.adjustAmount(entry.stack, new PackageResourceDisplay.Adjustment(
+                existingOrder == null ? 0 : existingOrder.count,
+                forward,
+                Screen.hasShiftDown(),
+                Screen.hasControlDown(),
+                0,
+                Math.max(0, maxAvailable),
+                steps,
+                orderClicked
+                        ? PackageResourceDisplay.Interaction.STOCK_KEEPER_ORDER
+                        : PackageResourceDisplay.Interaction.STOCK_KEEPER_INVENTORY));
+        if (adjusted.isEmpty()) {
+            return false;
         }
-
-        int current = existingOrder.count;
-        int newAmount;
-
-        if (orderClicked) {
-            newAmount = FluidAmountHelper.adjustFluidRequestAmount(current, forward, Screen.hasShiftDown(),
-                Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
-        } else {
-            newAmount = FluidAmountHelper.adjustStockKeeperFluidRequestAmount(current, forward, Screen.hasShiftDown(),
-                Screen.hasControlDown(), 0, Math.max(0, maxAvailable), steps);
+        int newAmount = adjusted.getAsInt();
+        if (existingOrder == null) {
+            if (!forward || itemsToOrder.size() >= 9 || newAmount <= 0) {
+                return true;
+            }
+            existingOrder = new BigItemStack(fluidlogistics$copyOne(entry.stack), 0);
+            itemsToOrder.add(existingOrder);
         }
         if (newAmount <= 0) {
             itemsToOrder.remove(existingOrder);
-            return;
+            return true;
         }
 
         existingOrder.count = newAmount;
+        return true;
     }
 
     @Unique
-    private int fluidlogistics$getFluidRecipeStepAmount() {
-        return FluidAmountHelper.getStockKeeperFluidRequestStep(Screen.hasShiftDown(), Screen.hasControlDown());
+    private int fluidlogistics$getResourceRecipeStepAmount(ItemStack stack) {
+        return PackageResources.adjustAmount(stack, new PackageResourceDisplay.Adjustment(
+                0,
+                true,
+                Screen.hasShiftDown(),
+                Screen.hasControlDown(),
+                0,
+                BigItemStack.INF,
+                1,
+                PackageResourceDisplay.Interaction.STOCK_KEEPER_INVENTORY))
+                .orElse(1);
     }
 
     @Unique
-    private void fluidlogistics$handleCustomFluidCraftableRequest(CraftableBigItemStack cbis, int requestedDifference) {
-        IFluidCraftableBigItemStack data = (IFluidCraftableBigItemStack) cbis;
-        int outputCount = data.fluidlogistics$getCustomOutputCount();
+    private void fluidlogistics$handleCustomResourceCraftableRequest(CraftableBigItemStack cbis, int requestedDifference) {
+        PackageResourceCraftingData data = PackageResourceCrafting.get(cbis).orElse(null);
+        if (data == null) {
+            return;
+        }
+        int outputCount = data.outputCount();
         if (outputCount <= 0) {
             return;
         }
@@ -584,12 +541,12 @@ public abstract class StockKeeperRequestScreenMixin {
                 return;
             }
 
-            if (!fluidlogistics$canFitCustomRecipe(itemsToOrder, data.fluidlogistics$getCustomRequirements())) {
+            if (!fluidlogistics$canFitCustomRecipe(itemsToOrder, data.requirements())) {
                 return;
             }
 
             applicableSets = fluidlogistics$getCustomCraftableSets(
-                availableItems, itemsToOrder, data.fluidlogistics$getCustomRequirements());
+                availableItems, itemsToOrder, data.requirements());
             applicableSets = Math.min(requestedSets, applicableSets);
         }
 
@@ -600,7 +557,7 @@ public abstract class StockKeeperRequestScreenMixin {
         int amountDelta = applicableSets * outputCount;
         cbis.count += takeOrdersAway ? -amountDelta : amountDelta;
 
-        for (BigItemStack requirement : data.fluidlogistics$getCustomRequirements()) {
+        for (BigItemStack requirement : data.requirements()) {
             int delta = requirement.count * applicableSets;
             BigItemStack existingOrder = getOrderForItem(requirement.stack);
 
@@ -616,7 +573,7 @@ public abstract class StockKeeperRequestScreenMixin {
             }
 
             if (existingOrder == null) {
-                existingOrder = new BigItemStack(requirement.stack.copyWithCount(1), 0);
+                existingOrder = new BigItemStack(fluidlogistics$copyOne(requirement.stack), 0);
                 itemsToOrder.add(existingOrder);
             }
             existingOrder.count += delta;
@@ -628,5 +585,10 @@ public abstract class StockKeeperRequestScreenMixin {
 
         fluidlogistics$updateCraftableAmountsWithCustomEntries();
     }
-
+    @Unique
+    private static ItemStack fluidlogistics$copyOne(ItemStack stack) {
+        ItemStack copy = stack.copy();
+        copy.setCount(1);
+        return copy;
+    }
 }

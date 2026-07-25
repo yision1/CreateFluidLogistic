@@ -6,8 +6,8 @@ import com.simibubi.create.content.processing.basin.BasinBlockEntity;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 import com.simibubi.create.foundation.ponder.element.BeltItemElement;
 import com.yision.fluidlogistics.content.fluids.multiFluidTank.MultiFluidTankBlockEntity;
-import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlock;
-import com.yision.fluidlogistics.content.fluids.faucet.SmartFaucetBlockEntity;
+import com.yision.fluidlogistics.content.fluids.faucet.FaucetBlockEntity;
+import com.yision.fluidlogistics.content.fluids.faucet.SmartFaucetBlock;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.element.ElementLink;
 import net.createmod.ponder.api.element.WorldSectionElement;
@@ -85,7 +85,7 @@ public class SmartFaucetScenes {
 		scene.idle(20);
 
 		scene.world().modifyBlock(faucet1Pos,
-			s -> s.setValue(AbstractFaucetBlock.OPEN, true), false);
+			s -> s.setValue(SmartFaucetBlock.OPEN, true), false);
 
 		CompoundTag waterTag = fluidTag(new FluidStack(Fluids.WATER, 1000));
 		showFaucetFluid(scene, faucet1S, waterTag);
@@ -113,7 +113,7 @@ public class SmartFaucetScenes {
 			.withItem(new ItemStack(Items.LAVA_BUCKET));
 		scene.idle(50);
 
-		scene.world().setFilterData(faucet1S, SmartFaucetBlockEntity.class, new ItemStack(Items.LAVA_BUCKET));
+		scene.world().setFilterData(faucet1S, FaucetBlockEntity.class, new ItemStack(Items.LAVA_BUCKET));
 		scene.idle(20);
 
 		scene.world().removeItemsFromBelt(depotPos);
@@ -130,7 +130,7 @@ public class SmartFaucetScenes {
 		scene.idle(30);
 
 		scene.world().hideIndependentSection(depotLink, Direction.NORTH);
-		scene.world().setFilterData(faucet1S, SmartFaucetBlockEntity.class, ItemStack.EMPTY);
+		scene.world().setFilterData(faucet1S, FaucetBlockEntity.class, ItemStack.EMPTY);
 		scene.idle(20);
 
 		scene.world().setBlock(basinPos, AllBlocks.BASIN.getDefaultState(), false);
@@ -169,8 +169,6 @@ public class SmartFaucetScenes {
 
 
 
-		// ========== Phase 3: Belt filling ==========
-
 		Selection scaffoldingS = util.select().position(5, 1, 3);
 
 		scene.world().showSection(largeCog, Direction.UP);
@@ -183,7 +181,7 @@ public class SmartFaucetScenes {
 		scene.idle(10);
 
 		scene.world().modifyBlock(faucet2Pos,
-			s -> s.setValue(AbstractFaucetBlock.OPEN, true), false);
+			s -> s.setValue(SmartFaucetBlock.OPEN, true), false);
 
 		ElementLink<WorldSectionElement> faucet2Link =
 			scene.world().showIndependentSection(tank2S, Direction.DOWN);
@@ -253,7 +251,7 @@ public class SmartFaucetScenes {
 	}
 
 	private static void showFaucetFluid(CreateSceneBuilder scene, Selection faucet, CompoundTag fluid) {
-		scene.world().modifyBlockEntityNBT(faucet, SmartFaucetBlockEntity.class,
+		scene.world().modifyBlockEntityNBT(faucet, FaucetBlockEntity.class,
 			nbt -> {
 				nbt.put("RenderingFluid", fluid.copy());
 				nbt.putBoolean("IsFillingItem", false);
@@ -264,7 +262,7 @@ public class SmartFaucetScenes {
 	}
 
 	private static void hideFaucetFluid(CreateSceneBuilder scene, Selection faucet) {
-		scene.world().modifyBlockEntityNBT(faucet, SmartFaucetBlockEntity.class,
+		scene.world().modifyBlockEntityNBT(faucet, FaucetBlockEntity.class,
 			nbt -> {
 				nbt.remove("RenderingFluid");
 				nbt.putInt("TransferCooldown", 0);

@@ -12,6 +12,7 @@ import com.simibubi.create.content.trains.station.StationBlockEntity;
 import com.simibubi.create.foundation.networking.SimplePacketBase;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerPackagePortRules;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -63,7 +64,7 @@ public class HandPointerMailboxStationConnectionPacket extends SimplePacketBase 
             }
 
             Level level = player.level();
-            if (!level.isLoaded(stationPos)) {
+            if (!HandPointerInteractionGuard.canUseHandPointer(player) || !level.isLoaded(stationPos)) {
                 return;
             }
 
@@ -84,7 +85,7 @@ public class HandPointerMailboxStationConnectionPacket extends SimplePacketBase 
 
             List<PendingMailboxUpdate> pendingUpdates = new ArrayList<>(uniqueMailboxes.size());
             for (BlockPos mailboxPos : uniqueMailboxes) {
-                if (!HandPointerInteractionGuard.canUseHandPointer(player, mailboxPos)) {
+                if (!level.isLoaded(mailboxPos)) {
                     return;
                 }
 
@@ -101,8 +102,9 @@ public class HandPointerMailboxStationConnectionPacket extends SimplePacketBase 
                     new PackagePortTarget.TrainStationFrogportTarget(stationPos.subtract(mailboxPos));
 
                 Vec3 targetLocation = target.getExactTargetLocation(postbox, level, mailboxPos);
-                if (targetLocation == Vec3.ZERO || !targetLocation.closerThan(
-                    Vec3.atBottomCenterOf(mailboxPos),
+                if (targetLocation == Vec3.ZERO || !HandPointerPackagePortRules.isWithinRange(
+                    targetLocation.x, targetLocation.y, targetLocation.z,
+                    mailboxPos.getX(), mailboxPos.getY(), mailboxPos.getZ(),
                     AllConfigs.server().logistics.packagePortRange.get())) {
                     return;
                 }

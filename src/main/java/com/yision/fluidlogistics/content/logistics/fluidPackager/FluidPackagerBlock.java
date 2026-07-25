@@ -1,5 +1,7 @@
 package com.yision.fluidlogistics.content.logistics.fluidPackager;
 
+import static com.yision.fluidlogistics.registry.AllBlocks.COPPER_FROGPORT;
+
 import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllItems;
 import com.simibubi.create.AllSoundEvents;
@@ -96,7 +98,7 @@ public class FluidPackagerBlock extends PackagerBlock {
             return InteractionResult.PASS;
         if (AllBlocks.STOCK_LINK.isIn(stack) && !(state.hasProperty(LINKED) && state.getValue(LINKED)))
             return InteractionResult.PASS;
-        if (AllBlocks.PACKAGE_FROGPORT.isIn(stack))
+        if (AllBlocks.PACKAGE_FROGPORT.isIn(stack) || COPPER_FROGPORT.isIn(stack))
             return InteractionResult.PASS;
 
         if (onBlockEntityUse(level, pos, be -> {

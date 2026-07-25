@@ -45,7 +45,6 @@ public class HandPointerAuthorizeLogisticsNetworkPacket extends SimplePacketBase
         writePanelSlot(buffer, panelSlot);
     }
 
-    // FactoryPanelBlock.PanelSlot has no StreamCodec in 1.20.1, so encode the enum by ordinal.
     static void writePanelSlot(FriendlyByteBuf buffer, FactoryPanelBlock.PanelSlot slot) {
         buffer.writeVarInt((slot == null ? FactoryPanelBlock.PanelSlot.BOTTOM_LEFT : slot).ordinal());
     }

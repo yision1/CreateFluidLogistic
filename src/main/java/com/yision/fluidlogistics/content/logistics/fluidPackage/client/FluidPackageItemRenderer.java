@@ -10,7 +10,8 @@ import com.simibubi.create.foundation.item.render.CustomRenderedItemModelRendere
 import com.simibubi.create.foundation.item.render.PartialItemModelRenderer;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
-import com.yision.fluidlogistics.util.VirtualFluidDisplayHelper;
+import com.yision.fluidlogistics.render.FluidItemRenderHelper;
+import com.yision.fluidlogistics.util.FluidDisplayHelper;
 
 import net.createmod.catnip.platform.ForgeCatnipServices;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -44,7 +45,7 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
         renderer.render(model.getOriginalModel(), light);
 
         if (stack.getItem() instanceof FluidPackageItem && !entityRendering) {
-            renderFluidContents(stack, ms, buffer, light);
+            renderFluidContents(stack, -1, ms, buffer, light, CoordinateMode.ITEM_MODEL, displayContext);
         }
     }
 
@@ -53,7 +54,7 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
     }
 
     public static void renderFluidContents(ItemStack box, float fluidLevel, PoseStack ms, MultiBufferSource buffer, int light) {
-        renderFluidContents(box, fluidLevel, ms, buffer, light, CoordinateMode.ITEM_MODEL);
+        renderFluidContents(box, fluidLevel, ms, buffer, light, CoordinateMode.ITEM_MODEL, null);
     }
 
     public static void renderFluidContentsForEntity(ItemStack box, PoseStack ms, MultiBufferSource buffer, int light) {
@@ -61,11 +62,12 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
     }
 
     public static void renderFluidContentsForEntity(ItemStack box, float fluidLevel, PoseStack ms, MultiBufferSource buffer, int light) {
-        renderFluidContents(box, fluidLevel, ms, buffer, light, CoordinateMode.CENTERED_ENTITY);
+        renderFluidContents(box, fluidLevel, ms, buffer, light, CoordinateMode.CENTERED_ENTITY, null);
     }
 
     private static void renderFluidContents(ItemStack box, float fluidLevel, PoseStack ms,
-                                            MultiBufferSource buffer, int light, CoordinateMode mode) {
+                                            MultiBufferSource buffer, int light, CoordinateMode mode,
+                                            ItemDisplayContext displayContext) {
         List<FluidStack> fluids = getContainedFluids(box);
         if (fluids.isEmpty()) return;
 
@@ -123,13 +125,18 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
             primaryFluid,
             xMin, yMin, zMin,
             xMax, yMax, zMax,
-            buffer, ms, light,
+            FluidItemRenderHelper.getFluidBuilder(buffer, displayContext), ms, light,
             true, false
         );
 
         if (mode == CoordinateMode.ITEM_MODEL) {
             ms.popPose();
         }
+    }
+
+    public static FluidStack getPrimaryContainedFluid(ItemStack box) {
+        List<FluidStack> fluids = getContainedFluids(box);
+        return fluids.isEmpty() ? FluidStack.EMPTY : fluids.get(0);
     }
 
     public static FluidStack getVisualContainedFluid(ItemStack box) {
@@ -157,7 +164,7 @@ public class FluidPackageItemRenderer extends CustomRenderedItemModelRenderer {
 
         for (int i = 0; i < contents.getSlots(); i++) {
             ItemStack slotStack = contents.getStackInSlot(i);
-            FluidStack fluid = VirtualFluidDisplayHelper.getPackageDisplayFluid(slotStack);
+        FluidStack fluid = FluidDisplayHelper.getPackageDisplayFluid(slotStack);
             if (!fluid.isEmpty()) {
                 mergeFluid(fluids, fluid);
             }

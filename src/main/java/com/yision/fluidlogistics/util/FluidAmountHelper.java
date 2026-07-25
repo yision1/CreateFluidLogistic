@@ -124,15 +124,15 @@ public final class FluidAmountHelper {
 
     private static int adjustByDelta(int currentAmount, int delta, int minAmount, int maxAmount, int steps) {
         int safeSteps = Math.max(0, steps);
-        int newAmount;
+        long newAmount;
 
         if (currentAmount == DEFAULT_FLUID_REQUEST_AMOUNT && delta > DEFAULT_FLUID_REQUEST_AMOUNT) {
-            newAmount = delta * safeSteps;
+            newAmount = (long) delta * safeSteps;
         } else {
-            newAmount = currentAmount + delta * safeSteps;
+            newAmount = currentAmount + (long) delta * safeSteps;
         }
 
-        return Mth.clamp(newAmount, minAmount, maxAmount);
+        return (int) Math.max(minAmount, Math.min(maxAmount, newAmount));
     }
 
     private static int getFluidRequestStep(boolean shift, boolean control) {

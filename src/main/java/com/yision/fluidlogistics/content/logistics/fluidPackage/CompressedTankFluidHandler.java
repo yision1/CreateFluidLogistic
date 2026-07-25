@@ -37,10 +37,6 @@ public class CompressedTankFluidHandler implements IFluidHandlerItem {
             return 0;
         }
 
-        FluidStack fluid = CompressedTankItem.getFluid(container);
-        if (CompressedTankItem.isVirtual(container)) {
-            return Math.max(fluid.getAmount(), CompressedTankItem.getCapacity());
-        }
         return CompressedTankItem.getCapacity();
     }
 

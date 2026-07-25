@@ -1,6 +1,8 @@
 package com.yision.fluidlogistics.content.equipment.mechanicalFluidGun;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.api.contraption.transformable.TransformableBlockEntity;
@@ -11,6 +13,9 @@ import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour
 import com.simibubi.create.foundation.blockEntity.behaviour.ValueBoxTransform;
 import com.simibubi.create.foundation.blockEntity.behaviour.scrollValue.ScrollOptionBehaviour;
 import com.simibubi.create.foundation.item.TooltipHelper;
+import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.network.MechanicalFluidGunPackets;
+import com.yision.fluidlogistics.foundation.fluid.CachedFluidInterface;
+import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import dev.engine_room.flywheel.lib.transform.TransformStack;
 
 import net.createmod.catnip.animation.LerpedFloat;
@@ -27,7 +32,6 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import org.jetbrains.annotations.Nullable;
@@ -44,13 +48,17 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 
 	private MechanicalFluidGunTargets targets;
 	private MechanicalFluidGunCycle cycle;
+	private MechanicalFluidGunAimState aimState;
 	private MechanicalFluidGunVisuals visuals;
 	private MechanicalFluidGunItemFilling itemFilling;
 	private MechanicalFluidGunBeltHandler beltHandler;
 	private MechanicalFluidGunProcessor processor;
+	private boolean dynamicAimUpdatePending;
+	private final CachedFluidInterface sourceCache = new CachedFluidInterface();
 
 	private ScrollOptionBehaviour<MechanicalFluidGunScheduleMode> scheduleMode;
 	BeltProcessingBehaviour beltProcessing;
+	private final Set<BlockPos> indexedTargets = new HashSet<>();
 
 	public MechanicalFluidGunBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
 		super(type, pos, state);
@@ -69,6 +77,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 
 		targets = new MechanicalFluidGunTargets();
 		cycle = new MechanicalFluidGunCycle();
+		aimState = new MechanicalFluidGunAimState();
 		visuals = new MechanicalFluidGunVisuals(yaw, pitch);
 		itemFilling = new MechanicalFluidGunItemFilling();
 		beltHandler = new MechanicalFluidGunBeltHandler(this);
@@ -103,11 +112,42 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 	}
 
 	@Override
+	public void onLoad() {
+		super.onLoad();
+		refreshTargetIndex();
+	}
+
+	@Override
 	public void initialize() {
 		super.initialize();
+		refreshTargetIndex();
 		if (level != null && level.isClientSide) {
 			updateVisuals();
 		}
+	}
+
+	@Override
+	public void invalidate() {
+		super.invalidate();
+		sourceCache.invalidate();
+		processor.clearPendingTarget();
+		if (level != null && !indexedTargets.isEmpty()) {
+			MechanicalFluidGunTargetIndex.update(level, worldPosition, indexedTargets, Set.of());
+			indexedTargets.clear();
+		}
+	}
+
+	private void refreshTargetIndex() {
+		if (level == null)
+			return;
+		Set<BlockPos> current = new HashSet<>();
+		if (!isRemoved()) {
+			for (MechanicalFluidGunTargetConfig target : targets.getTargets())
+				current.add(target.absoluteFrom(worldPosition));
+		}
+		MechanicalFluidGunTargetIndex.update(level, worldPosition, indexedTargets, current);
+		indexedTargets.clear();
+		indexedTargets.addAll(current);
 	}
 
 	@Override
@@ -157,7 +197,33 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 	@Override
 	public void notifyGunUpdate() {
 		setChanged();
-		notifyUpdate();
+		if (level != null && !level.isClientSide) {
+			Vec3 dynamicAimPoint = aimState.getAimPoint(targets.getActiveTargetIndex());
+			FluidLogisticsPackets.sendToNear(level, worldPosition, 64,
+				new MechanicalFluidGunPackets.VisualStatePacket(worldPosition, targets.getActiveTargetIndex(),
+					cycle.isActive(), dynamicAimPoint, visuals.isSpraying(), visuals.getRenderingFluid().copy(),
+					itemFilling.isFilling()));
+		}
+	}
+
+	public void applyVisualState(int activeTargetIndex, boolean cycleActive, @Nullable Vec3 dynamicAimPoint,
+								 boolean spraying, FluidStack renderingFluid, boolean fillingItem) {
+		if (level == null || !level.isClientSide) return;
+		if (activeTargetIndex >= 0 && activeTargetIndex < targets.size()) {
+			targets.setActiveTargetIndex(activeTargetIndex);
+		} else {
+			targets.resetActive();
+		}
+		cycle.setActive(cycleActive);
+		if (dynamicAimPoint != null && activeTargetIndex >= 0) {
+			aimState.setDynamicTarget(activeTargetIndex, dynamicAimPoint);
+		} else {
+			aimState.clear();
+		}
+		visuals.applyClientState(spraying, renderingFluid);
+		itemFilling.setClientFilling(fillingItem);
+		dynamicAimUpdatePending = false;
+		updateVisuals();
 	}
 
 	@Override
@@ -201,6 +267,9 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 	}
 
 	void setActiveTarget(int index) {
+		if (!aimState.matches(index)) {
+			aimState.clear();
+		}
 		boolean changedTarget = targets.getActiveTargetIndex() != index || !cycle.isActive();
 		targets.setActiveTargetIndex(index);
 		cycle.setActive(true);
@@ -208,9 +277,10 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 			cycle.setTargetProgress(0);
 		}
 		updateVisuals();
-		if (changedTarget) {
+		if (changedTarget || dynamicAimUpdatePending) {
+			dynamicAimUpdatePending = false;
 			setChanged();
-			notifyUpdate();
+			notifyGunUpdate();
 		}
 	}
 
@@ -219,7 +289,18 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 		return cycle.aim(Math.abs(getSpeed()));
 	}
 
+	void setDynamicAimPoint(int targetIndex, Vec3 aimPoint) {
+		processor.clearPendingTarget();
+		aimState.setDynamicTarget(targetIndex, aimPoint);
+		dynamicAimUpdatePending = true;
+	}
+
+	void clearDynamicAimPoint() {
+		aimState.clear();
+	}
+
 	void endWorkCycle() {
+		processor.clearPendingTarget();
 		if (!cycle.isActive() && !visuals.isSpraying()) {
 			return;
 		}
@@ -227,8 +308,9 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 		visuals.clearSpray();
 		targets.resetActive();
 		beltHandler.clearBeltState();
+		aimState.clear();
 		updateVisuals();
-		notifyUpdate();
+		notifyGunUpdate();
 	}
 
 	public boolean isRedstoneLocked() {
@@ -266,8 +348,9 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 
 	Vec3 getTargetAimPoint(@Nullable MechanicalFluidGunTargetConfig target) {
 		if (target == null) return null;
-		if (itemFilling.isFillingBelt() && itemFilling.getProcessingBeltAimPoint() != null) {
-			return itemFilling.getProcessingBeltAimPoint();
+		Vec3 dynamicAimPoint = aimState.getAimPoint(targets.getActiveTargetIndex());
+		if (dynamicAimPoint != null) {
+			return dynamicAimPoint;
 		}
 		BlockPos absTarget = target.absoluteFrom(worldPosition);
 		if (level == null) {
@@ -285,11 +368,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 		if (level == null) return null;
 		Direction sourceSide = MechanicalFluidGunMount.getMountFace(getBlockState());
 		BlockPos sourcePos = worldPosition.relative(sourceSide.getOpposite());
-		BlockEntity sourceEntity = level.getBlockEntity(sourcePos);
-		if (sourceEntity == null) return null;
-		IFluidHandler sided = sourceEntity.getCapability(ForgeCapabilities.FLUID_HANDLER, sourceSide).orElse(null);
-		if (sided != null) return sided;
-		return sourceEntity.getCapability(ForgeCapabilities.FLUID_HANDLER, null).orElse(null);
+		return sourceCache.get(level, sourcePos, sourceSide);
 	}
 
 	public boolean shouldRenderSourceInterface() {
@@ -299,11 +378,14 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 
 	public void setTargets(List<MechanicalFluidGunTargetConfig> newTargets) {
 		targets.setTargets(newTargets);
+		refreshTargetIndex();
 		cycle.reset();
 		cycle.resetScheduledTarget();
 		cycle.setTransferCooldown(0);
 		cycle.clearContainerFillCooldowns();
+		processor.clearPendingTarget();
 		beltHandler.clearBeltState();
+		aimState.clear();
 		updateVisuals();
 		setChanged();
 		notifyUpdate();
@@ -311,11 +393,14 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 
 	public void clearTarget() {
 		targets.clear();
+		refreshTargetIndex();
 		cycle.reset();
 		cycle.resetScheduledTarget();
 		cycle.clearContainerFillCooldowns();
+		processor.clearPendingTarget();
 		visuals.clearSpray();
 		beltHandler.clearBeltState();
+		aimState.clear();
 		updateVisuals();
 		setChanged();
 		notifyUpdate();
@@ -371,6 +456,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 	@Override
 	public void transform(BlockEntity be, StructureTransform transform) {
 		targets.transform(transform);
+		refreshTargetIndex();
 		notifyUpdate();
 	}
 
@@ -380,6 +466,7 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 		tag.putBoolean("Powered", redstoneLocked);
 		targets.write(tag);
 		cycle.write(tag);
+		aimState.write(tag);
 		visuals.write(tag);
 		itemFilling.write(tag);
 	}
@@ -389,9 +476,12 @@ public class MechanicalFluidGunBlockEntity extends KineticBlockEntity
 		super.read(tag, clientPacket);
 		redstoneLocked = tag.getBoolean("Powered");
 		targets.read(tag);
+		refreshTargetIndex();
 		cycle.read(tag);
+		aimState.read(tag, targets.getActiveTargetIndex());
 		visuals.read(tag);
 		itemFilling.read(tag);
+		dynamicAimUpdatePending = false;
 		updateVisuals();
 	}
 

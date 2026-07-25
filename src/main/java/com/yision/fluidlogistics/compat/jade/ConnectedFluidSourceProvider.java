@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
-import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlockEntity;
+import com.yision.fluidlogistics.content.fluids.faucet.FaucetBlockEntity;
 import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchBlockEntity;
 import com.yision.fluidlogistics.content.fluids.multiFluidAccessPort.MultiFluidAccessPortBlockEntity;
 import com.yision.fluidlogistics.util.MergedFluidDisplayHandler;
@@ -64,7 +64,7 @@ public enum ConnectedFluidSourceProvider
 
 	@Nullable
 	private static DisplaySource getDisplaySource(BlockAccessor accessor) {
-		if (accessor.getBlockEntity() instanceof AbstractFaucetBlockEntity faucet) {
+		if (accessor.getBlockEntity() instanceof FaucetBlockEntity faucet) {
 			return withoutEmptyCapacity(faucet.getFluidDisplayCapability());
 		}
 

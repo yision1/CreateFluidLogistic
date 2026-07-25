@@ -6,15 +6,13 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
-/**
- * Shared server-side guard for hand pointer packets. Replaces the early-exit
- * that used to be provided by the advanced logistics config check, gating only
- * on build permission, chunk load, distance and whether the player is actually
- * holding a hand pointer.
- */
 final class HandPointerInteractionGuard {
 
     private HandPointerInteractionGuard() {
+    }
+
+    static boolean canUseHandPointer(ServerPlayer player) {
+        return player.mayBuild() && player.getMainHandItem().getItem() instanceof HandPointerItem;
     }
 
     static boolean canUseHandPointer(ServerPlayer player, BlockPos pos) {

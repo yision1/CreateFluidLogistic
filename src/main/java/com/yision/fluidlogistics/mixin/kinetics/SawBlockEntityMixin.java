@@ -2,13 +2,13 @@ package com.yision.fluidlogistics.mixin.kinetics;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.simibubi.create.content.kinetics.saw.SawBlockEntity;
 import com.simibubi.create.content.processing.recipe.ProcessingInventory;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.api.packager.PackageResourceType.SawAction;
 
 @Mixin(value = SawBlockEntity.class, remap = false)
 public abstract class SawBlockEntityMixin {
@@ -16,13 +16,13 @@ public abstract class SawBlockEntityMixin {
     @Shadow
     public ProcessingInventory inventory;
 
-    @Inject(method = "applyRecipe", at = @At("HEAD"), cancellable = true, remap = false)
-    private void fluidlogistics$destroyFluidPackagesWithoutDrops(CallbackInfo ci) {
-        if (!FluidPackageItem.isFluidPackage(inventory.getStackInSlot(0))) {
+    @WrapMethod(method = "applyRecipe")
+    private void fluidlogistics$destroyFluidPackagesWithoutDrops(Operation<Void> original) {
+        if (!PackageResources.isBootstrapped()
+                || PackageResources.sawAction(inventory.getStackInSlot(0)) != SawAction.DESTROY_WITHOUT_DROPS) {
+            original.call();
             return;
         }
-
         inventory.clear();
-        ci.cancel();
     }
 }

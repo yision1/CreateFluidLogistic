@@ -132,6 +132,7 @@ repositories {
 dependencies {
     compileOnly(annotationProcessor("io.github.llamalad7:mixinextras-common:${mixin_extras_version}"))
     implementation("io.github.llamalad7:mixinextras-forge:${mixin_extras_version}")
+    jarJar("io.github.llamalad7:mixinextras-forge:${mixin_extras_version}")
 
     modImplementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") { transitive = false }
     modImplementation("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}")
@@ -233,7 +234,7 @@ publisher {
     setDebug(false)
     setModrinthID("g4AWLVIr")
     setCurseID("1475079")
-    setVersionType("release")
+    setVersionType("beta")
     setVersion("${project.mod_version}")
     setDisplayName("Create: FluidLogistic ${project.mod_version}")
     setChangelog(latestChangelogForPublisher)

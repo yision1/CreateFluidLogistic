@@ -1,5 +1,7 @@
 package com.yision.fluidlogistics.content.logistics.fluidPackager.repackager;
 
+import static com.yision.fluidlogistics.registry.AllBlocks.COPPER_FROGPORT;
+
 import com.simibubi.create.AllSoundEvents;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
@@ -13,6 +15,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
@@ -38,6 +41,9 @@ public class FluidRepackagerBlock extends PackagerBlock {
     @Override
     public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand,
                                  BlockHitResult hitResult) {
+        ItemStack stack = player.getItemInHand(hand);
+        if (COPPER_FROGPORT.isIn(stack))
+            return InteractionResult.PASS;
         if (level.getBlockEntity(pos) instanceof FluidRepackagerBlockEntity repackager
             && repackager.hasStalledPackageReady()) {
             if (!level.isClientSide()) {

@@ -12,33 +12,36 @@ import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEnti
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorInteractionHandler;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorShape;
 import com.simibubi.create.content.logistics.packagePort.PackagePortTarget.ChainConveyorFrogportTarget;
+import com.simibubi.create.content.logistics.packagePort.PackagePortTargetSelectionHandler;
 import com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockEntity;
 import com.simibubi.create.foundation.utility.CreateLang;
 import com.simibubi.create.foundation.utility.RaycastHelper;
 import com.simibubi.create.infrastructure.config.AllConfigs;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerPackagePortRules;
 import com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorOBBAccessor;
-import com.yision.fluidlogistics.mixin.accessor.FrogportChainConveyorShapeAccessor;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerFrogportConnectionPacket;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlock;
+import com.yision.fluidlogistics.content.logistics.copperFrogport.CopperFrogportBlockEntity;
 
-import net.createmod.catnip.animation.AnimationTickHolder;
 import net.createmod.catnip.outliner.Outliner;
 import net.createmod.catnip.theme.Color;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraftforge.common.ForgeMod;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -50,6 +53,8 @@ public class FrogportSelectionHandler {
 
     private static final Color CHAIN_SELECTION_COLOR = new Color(0xFFFFFF);
     private static final Color FROGPORT_HIGHLIGHT_COLOR = new Color(0xDDC166);
+    private static final Color VALID_CONNECTION_COLOR = new Color(0x9EDE73);
+    private static final Color INVALID_CONNECTION_COLOR = new Color(0xFF7171);
     private static final int STATUS_CONNECTABLE_COLOR = 0x9EF173;
     private static final int STATUS_INVALID_COLOR = 0xFF6171;
 
@@ -128,16 +133,14 @@ public class FrogportSelectionHandler {
             return false;
         }
 
-        double range = 6;
+        double range = mc.player.getAttributeValue(ForgeMod.BLOCK_REACH.get()) + 1;
         Vec3 from = mc.player.getEyePosition();
         Vec3 to = RaycastHelper.getTraceTarget(mc.player, range, from);
         HitResult hitResult = mc.hitResult;
 
-        double bestDiff;
-        if (hitResult != null && hitResult.getType() == HitResult.Type.BLOCK) {
+        double bestDiff = Float.MAX_VALUE;
+        if (hitResult != null) {
             bestDiff = hitResult.getLocation().distanceToSqr(from);
-        } else {
-            bestDiff = range * range;
         }
 
         BlockPos bestLift = null;
@@ -228,7 +231,11 @@ public class FrogportSelectionHandler {
                 for (ChainConveyorShape shape : shapes) {
                     ms.pushPose();
                     ms.translate(current.getX() - camera.x, current.getY() - camera.y, current.getZ() - camera.z);
-                    ((FrogportChainConveyorShapeAccessor) shape).fluidlogistics$invokeDrawOutline(current, ms, vb);
+                    if (shape instanceof ChainConveyorShape.ChainConveyorOBB obb) {
+                        obb.drawOutline(current, ms, vb);
+                    } else if (shape instanceof ChainConveyorShape.ChainConveyorBB bb) {
+                        bb.drawOutline(current, ms, vb);
+                    }
                     ms.popPose();
                 }
             }
@@ -266,10 +273,15 @@ public class FrogportSelectionHandler {
         if (ChainConveyorInteractionHandler.selectedBakedPosition != null) {
             Vec3 end = ChainConveyorInteractionHandler.selectedBakedPosition;
             boolean outOfRange = isCurrentTargetOutOfRange(level);
-            Color color = outOfRange ? new Color(0xFF6171) : new Color(0x9EF173);
+            Color color = outOfRange ? INVALID_CONNECTION_COLOR : VALID_CONNECTION_COLOR;
 
             for (BlockPos frogportPos : selectedFrogports) {
-                animateConnection(mc, Vec3.atCenterOf(frogportPos), end, color);
+                PackagePortTargetSelectionHandler.animateConnection(
+                    mc,
+                    getConnectionSource(level, frogportPos),
+                    end,
+                    color
+                );
             }
             updateConnectionStatus(mc, outOfRange);
         }
@@ -320,15 +332,28 @@ public class FrogportSelectionHandler {
         BlockPos connection = ChainConveyorInteractionHandler.selectedConnection;
 
         for (BlockPos frogportPos : selectedFrogports) {
+            BlockEntity blockEntity = level.getBlockEntity(frogportPos);
             ChainConveyorFrogportTarget previewTarget = new ChainConveyorFrogportTarget(
                 liftPos.subtract(frogportPos),
                 chainPos,
                 connection);
-
+            if (!previewTarget.canSupport(blockEntity)) {
+                return true;
+            }
             Vec3 targetLocation = previewTarget.getExactTargetLocation(null, level, frogportPos);
-            if (targetLocation == Vec3.ZERO || !targetLocation.closerThan(
-                Vec3.atBottomCenterOf(frogportPos),
-                AllConfigs.server().logistics.packagePortRange.get() + 2)) {
+            if (targetLocation == Vec3.ZERO) {
+                return true;
+            }
+            double maxRange = AllConfigs.server().logistics.packagePortRange.get();
+            if (blockEntity instanceof CopperFrogportBlockEntity) {
+                if (!HandPointerPackagePortRules.isWithinRange(
+                    targetLocation.x, targetLocation.y, targetLocation.z,
+                    frogportPos.getX(), frogportPos.getY(), frogportPos.getZ(), maxRange)) {
+                    return true;
+                }
+            } else if (!HandPointerPackagePortRules.isCreateFrogportReachable(
+                targetLocation.x, targetLocation.y, targetLocation.z,
+                frogportPos.getX(), frogportPos.getY(), frogportPos.getZ(), maxRange)) {
                 return true;
             }
         }
@@ -341,7 +366,12 @@ public class FrogportSelectionHandler {
             return;
         }
         for (BlockPos frogportPos : selectedFrogports) {
-            animateConnection(mc, Vec3.atCenterOf(frogportPos), Vec3.atCenterOf(clickedPos), new Color(0xFF6171));
+            PackagePortTargetSelectionHandler.animateConnection(
+                mc,
+                getConnectionSource(mc.level, frogportPos),
+                Vec3.atCenterOf(clickedPos),
+                INVALID_CONNECTION_COLOR
+            );
         }
     }
 
@@ -367,16 +397,10 @@ public class FrogportSelectionHandler {
         return FROGPORT_HIGHLIGHT_PREFIX + frogportPos.asLong();
     }
 
-    private static void animateConnection(Minecraft mc, Vec3 source, Vec3 target, Color color) {
-        DustParticleOptions data = new DustParticleOptions(color.asVectorF(), 1.0F);
-        double totalFlyingTicks = 10;
-        int segments = (((int) totalFlyingTicks) / 3) + 1;
-        double tickOffset = totalFlyingTicks / segments;
-
-        for (int i = 0; i < segments; i++) {
-            double ticks = ((AnimationTickHolder.getRenderTime() / 3) % tickOffset) + i * tickOffset;
-            Vec3 vec = source.lerp(target, ticks / totalFlyingTicks);
-            mc.level.addParticle(data, vec.x, vec.y, vec.z, 0, 0, 0);
-        }
+    private static Vec3 getConnectionSource(Level level, BlockPos frogportPos) {
+        BlockState state = level.getBlockState(frogportPos);
+        return level.getBlockEntity(frogportPos) instanceof CopperFrogportBlockEntity
+            ? CopperFrogportBlock.getConnectionSource(frogportPos, state)
+            : Vec3.atBottomCenterOf(frogportPos);
     }
 }

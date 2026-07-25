@@ -102,7 +102,6 @@ public final class MechanicalFluidGunPackets {
 				if (player == null) return;
 				Level level = player.getCommandSenderWorld();
 				if (!level.isLoaded(gunPos)) return;
-				if (player.distanceToSqr(gunPos.getX() + 0.5D, gunPos.getY() + 0.5D, gunPos.getZ() + 0.5D) > 64.0D) return;
 				if (!player.mayInteract(level, gunPos)) return;
 
 				BlockEntity be = level.getBlockEntity(gunPos);
@@ -119,9 +118,7 @@ public final class MechanicalFluidGunPackets {
 					if (!MechanicalFluidGunBlock.isSelectableTarget(level, gunPos, target.pos)) continue;
 					validatedTargets.add(MechanicalFluidGunTargetConfig.fromAbsolute(gunPos, target.pos, target.face));
 				}
-				if (!validatedTargets.isEmpty()) {
-					gunBe.setTargets(validatedTargets);
-				}
+				gunBe.setTargets(validatedTargets);
 			});
 			return true;
 		}
@@ -262,21 +259,91 @@ public final class MechanicalFluidGunPackets {
 
 		private void handleClient() {
 			Minecraft mc = Minecraft.getInstance();
-			if (fluid.isEmpty() || mc.level == null) return;
+			if (fluid.isEmpty() || mc.level == null || mc.player == null) return;
 
-			for (int i = 0; i < 4; i++) {
+			double distanceSqr = mc.player.distanceToSqr(target.x, target.y, target.z);
+			int particleCount = distanceSqr <= 16 * 16 ? 3 : distanceSqr <= 32 * 32 ? 2 : 1;
+			for (int i = 0; i < particleCount; i++) {
 				double ox = (mc.level.random.nextDouble() - 0.5) * 0.16;
 				double oy = mc.level.random.nextDouble() * 0.12;
 				double oz = (mc.level.random.nextDouble() - 0.5) * 0.16;
 
-				mc.level.addAlwaysVisibleParticle(
+				mc.level.addParticle(
 					new MechanicalFluidGunStreamParticleData(fluid),
-					true,
 					target.x + ox, target.y + oy, target.z + oz,
 					(mc.level.random.nextDouble() - 0.5) * 0.03,
 					mc.level.random.nextDouble() * 0.035 + 0.015,
 					(mc.level.random.nextDouble() - 0.5) * 0.03
 				);
+			}
+		}
+	}
+
+	public static class VisualStatePacket extends SimplePacketBase {
+		private final BlockPos gunPos;
+		private final int activeTargetIndex;
+		private final boolean cycleActive;
+		@Nullable
+		private final Vec3 dynamicAimPoint;
+		private final boolean spraying;
+		private final FluidStack renderingFluid;
+		private final boolean fillingItem;
+
+		public VisualStatePacket(BlockPos gunPos, int activeTargetIndex, boolean cycleActive,
+								 @Nullable Vec3 dynamicAimPoint, boolean spraying,
+								 FluidStack renderingFluid, boolean fillingItem) {
+			this.gunPos = gunPos;
+			this.activeTargetIndex = activeTargetIndex;
+			this.cycleActive = cycleActive;
+			this.dynamicAimPoint = dynamicAimPoint;
+			this.spraying = spraying && !renderingFluid.isEmpty();
+			this.renderingFluid = this.spraying ? renderingFluid.copy() : FluidStack.EMPTY;
+			this.fillingItem = fillingItem;
+		}
+
+		public VisualStatePacket(FriendlyByteBuf buf) {
+			gunPos = buf.readBlockPos();
+			activeTargetIndex = buf.readVarInt() - 1;
+			cycleActive = buf.readBoolean();
+			dynamicAimPoint = buf.readBoolean()
+				? new Vec3(buf.readDouble(), buf.readDouble(), buf.readDouble())
+				: null;
+			spraying = buf.readBoolean();
+			renderingFluid = spraying ? buf.readFluidStack() : FluidStack.EMPTY;
+			fillingItem = buf.readBoolean();
+		}
+
+		@Override
+		public void write(FriendlyByteBuf buf) {
+			buf.writeBlockPos(gunPos);
+			buf.writeVarInt(activeTargetIndex + 1);
+			buf.writeBoolean(cycleActive);
+			buf.writeBoolean(dynamicAimPoint != null);
+			if (dynamicAimPoint != null) {
+				buf.writeDouble(dynamicAimPoint.x);
+				buf.writeDouble(dynamicAimPoint.y);
+				buf.writeDouble(dynamicAimPoint.z);
+			}
+			buf.writeBoolean(spraying);
+			if (spraying) {
+				buf.writeFluidStack(renderingFluid);
+			}
+			buf.writeBoolean(fillingItem);
+		}
+
+		@Override
+		public boolean handle(Context context) {
+			context.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> this::handleClient));
+			return true;
+		}
+
+		private void handleClient() {
+			Minecraft mc = Minecraft.getInstance();
+			if (mc.level == null || !mc.level.isLoaded(gunPos)) return;
+			BlockEntity blockEntity = mc.level.getBlockEntity(gunPos);
+			if (blockEntity instanceof MechanicalFluidGunBlockEntity gun) {
+				gun.applyVisualState(activeTargetIndex, cycleActive, dynamicAimPoint,
+					spraying, renderingFluid, fillingItem);
 			}
 		}
 	}

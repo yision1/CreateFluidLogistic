@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.simibubi.create.content.fluids.transfer.GenericItemEmptying;
 import com.simibubi.create.content.logistics.factoryBoard.FactoryPanelBehaviour;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.api.packager.client.PackageResourceClient;
 import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidFilterPacket;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 
@@ -42,7 +43,17 @@ public class FactoryPanelBehaviourClientMixin {
             heldItem = player.getOffhandItem();
         }
 
-        if (heldItem.isEmpty() || !GenericItemEmptying.canItemBeEmptied(player.level(), heldItem)) {
+        if (heldItem.isEmpty()) {
+            return;
+        }
+
+        var selectorHint = PackageResourceClient.getRequestSelectorHint(heldItem);
+        if (selectorHint.isPresent()) {
+            cir.setReturnValue((MutableComponent) selectorHint.orElseThrow());
+            return;
+        }
+
+        if (!GenericItemEmptying.canItemBeEmptied(player.level(), heldItem)) {
             return;
         }
 
@@ -52,12 +63,12 @@ public class FactoryPanelBehaviourClientMixin {
     @Inject(method = "onShortInteract", at = @At("HEAD"), cancellable = true)
     private void fluidlogistics$clientHandleAltClick(Player player, InteractionHand hand, Direction side,
         BlockHitResult hitResult, CallbackInfo ci) {
-        if (!player.level().isClientSide() || !Screen.hasAltDown()) {
+        if (!player.level().isClientSide()) {
             return;
         }
 
         ItemStack heldItem = player.getItemInHand(hand);
-        if (heldItem.isEmpty() || !GenericItemEmptying.canItemBeEmptied(player.level(), heldItem)) {
+        if (heldItem.isEmpty()) {
             return;
         }
 
@@ -67,6 +78,15 @@ public class FactoryPanelBehaviourClientMixin {
         }
 
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
+        if (PackageResourceClient.trySetFactoryPanelRequestSelector(self, player, hand)) {
+            ci.cancel();
+            return;
+        }
+
+        if (!Screen.hasAltDown() || !GenericItemEmptying.canItemBeEmptied(player.level(), heldItem)) {
+            return;
+        }
+
         FluidLogisticsPackets.getChannel()
             .sendToServer(new FactoryPanelSetFluidFilterPacket(self.getPanelPosition(), hand));
         ci.cancel();

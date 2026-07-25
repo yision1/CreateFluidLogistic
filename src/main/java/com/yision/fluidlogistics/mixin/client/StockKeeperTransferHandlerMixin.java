@@ -18,10 +18,12 @@ import com.simibubi.create.content.logistics.stockTicker.CraftableBigItemStack;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestMenu;
 import com.simibubi.create.content.logistics.stockTicker.StockKeeperRequestScreen;
 import com.simibubi.create.foundation.utility.CreateLang;
+import com.yision.fluidlogistics.api.packager.PackageResourceCrafting;
+import com.yision.fluidlogistics.api.packager.PackageResourceCraftingData;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.stockTicker.FluidCraftableBigItemStack;
 import com.yision.fluidlogistics.registry.AllItems;
-import com.yision.fluidlogistics.util.IFluidCraftableBigItemStack;
 
 import mezz.jei.api.forge.ForgeTypes;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
@@ -98,9 +100,9 @@ public abstract class StockKeeperTransferHandlerMixin {
             return;
         }
 
-        CraftableBigItemStack cbis = new CraftableBigItemStack(outputTarget.displayStack().copy(), recipe);
-        ((IFluidCraftableBigItemStack) cbis).fluidlogistics$setCustomRecipeData(
-            outputTarget.outputCount(), outputTarget.transferLimit(), selectedRequirements);
+        CraftableBigItemStack cbis = new FluidCraftableBigItemStack(outputTarget.displayStack().copy(), recipe);
+        PackageResourceCrafting.set(cbis, new PackageResourceCraftingData(
+            outputTarget.outputCount(), outputTarget.transferLimit(), selectedRequirements));
         screen.recipesToOrder.add(cbis);
         screen.searchBox.setValue("");
         screen.refreshSearchNextTick = true;
@@ -150,11 +152,11 @@ public abstract class StockKeeperTransferHandlerMixin {
                 .filter(fluid -> !fluid.isEmpty())
                 .findFirst();
             if (fluidOutput.isPresent()) {
-                ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+                ItemStack fluidTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
                 FluidStack template = fluidOutput.get().copy();
                 template.setAmount(1);
-                CompressedTankItem.setFluidVirtual(virtualTank, template);
-                return new OutputTarget(virtualTank, Math.max(1, fluidOutput.get().getAmount()), Config.getFluidPerPackage());
+                CompressedTankItem.setFluid(fluidTank, template);
+                return new OutputTarget(fluidTank, Math.max(1, fluidOutput.get().getAmount()), Config.getFluidPerPackage());
             }
         }
 
@@ -204,11 +206,11 @@ public abstract class StockKeeperTransferHandlerMixin {
                 return;
             }
 
-            ItemStack virtualTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
+            ItemStack fluidTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
             FluidStack template = fluid.copy();
             template.setAmount(1);
-            CompressedTankItem.setFluidVirtual(virtualTank, template);
-            candidates.add(new BigItemStack(virtualTank, fluid.getAmount()));
+            CompressedTankItem.setFluid(fluidTank, template);
+            candidates.add(new BigItemStack(fluidTank, fluid.getAmount()));
         });
 
         return candidates;

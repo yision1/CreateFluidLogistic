@@ -2,7 +2,6 @@ package com.yision.fluidlogistics;
 
 import com.mojang.logging.LogUtils;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPointType;
-import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.api.stress.BlockStressValues;
 import com.simibubi.create.foundation.data.CreateRegistrate;
 import com.simibubi.create.foundation.item.ItemDescription;
@@ -11,11 +10,17 @@ import com.simibubi.create.foundation.item.TooltipModifier;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
 import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpNetworkUpdater;
 import com.yision.fluidlogistics.config.Config;
+import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
+import com.yision.fluidlogistics.api.handpointer.crafter.HandPointerCrafterAdapters;
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.api.packager.PackageResourceTypes;
 import com.yision.fluidlogistics.config.FeatureEnabledCondition;
 import com.yision.fluidlogistics.config.FeatureToggle;
 import com.yision.fluidlogistics.config.FluidHatchAdvertisedCondition;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankTooltipModifier;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageContentHelper;
+import com.yision.fluidlogistics.content.equipment.handPointer.CreateMechanicalCrafterAdapter;
 import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidTankItem;
 import com.yision.fluidlogistics.network.FluidLogisticsPackets;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
@@ -30,7 +35,6 @@ import com.yision.fluidlogistics.registry.AllPartialModels;
 import com.yision.fluidlogistics.registry.FluidLogisticsArmInteractionPointTypes;
 import net.createmod.catnip.lang.FontHelper;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -49,9 +53,6 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.registries.RegisterEvent;
-import com.simibubi.create.foundation.fluid.FluidHelper;
-import net.minecraftforge.items.ItemStackHandler;
-import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -79,7 +80,7 @@ public class FluidLogistics
     public static final RegistryObject<CreativeModeTab> FLUID_LOGISTICS_CREATIVE_TAB =
             CREATIVE_TABS.register("fluidlogistics_tab", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.fluidlogistics.fluidlogistics_tab"))
-                    .icon(() -> createWaterFluidPackage(50000))
+                    .icon(() -> createWaterFluidPackage(Config.getFluidPerPackage()))
                     .build());
 
     public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(MODID)
@@ -101,8 +102,13 @@ public class FluidLogistics
         REGISTRATE.registerEventListeners(modEventBus);
 
         AllBlocks.register();
+        PackagerAddresses.register(com.simibubi.create.AllBlocks.PACKAGER);
+        PackagerAddresses.register(AllBlocks.FLUID_PACKAGER);
+        HandPointerCrafterAdapters.register(
+            asResource("create_mechanical_crafter"), CreateMechanicalCrafterAdapter.INSTANCE);
         AllBlockEntities.register();
         AllItems.register();
+        PackageResourceTypes.registerBuiltIns();
         AllMenuTypes.register();
         AllMountedStorageTypes.register();
         AllFluidLogisticsParticleTypes.register(modEventBus);
@@ -127,6 +133,7 @@ public class FluidLogistics
     private void commonSetup(final FMLCommonSetupEvent event)
     {
         event.enqueueWork(() -> {
+            PackageResources.bootstrap();
             AllPartialModels.register();
             ArmInteractionPointType.init();
             FluidLogisticsUnpackingHandlers.registerDefaults();
@@ -150,16 +157,7 @@ public class FluidLogistics
     }
 
     private static ItemStack createWaterFluidPackage(int amount) {
-        ItemStackHandler packageContents = new ItemStackHandler(PackageItem.SLOTS);
-        ItemStack compressedTank = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-        CompressedTankItem.setFluid(compressedTank, new FluidStack(Fluids.WATER, amount));
-        packageContents.setStackInSlot(0, compressedTank);
-
-        ItemStack fluidPackage = new ItemStack(AllItems.FLUID_PACKAGE.get());
-        CompoundTag compound = new CompoundTag();
-        compound.put("Items", packageContents.serializeNBT());
-        fluidPackage.setTag(compound);
-        return fluidPackage;
+        return FluidPackageContentHelper.createCanonicalPackage(new FluidStack(Fluids.WATER, amount));
     }
 
     private void hideDisabledItems(final BuildCreativeModeTabContentsEvent event) {
@@ -170,7 +168,6 @@ public class FluidLogistics
 
         for (FeatureItem fi : FEATURE_ITEMS) {
             if (!FeatureToggle.isEnabled(fi.feature)) {
-                // Collect entries to remove first to avoid ConcurrentModificationException
                 List<ItemStack> toRemove = new ArrayList<>();
                 for (Map.Entry<ItemStack, CreativeModeTab.TabVisibility> entry : event.getEntries()) {
                     if (entry.getKey().getItem() == fi.item.get().asItem()) {
@@ -201,7 +198,6 @@ public class FluidLogistics
             new FeatureItem(FeatureToggle.MECHANICAL_FLUID_GUN, AllBlocks.MECHANICAL_FLUID_GUN),
             new FeatureItem(FeatureToggle.FLUID_HATCH, AllBlocks.FLUID_HATCH),
             new FeatureItem(FeatureToggle.HAND_POINTER, AllItems.HAND_POINTER),
-            // Advanced-logistics-only items (controlled by the master switch)
             new FeatureItem(FeatureToggle.FLUID_PACKAGER, AllBlocks.FLUID_PACKAGER),
             new FeatureItem(FeatureToggle.FLUID_REPACKAGER, AllBlocks.FLUID_REPACKAGER),
             new FeatureItem(FeatureToggle.COMPRESSED_STORAGE_TANK, AllItems.COMPRESSED_STORAGE_TANK),

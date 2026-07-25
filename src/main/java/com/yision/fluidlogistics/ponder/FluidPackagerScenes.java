@@ -4,7 +4,7 @@ import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageContentHelper;
 import com.yision.fluidlogistics.registry.AllItems;
 import net.createmod.catnip.math.Pointing;
 import net.createmod.ponder.api.PonderPalette;
@@ -16,7 +16,6 @@ import net.createmod.ponder.api.scene.SceneBuildingUtil;
 import net.createmod.ponder.api.scene.Selection;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.Vec3;
@@ -229,13 +228,7 @@ public class FluidPackagerScenes {
 	}
 
 	private static void setFluidPackageContents(ItemStack packageStack, FluidStack fluid) {
-		net.minecraftforge.items.ItemStackHandler contents = new net.minecraftforge.items.ItemStackHandler(PackageItem.SLOTS);
-		ItemStack tankStack = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
-		CompressedTankItem.setFluid(tankStack, fluid);
-		contents.setStackInSlot(0, tankStack);
-		CompoundTag compound = new CompoundTag();
-		compound.put("Items", contents.serializeNBT());
-		packageStack.setTag(compound);
+		FluidPackageContentHelper.setCanonicalContents(packageStack, fluid);
 	}
 
 	public static void fluidPackagerAddress(SceneBuilder builder, SceneBuildingUtil util) {
@@ -520,4 +513,3 @@ public class FluidPackagerScenes {
 			});
 	}
 }
-

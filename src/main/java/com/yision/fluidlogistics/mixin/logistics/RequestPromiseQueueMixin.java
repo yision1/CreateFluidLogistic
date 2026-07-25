@@ -2,12 +2,10 @@ package com.yision.fluidlogistics.mixin.logistics;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -15,30 +13,33 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.simibubi.create.content.logistics.packagerLink.RequestPromise;
 import com.simibubi.create.content.logistics.packagerLink.RequestPromiseQueue;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.simibubi.create.content.logistics.BigItemStack;
+import com.yision.fluidlogistics.api.packager.PackageResources;
 
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.fluids.FluidStack;
 
-@Mixin(value = RequestPromiseQueue.class, remap = false)
+@Mixin(RequestPromiseQueue.class)
 public abstract class RequestPromiseQueueMixin {
 
-    @Shadow
+    @Shadow(remap = false)
     @Final
-    private Map<Item, List<RequestPromise>> promisesByItem;
+    private java.util.Map<Item, List<RequestPromise>> promisesByItem;
 
-    @Shadow
+    @Shadow(remap = false)
     private Runnable onChanged;
 
-    @Inject(method = "getTotalPromisedAndRemoveExpired", at = @At("HEAD"), cancellable = true)
-    private void fluidlogistics$getTotalPromisedForVirtualTank(ItemStack stack, int expiryTime,
-        CallbackInfoReturnable<Integer> cir) {
-        if (!(stack.getItem() instanceof CompressedTankItem) || !CompressedTankItem.isVirtual(stack)) {
+    @Inject(
+        method = "getTotalPromisedAndRemoveExpired",
+        at = @At("HEAD"),
+        cancellable = true,
+        remap = false
+    )
+    private void fluidlogistics$getTotalPromisedForFluidTank(ItemStack stack, int expiryTime,
+            CallbackInfoReturnable<Integer> cir) {
+        if (!PackageResources.isBootstrapped() || PackageResources.findType(stack).isEmpty()) {
             return;
         }
-
-        FluidStack targetFluid = CompressedTankItem.getFluid(stack);
 
         List<RequestPromise> list = promisesByItem.get(stack.getItem());
         if (list == null) {
@@ -51,7 +52,7 @@ public abstract class RequestPromiseQueueMixin {
 
         for (Iterator<RequestPromise> iterator = list.iterator(); iterator.hasNext();) {
             RequestPromise promise = iterator.next();
-            if (!fluidlogistics$matchesVirtualFluid(promise.promisedStack.stack, targetFluid)) {
+            if (!PackageResources.sameResource(promise.promisedStack.stack, stack)) {
                 continue;
             }
             if (expiryTime != -1 && promise.ticksExisted >= expiryTime) {
@@ -59,7 +60,8 @@ public abstract class RequestPromiseQueueMixin {
                 changed = true;
                 continue;
             }
-            promised += promise.promisedStack.count;
+            promised = (int) Math.min(BigItemStack.INF,
+                    (long) promised + promise.promisedStack.count);
         }
 
         if (list.isEmpty()) {
@@ -73,13 +75,16 @@ public abstract class RequestPromiseQueueMixin {
         cir.setReturnValue(promised);
     }
 
-    @Inject(method = "forceClear", at = @At("HEAD"), cancellable = true)
-    private void fluidlogistics$forceClearVirtualTank(ItemStack stack, CallbackInfo ci) {
-        if (!(stack.getItem() instanceof CompressedTankItem) || !CompressedTankItem.isVirtual(stack)) {
+    @Inject(
+        method = "forceClear",
+        at = @At("HEAD"),
+        cancellable = true,
+        remap = false
+    )
+    private void fluidlogistics$forceClearFluidTank(ItemStack stack, CallbackInfo ci) {
+        if (!PackageResources.isBootstrapped() || PackageResources.findType(stack).isEmpty()) {
             return;
         }
-
-        FluidStack targetFluid = CompressedTankItem.getFluid(stack);
 
         List<RequestPromise> list = promisesByItem.get(stack.getItem());
         if (list == null) {
@@ -90,7 +95,7 @@ public abstract class RequestPromiseQueueMixin {
         boolean changed = false;
         for (Iterator<RequestPromise> iterator = list.iterator(); iterator.hasNext();) {
             RequestPromise promise = iterator.next();
-            if (fluidlogistics$matchesVirtualFluid(promise.promisedStack.stack, targetFluid)) {
+            if (PackageResources.sameResource(promise.promisedStack.stack, stack)) {
                 iterator.remove();
                 changed = true;
             }
@@ -107,13 +112,16 @@ public abstract class RequestPromiseQueueMixin {
         ci.cancel();
     }
 
-    @Inject(method = "itemEnteredSystem", at = @At("HEAD"), cancellable = true)
-    private void fluidlogistics$itemEnteredSystemVirtualTank(ItemStack stack, int amount, CallbackInfo ci) {
-        if (!(stack.getItem() instanceof CompressedTankItem) || !CompressedTankItem.isVirtual(stack)) {
+    @Inject(
+        method = "itemEnteredSystem",
+        at = @At("HEAD"),
+        cancellable = true,
+        remap = false
+    )
+    private void fluidlogistics$itemEnteredSystemFluidTank(ItemStack stack, int amount, CallbackInfo ci) {
+        if (!PackageResources.isBootstrapped() || PackageResources.findType(stack).isEmpty()) {
             return;
         }
-
-        FluidStack targetFluid = CompressedTankItem.getFluid(stack);
 
         List<RequestPromise> list = promisesByItem.get(stack.getItem());
         if (list == null) {
@@ -124,17 +132,17 @@ public abstract class RequestPromiseQueueMixin {
         boolean changed = false;
         for (Iterator<RequestPromise> iterator = list.iterator(); iterator.hasNext();) {
             RequestPromise requestPromise = iterator.next();
-            if (!fluidlogistics$matchesVirtualFluid(requestPromise.promisedStack.stack, targetFluid)) {
+            if (!PackageResources.sameResource(requestPromise.promisedStack.stack, stack)) {
                 continue;
             }
 
             int toSubtract = Math.min(amount, requestPromise.promisedStack.count);
             amount -= toSubtract;
             requestPromise.promisedStack.count -= toSubtract;
+            changed |= toSubtract > 0;
 
             if (requestPromise.promisedStack.count <= 0) {
                 iterator.remove();
-                changed = true;
             }
             if (amount <= 0) {
                 break;
@@ -152,13 +160,4 @@ public abstract class RequestPromiseQueueMixin {
         ci.cancel();
     }
 
-    @Unique
-    private static boolean fluidlogistics$matchesVirtualFluid(ItemStack promiseStack, FluidStack targetFluid) {
-        if (!(promiseStack.getItem() instanceof CompressedTankItem) || !CompressedTankItem.isVirtual(promiseStack)) {
-            return false;
-        }
-
-        FluidStack promiseFluid = CompressedTankItem.getFluid(promiseStack);
-        return promiseFluid.isFluidEqual(targetFluid);
-    }
 }

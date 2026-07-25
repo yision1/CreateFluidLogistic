@@ -9,7 +9,8 @@ import com.simibubi.create.content.contraptions.AbstractContraptionEntity;
 import com.simibubi.create.content.logistics.box.PackageEntity;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.yision.fluidlogistics.FluidLogistics;
-import com.yision.fluidlogistics.content.fluids.faucet.AbstractFaucetBlockEntity;
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.content.fluids.faucet.FaucetBlockEntity;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.MechanicalFluidGunBlockEntity;
 import com.yision.fluidlogistics.content.fluids.fluidHatch.FluidHatchBlockEntity;
 import com.yision.fluidlogistics.content.fluids.horizontalMultiFluidTank.HorizontalMultiFluidTankBlockEntity;
@@ -54,7 +55,7 @@ public class FluidLogisticsJadePlugin implements IWailaPlugin {
         registration.registerFluidStorage(MultiFluidTankProvider.INSTANCE, HorizontalMultiFluidTankBlockEntity.class);
         registration.registerFluidStorage(ContraptionMultiFluidTankProvider.INSTANCE, AbstractContraptionEntity.class);
         registration.registerBlockDataProvider(ConnectedFluidSourceProvider.INSTANCE, MechanicalFluidGunBlockEntity.class);
-        registration.registerBlockDataProvider(ConnectedFluidSourceProvider.INSTANCE, AbstractFaucetBlockEntity.class);
+        registration.registerBlockDataProvider(ConnectedFluidSourceProvider.INSTANCE, FaucetBlockEntity.class);
         registration.registerBlockDataProvider(ConnectedFluidSourceProvider.INSTANCE, FluidHatchBlockEntity.class);
         registration.registerBlockDataProvider(ConnectedFluidSourceProvider.INSTANCE, MultiFluidAccessPortBlockEntity.class);
     }
@@ -89,7 +90,9 @@ public class FluidLogisticsJadePlugin implements IWailaPlugin {
             List<ItemStack> displayItems = new ArrayList<>();
             for (int i = 0; i < contents.getSlots(); i++) {
                 ItemStack slotStack = contents.getStackInSlot(i);
-                if (slotStack.isEmpty() || slotStack.getItem() instanceof CompressedTankItem) {
+                if (slotStack.isEmpty()
+                        || PackageResources.isBootstrapped()
+                        && PackageResources.findType(slotStack).isPresent()) {
                     continue;
                 }
                 displayItems.add(slotStack);
@@ -132,7 +135,7 @@ public class FluidLogisticsJadePlugin implements IWailaPlugin {
 
             for (int i = 0; i < contents.getSlots(); i++) {
                 ItemStack slotStack = contents.getStackInSlot(i);
-                if (slotStack.isEmpty() || !(slotStack.getItem() instanceof CompressedTankItem)) {
+                if (!CompressedTankItem.isFluidStack(slotStack)) {
                     continue;
                 }
 

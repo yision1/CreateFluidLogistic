@@ -1,41 +1,40 @@
 package com.yision.fluidlogistics.mixin.client;
 
+import com.llamalad7.mixinextras.expression.Definition;
+import com.llamalad7.mixinextras.expression.Expression;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import com.llamalad7.mixinextras.sugar.Share;
+import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorBlockEntity;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorPackage;
 import com.simibubi.create.content.kinetics.chainConveyor.ChainConveyorVisual;
-import com.simibubi.create.content.logistics.box.PackageItem;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.client.phantomChain.PhantomChainVisibility;
 import com.yision.fluidlogistics.config.Config;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageItemRenderer;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.client.phantomChain.PhantomChainVisibility;
 import com.yision.fluidlogistics.render.FluidVisual;
+
 import dev.engine_room.flywheel.api.visual.DynamicVisual;
 import dev.engine_room.flywheel.api.visualization.VisualizationContext;
 import dev.engine_room.flywheel.lib.instance.TransformedInstance;
-import net.createmod.catnip.math.AngleHelper;
-import net.createmod.catnip.math.VecHelper;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.util.Mth;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.fluids.FluidStack;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.Map;
 
 @Mixin(value = ChainConveyorVisual.class, remap = false)
-public abstract class ChainConveyorVisualMixin {
+public class ChainConveyorVisualMixin {
 
     @Unique
     private FluidVisual fluidlogistics$fluidVisual;
@@ -74,81 +73,111 @@ public abstract class ChainConveyorVisualMixin {
             at = @At(
                     value = "INVOKE",
                     target = "Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorVisual;setupBoxVisual(Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorBlockEntity;Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorPackage;F)V",
-                    ordinal = 1,
                     remap = false
+            ),
+            slice = @Slice(
+                    from = @At(
+                            value = "FIELD",
+                            target = "Lcom/simibubi/create/content/kinetics/chainConveyor/ChainConveyorBlockEntity;travellingPackages:Ljava/util/Map;",
+                            remap = false
+                    )
             ),
             remap = false
     )
-    private void fluidlogistics$hidePhantomTravellingBoxes(ChainConveyorVisual instance, ChainConveyorBlockEntity be,
-                                                           ChainConveyorPackage box, float partialTicks,
-                                                           Operation<Void> original,
-                                                           @Local Map.Entry<BlockPos, List<ChainConveyorPackage>> entry) {
+    private void fluidlogistics$skipPhantomTravellingBoxVisual(ChainConveyorVisual instance,
+                                                               ChainConveyorBlockEntity be, ChainConveyorPackage box,
+                                                               float partialTicks, Operation<Void> original,
+                                                               @Local Map.Entry<BlockPos, List<ChainConveyorPackage>> entry) {
         if (!PhantomChainVisibility.shouldRenderConnection(be, entry.getKey())) {
             return;
         }
         original.call(instance, be, box, partialTicks);
     }
 
-    @Inject(method = "setupBoxVisual", at = @At("TAIL"), remap = false)
-    private void fluidlogistics$setupFluidVisual(ChainConveyorBlockEntity be, ChainConveyorPackage box, float partialTicks, CallbackInfo ci) {
+    @Definition(id = "TransformedInstance", type = TransformedInstance.class, remap = false)
+    @Expression("new TransformedInstance[]{?,?}")
+    @ModifyExpressionValue(
+            method = "setupBoxVisual",
+            at = @At("MIXINEXTRAS:EXPRESSION"),
+            remap = false
+    )
+    private TransformedInstance[] fluidlogistics$setupFluidBuffers(TransformedInstance[] original,
+                                                                   @Local(argsOnly = true) ChainConveyorPackage box,
+                                                                   @Share("fluid") LocalRef<FluidStack> fluid,
+                                                                   @Share("fluidBuffers") LocalRef<TransformedInstance[]> fluidBuffers) {
+        fluid.set(null);
+        fluidBuffers.set(null);
+
         if (fluidlogistics$fluidVisual == null) {
-            return;
+            return original;
         }
-        if (!(box.item.getItem() instanceof FluidPackageItem))
-            return;
+        if (!(box.item.getItem() instanceof FluidPackageItem)) {
+            return original;
+        }
 
-        FluidStack fluid = FluidPackageItemRenderer.getVisualContainedFluid(box.item);
-        if (fluid.isEmpty())
-            return;
+        fluid.set(FluidPackageItemRenderer.getPrimaryContainedFluid(box.item));
+        if (fluid.get().isEmpty()) {
+            return original;
+        }
 
-        if (box.worldPosition == null)
-            return;
+        TransformedInstance[] buffers = fluidlogistics$fluidVisual.setupBuffers(fluid.get(), original.length);
+        if (buffers == null) {
+            return original;
+        }
 
-        ChainConveyorPackage.ChainConveyorPackagePhysicsData physicsData = box.physicsData(be.getLevel());
-        if (physicsData.prevPos == null)
-            return;
+        System.arraycopy(original, 0, buffers, 0, original.length);
 
-        Vec3 position = physicsData.prevPos.lerp(physicsData.pos, partialTicks);
-        Vec3 targetPosition = physicsData.prevTargetPos.lerp(physicsData.targetPos, partialTicks);
-        float yaw = AngleHelper.angleLerp(partialTicks, physicsData.prevYaw, physicsData.yaw);
+        TransformedInstance[] addedBuffers = new TransformedInstance[buffers.length - original.length];
+        System.arraycopy(buffers, original.length, addedBuffers, 0, addedBuffers.length);
+        fluidBuffers.set(addedBuffers);
 
-        BlockPos blockPos = be.getBlockPos();
-        Vec3 offset = new Vec3(targetPosition.x - blockPos.getX(), targetPosition.y - blockPos.getY(), targetPosition.z - blockPos.getZ());
+        return buffers;
+    }
 
-        Vec3 dangleDiff = VecHelper.rotate(targetPosition.add(0, 0.5, 0)
-                .subtract(position), -yaw, Direction.Axis.Y);
-        float zRot = Mth.wrapDegrees((float) Mth.atan2(-dangleDiff.x, dangleDiff.y) * Mth.RAD_TO_DEG) / 2;
-        float xRot = Mth.wrapDegrees((float) Mth.atan2(dangleDiff.z, dangleDiff.y) * Mth.RAD_TO_DEG) / 2;
-        zRot = Mth.clamp(zRot, -25, 25);
-        xRot = Mth.clamp(xRot, -25, 25);
+    @WrapOperation(
+            method = "setupBoxVisual",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Ldev/engine_room/flywheel/lib/instance/TransformedInstance;light(I)Ldev/engine_room/flywheel/lib/instance/ColoredLitInstance;",
+                    remap = false
+            ),
+            remap = false
+    )
+    private dev.engine_room.flywheel.lib.instance.ColoredLitInstance fluidlogistics$setupFluidVisual(
+            TransformedInstance instance, int light, Operation<dev.engine_room.flywheel.lib.instance.ColoredLitInstance> original,
+            @Share("fluidBuffers") LocalRef<TransformedInstance[]> fluidBuffers,
+            @Share("fluid") LocalRef<FluidStack> fluid) {
+        if (fluidlogistics$fluidVisual == null) {
+            return original.call(instance, light);
+        }
+        if (fluid.get() == null || fluid.get().isEmpty()) {
+            return original.call(instance, light);
+        }
 
-        BlockPos containingPos = BlockPos.containing(position);
-        Level level = be.getLevel();
-        int light = LightTexture.pack(level.getBrightness(LightLayer.BLOCK, containingPos),
-                level.getBrightness(LightLayer.SKY, containingPos));
+        int fluidBufferIndex = fluidlogistics$getFluidBufferIndex(fluidBuffers.get(), instance);
+        if (fluidBufferIndex == -1) {
+            return original.call(instance, light);
+        }
 
-        TransformedInstance[] buffers = fluidlogistics$fluidVisual.setupBuffers(fluid, 0);
-        if (buffers == null)
-            return;
+        fluidlogistics$fluidVisual.setupBuffer(fluid.get(), Config.getFluidPerPackage(), instance, fluidBufferIndex,
+            FluidPackageItemRenderer.FLUID_MIN_XZ,
+            FluidPackageItemRenderer.FLUID_MAX_XZ,
+            FluidPackageItemRenderer.FLUID_MIN_Y,
+            FluidPackageItemRenderer.FLUID_MAX_Y);
 
+        return original.call(instance, light);
+    }
+
+    @Unique
+    private static int fluidlogistics$getFluidBufferIndex(TransformedInstance[] buffers, TransformedInstance instance) {
+        if (buffers == null) {
+            return -1;
+        }
         for (int i = 0; i < buffers.length; i++) {
-            TransformedInstance buf = buffers[i];
-            buf.setIdentityTransform();
-            buf.translate(blockPos.getX(), blockPos.getY(), blockPos.getZ());
-            buf.translate(offset);
-            buf.translate(0, 10 / 16f, 0);
-            buf.rotateYDegrees(yaw);
-            buf.rotateZDegrees(zRot);
-            buf.rotateXDegrees(xRot);
-            buf.uncenter();
-            buf.translate(0, -PackageItem.getHookDistance(box.item) + 7 / 16f, 0);
-            fluidlogistics$fluidVisual.setupBuffer(fluid, Config.getFluidPerPackage(), buf, i,
-                    FluidPackageItemRenderer.FLUID_MIN_XZ,
-                    FluidPackageItemRenderer.FLUID_MAX_XZ,
-                    FluidPackageItemRenderer.FLUID_MIN_Y,
-                    FluidPackageItemRenderer.FLUID_MAX_Y);
-            buf.light(light);
-            buf.setChanged();
+            if (buffers[i] == instance) {
+                return i;
+            }
         }
+        return -1;
     }
 }

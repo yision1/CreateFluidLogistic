@@ -53,7 +53,7 @@ public class FluidLogisticsJEI implements IModPlugin {
 
     @Override
     public void registerAdvanced(IAdvancedRegistration registration) {
-        registration.addRecipeManagerPlugin(new VirtualFluidTankRecipeLookupPlugin(
+        registration.addRecipeManagerPlugin(new FluidTankRecipeLookupPlugin(
             registration.getJeiHelpers(), FluidLogisticsJEI::getRuntime));
     }
 

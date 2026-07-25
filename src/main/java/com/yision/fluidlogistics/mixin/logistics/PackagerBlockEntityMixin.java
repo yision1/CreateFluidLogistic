@@ -2,27 +2,19 @@ package com.yision.fluidlogistics.mixin.logistics;
 
 import java.util.List;
 
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
-
-import com.llamalad7.mixinextras.sugar.Local;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.content.logistics.BigItemStack;
-import com.simibubi.create.content.logistics.packager.InventorySummary;
-import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.content.logistics.packager.PackagerBlock;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
+import com.simibubi.create.content.logistics.packager.InventorySummary;
+import com.simibubi.create.content.logistics.packager.PackagingRequest;
 import com.simibubi.create.content.logistics.packager.repackager.RepackagerBlockEntity;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.PackagerGoggleInfo;
-import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
+import com.yision.fluidlogistics.api.packager.PackageResources;
+import com.yision.fluidlogistics.api.packager.ResourcePackager;
+import com.yision.fluidlogistics.api.packager.ResourcePackagers;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
-import com.yision.fluidlogistics.util.PackagerTargetHelper;
-
 import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -33,12 +25,15 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
-import net.minecraftforge.items.ItemStackHandler;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = PackagerBlockEntity.class, remap = false)
-public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGoggleInformation {
+public class PackagerBlockEntityMixin implements IPackagerOverrideData, IHaveGoggleInformation {
 
     @Unique
     private boolean fluidlogistics$manualOverrideLocked;
@@ -47,12 +42,35 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
     @Unique
     private int fluidlogistics$queuedPackageCount;
 
-    @Inject(method = "unwrapBox", at = @At("HEAD"), cancellable = true, remap = false)
-    private void fluidlogistics$rejectCompressedTankPackages(ItemStack box, boolean simulate,
-                                                             CallbackInfoReturnable<Boolean> cir) {
-        if (fluidlogistics$containsCompressedTank(box)) {
-            cir.setReturnValue(false);
+    @Inject(method = "unwrapBox", at = @At("HEAD"), cancellable = true)
+    private void fluidlogistics$unpackResourcePackage(ItemStack box, boolean simulate,
+                                                      CallbackInfoReturnable<Boolean> cir) {
+        if (!PackageResources.isBootstrapped()
+                || !PackageResources.inspectPackage(box).hasResources()) {
+            return;
         }
+        PackagerBlockEntity owner = (PackagerBlockEntity) (Object) this;
+        ResourcePackager packager = ResourcePackagers.ownerOf(owner).orElse(null);
+        cir.setReturnValue(packager != null && ResourcePackagers.unpack(packager, box, simulate));
+    }
+
+    @Inject(method = "getAvailableItems", at = @At("HEAD"), cancellable = true)
+    private void fluidlogistics$getAvailableResources(CallbackInfoReturnable<InventorySummary> cir) {
+        ResourcePackagers.ownerOf((PackagerBlockEntity) (Object) this)
+                .ifPresent(packager -> cir.setReturnValue(ResourcePackagers.getAvailableResources(packager)));
+    }
+
+    @Inject(method = "attemptToSend", at = @At("HEAD"), cancellable = true)
+    private void fluidlogistics$sendResourcePackage(
+            List<PackagingRequest> queuedRequests, CallbackInfo ci) {
+        ResourcePackager packager = ResourcePackagers
+                .ownerOf((PackagerBlockEntity) (Object) this)
+                .orElse(null);
+        if (packager == null) {
+            return;
+        }
+        ResourcePackagers.attemptToSend(packager, queuedRequests);
+        ci.cancel();
     }
 
     @Inject(method = "write", at = @At("RETURN"))
@@ -77,7 +95,7 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
         if (level == null || level.isClientSide) {
             return;
         }
-        if (!PackagerTargetHelper.isClipboardAddressBlock(packager.getBlockState())) {
+        if (!PackagerAddresses.isTarget(level, packager.getBlockPos())) {
             return;
         }
 
@@ -88,59 +106,38 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
         packager.signBasedAddress = fluidlogistics$clipboardAddress;
     }
 
-    @Inject(
-        method = "getAvailableItems(Z)Lcom/simibubi/create/content/logistics/packager/InventorySummary;",
-        at = @At(
-            value = "INVOKE",
-            target = "Lcom/simibubi/create/content/logistics/packager/InventorySummary;add(Lnet/minecraft/world/item/ItemStack;)V"
-        ),
-        locals = LocalCapture.CAPTURE_FAILSOFT
-    )
-    private void fluidlogistics$ensureCurrentSlotIdentityBeforeSummarizing(boolean scanInputSlots,
-        CallbackInfoReturnable<InventorySummary> cir, InventorySummary availableItems, IItemHandler targetInv,
-        @Local(ordinal = 0) int slot) {
-        fluidlogistics$ensureIdentityInSlot(targetInv, slot);
+    @Override
+    public boolean fluidlogistics$isManualOverrideLocked() {
+        return fluidlogistics$manualOverrideLocked;
     }
 
-    @Unique
-    private static void fluidlogistics$ensureIdentityInSlot(IItemHandler targetInv, int slot) {
-        ItemStack stackInSlot = targetInv.getStackInSlot(slot);
-        if (!(stackInSlot.getItem() instanceof CompressedTankItem) || CompressedTankItem.isVirtual(stackInSlot)) {
-            return;
-        }
-
-        if (targetInv instanceof IItemHandlerModifiable modifiable) {
-            ItemStack updated = stackInSlot.copy();
-            CompressedTankItem.ensureIdentity(updated);
-            if (!ItemStack.isSameItemSameTags(updated, stackInSlot)) {
-                modifiable.setStackInSlot(slot, updated);
-            }
-            return;
-        }
-
-        CompressedTankItem.ensureIdentity(stackInSlot);
+    @Override
+    public void fluidlogistics$setManualOverrideLocked(boolean locked) {
+        fluidlogistics$manualOverrideLocked = locked;
     }
 
-    @Unique
-    private static boolean fluidlogistics$containsCompressedTank(ItemStack box) {
-        if (box.isEmpty() || !PackageItem.isPackage(box)) {
-            return false;
-        }
+    @Override
+    public String clipboardAddress() {
+        return fluidlogistics$clipboardAddress;
+    }
 
-        ItemStackHandler contents = PackageItem.getContents(box);
-        for (int slot = 0; slot < contents.getSlots(); slot++) {
-            if (contents.getStackInSlot(slot).getItem() instanceof CompressedTankItem) {
-                return true;
-            }
-        }
+    @Override
+    public void setClipboardAddress(String address) {
+        fluidlogistics$clipboardAddress = address == null ? "" : address;
+    }
 
-        return false;
+    @Override
+    public int fluidlogistics$getQueuedPackageCount() {
+        return fluidlogistics$countCachedPackages((PackagerBlockEntity) (Object) this);
     }
 
     @Override
     public boolean addToGoggleTooltip(List<Component> tooltip, boolean isPlayerSneaking) {
         PackagerBlockEntity packager = (PackagerBlockEntity) (Object) this;
+        Level level = packager.getLevel();
+
         BlockState state = packager.getBlockState();
+        boolean showsAddress = level != null && PackagerAddresses.isTarget(level, packager.getBlockPos());
         boolean isRepackager = packager instanceof RepackagerBlockEntity;
         boolean isLinkedToNetwork = state.hasProperty(PackagerBlock.LINKED) && state.getValue(PackagerBlock.LINKED);
 
@@ -149,12 +146,11 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
             if (!fluidlogistics$manualOverrideLocked && cachedPackageCount <= 0) {
                 return false;
             }
-            PackagerGoggleInfo.addToTooltip(tooltip, "", fluidlogistics$manualOverrideLocked, true,
-                false, cachedPackageCount);
+            PackagerGoggleInfo.addToTooltip(
+                tooltip, "", fluidlogistics$manualOverrideLocked, true, false, cachedPackageCount);
             return true;
         }
 
-        boolean showsAddress = PackagerTargetHelper.isClipboardAddressBlock(state);
         if (!showsAddress) {
             if (!fluidlogistics$manualOverrideLocked) {
                 return false;
@@ -163,9 +159,19 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
             return true;
         }
 
-        String address = fluidlogistics$resolveAddress(packager);
-        PackagerGoggleInfo.addToTooltip(tooltip, address, fluidlogistics$manualOverrideLocked, isRepackager,
-            isLinkedToNetwork);
+        String address = packager.signBasedAddress;
+        if (level != null && level.isClientSide) {
+            String scannedAddress = fluidlogistics$findSignAddress(packager);
+            if (!scannedAddress.isBlank()) {
+                address = scannedAddress;
+            } else if (address.isBlank()) {
+                address = fluidlogistics$clipboardAddress;
+            }
+        } else if (address.isBlank()) {
+            address = fluidlogistics$clipboardAddress;
+        }
+
+        PackagerGoggleInfo.addToTooltip(tooltip, address, fluidlogistics$manualOverrideLocked, isRepackager, isLinkedToNetwork);
         return true;
     }
 
@@ -185,24 +191,6 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
             count += Math.max(0, entry.count);
         }
         return count;
-    }
-
-    @Unique
-    private static String fluidlogistics$resolveAddress(PackagerBlockEntity packager) {
-        Level level = packager.getLevel();
-        if (level != null && level.isClientSide) {
-            String scannedAddress = fluidlogistics$findSignAddress(packager);
-            if (!scannedAddress.isBlank()) {
-                return scannedAddress;
-            }
-            if (packager.signBasedAddress.isBlank()) {
-                return ((IPackagerOverrideData) packager).fluidlogistics$getClipboardAddress();
-            }
-        }
-        if (packager.signBasedAddress.isBlank()) {
-            return ((IPackagerOverrideData) packager).fluidlogistics$getClipboardAddress();
-        }
-        return packager.signBasedAddress;
     }
 
     @Unique
@@ -243,25 +231,5 @@ public abstract class PackagerBlockEntityMixin implements IPackagerOverrideData,
         }
 
         return "";
-    }
-
-    @Override
-    public boolean fluidlogistics$isManualOverrideLocked() {
-        return fluidlogistics$manualOverrideLocked;
-    }
-
-    @Override
-    public void fluidlogistics$setManualOverrideLocked(boolean locked) {
-        fluidlogistics$manualOverrideLocked = locked;
-    }
-
-    @Override
-    public String fluidlogistics$getClipboardAddress() {
-        return fluidlogistics$clipboardAddress;
-    }
-
-    @Override
-    public void fluidlogistics$setClipboardAddress(String address) {
-        fluidlogistics$clipboardAddress = address == null ? "" : address;
     }
 }

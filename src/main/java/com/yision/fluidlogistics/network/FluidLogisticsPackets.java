@@ -4,6 +4,7 @@ import com.yision.fluidlogistics.FluidLogistics;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerArmPlacementPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerAuthorizeLogisticsNetworkPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerClearClipboardAddressPacket;
+import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerCrafterConnectionPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerLogisticsNetworkPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerDisplayLinkConfigurationPacket;
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerFrogportConnectionPacket;
@@ -12,13 +13,13 @@ import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPoint
 import com.yision.fluidlogistics.content.equipment.handPointer.network.HandPointerPackagerTogglePacket;
 import com.yision.fluidlogistics.content.equipment.mechanicalFluidGun.network.MechanicalFluidGunPackets;
 import com.yision.fluidlogistics.content.fluids.faucet.network.FaucetDripParticlePacket;
-import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidAdditionalStockPacket;
 import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidFilterPacket;
-import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidPromiseLimitPacket;
-import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetFluidRestockThresholdPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetRequestSelectorPacket;
+import com.yision.fluidlogistics.network.factoryPanel.FactoryPanelSetResourceRestockSettingPacket;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
@@ -47,9 +48,9 @@ public class FluidLogisticsPackets {
             })
             .add();
 
-        CHANNEL.messageBuilder(FactoryPanelSetFluidRestockThresholdPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
-            .encoder(FactoryPanelSetFluidRestockThresholdPacket::write)
-            .decoder(FactoryPanelSetFluidRestockThresholdPacket::new)
+        CHANNEL.messageBuilder(FactoryPanelSetRequestSelectorPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+            .encoder(FactoryPanelSetRequestSelectorPacket::write)
+            .decoder(FactoryPanelSetRequestSelectorPacket::new)
             .consumerNetworkThread((packet, contextSupplier) -> {
                 if (packet.handle(contextSupplier.get())) {
                     contextSupplier.get().setPacketHandled(true);
@@ -57,19 +58,9 @@ public class FluidLogisticsPackets {
             })
             .add();
 
-        CHANNEL.messageBuilder(FactoryPanelSetFluidPromiseLimitPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
-            .encoder(FactoryPanelSetFluidPromiseLimitPacket::write)
-            .decoder(FactoryPanelSetFluidPromiseLimitPacket::new)
-            .consumerNetworkThread((packet, contextSupplier) -> {
-                if (packet.handle(contextSupplier.get())) {
-                    contextSupplier.get().setPacketHandled(true);
-                }
-            })
-            .add();
-
-        CHANNEL.messageBuilder(FactoryPanelSetFluidAdditionalStockPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
-            .encoder(FactoryPanelSetFluidAdditionalStockPacket::write)
-            .decoder(FactoryPanelSetFluidAdditionalStockPacket::new)
+        CHANNEL.messageBuilder(FactoryPanelSetResourceRestockSettingPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+            .encoder(FactoryPanelSetResourceRestockSettingPacket::write)
+            .decoder(FactoryPanelSetResourceRestockSettingPacket::new)
             .consumerNetworkThread((packet, contextSupplier) -> {
                 if (packet.handle(contextSupplier.get())) {
                     contextSupplier.get().setPacketHandled(true);
@@ -120,6 +111,16 @@ public class FluidLogisticsPackets {
         CHANNEL.messageBuilder(HandPointerArmPlacementPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
             .encoder(HandPointerArmPlacementPacket::write)
             .decoder(HandPointerArmPlacementPacket::new)
+            .consumerNetworkThread((packet, contextSupplier) -> {
+                if (packet.handle(contextSupplier.get())) {
+                    contextSupplier.get().setPacketHandled(true);
+                }
+            })
+            .add();
+
+        CHANNEL.messageBuilder(HandPointerCrafterConnectionPacket.class, index++, NetworkDirection.PLAY_TO_SERVER)
+            .encoder(HandPointerCrafterConnectionPacket::write)
+            .decoder(HandPointerCrafterConnectionPacket::new)
             .consumerNetworkThread((packet, contextSupplier) -> {
                 if (packet.handle(contextSupplier.get())) {
                     contextSupplier.get().setPacketHandled(true);
@@ -216,6 +217,16 @@ public class FluidLogisticsPackets {
                 }
             })
             .add();
+
+        CHANNEL.messageBuilder(MechanicalFluidGunPackets.VisualStatePacket.class, index++, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(MechanicalFluidGunPackets.VisualStatePacket::write)
+            .decoder(MechanicalFluidGunPackets.VisualStatePacket::new)
+            .consumerNetworkThread((packet, contextSupplier) -> {
+                if (packet.handle(contextSupplier.get())) {
+                    contextSupplier.get().setPacketHandled(true);
+                }
+            })
+            .add();
     }
 
     public static SimpleChannel getChannel() {
@@ -224,6 +235,11 @@ public class FluidLogisticsPackets {
 
     public static void sendToNear(Level level, BlockPos pos, int range, Object message) {
         CHANNEL.send(PacketDistributor.NEAR.with(TargetPoint.p(pos.getX(), pos.getY(), pos.getZ(), range, level.dimension())),
+            message);
+    }
+
+    public static void sendToNear(Level level, Vec3 pos, int range, Object message) {
+        CHANNEL.send(PacketDistributor.NEAR.with(TargetPoint.p(pos.x, pos.y, pos.z, range, level.dimension())),
             message);
     }
 }
