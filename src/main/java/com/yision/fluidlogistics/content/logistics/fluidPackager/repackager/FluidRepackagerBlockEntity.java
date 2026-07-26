@@ -111,12 +111,13 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 		BlockState targetState = level.getBlockState(targetPos);
 		BlockEntity targetBE = level.getBlockEntity(targetPos);
 
+		if (!isSolidLiquidMixedTarget(targetPos, targetState, targetBE, facing)) {
+			return insertPackageIntoTargetInventory(box, simulate);
+		}
+
 		List<ItemStack> splitResults = PackageResources.splitPackage(box);
 		if (splitResults.isEmpty()) {
 			return false;
-		}
-		if (!canDeliverSplitResults(splitResults, targetPos, targetState, targetBE, facing)) {
-			return insertPackageIntoTargetInventory(box, simulate);
 		}
 
 		if (simulate) {
@@ -190,6 +191,8 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 		BlockState targetState = level.getBlockState(targetPos);
 		BlockEntity targetBE = level.getBlockEntity(targetPos);
 
+		boolean mixedTarget = isSolidLiquidMixedTarget(targetPos, targetState, targetBE, facing);
+
 		for (int slot = 0; slot < targetInv.getSlots(); slot++) {
 			ItemStack extracted = targetInv.extractItem(slot, 1, true);
 			if (extracted.isEmpty() || !PackageItem.isPackage(extracted)) {
@@ -203,7 +206,7 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 
 			targetInv.extractItem(slot, 1, false);
 
-			if (canDeliverSplitResults(splitResults, targetPos, targetState, targetBE, facing)) {
+			if (mixedTarget) {
 				previouslyUnwrapped = extracted.copyWithCount(1);
 				animationInward = true;
 				animationTicks = CYCLE;
@@ -248,7 +251,7 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 		BlockState targetState = level.getBlockState(targetPos);
 		BlockEntity targetBE = level.getBlockEntity(targetPos);
 
-		if (!canDeliverSplitResults(stalledPackages, targetPos, targetState, targetBE, facing)) {
+		if (!isSolidLiquidMixedTarget(targetPos, targetState, targetBE, facing)) {
 			return;
 		}
 
@@ -294,7 +297,8 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 										BlockEntity targetBE, Direction facing) {
 		PackageInspection inspection = PackageResources.inspectPackage(pkg);
 		if (inspection.hasResources()) {
-			return unpackResourceToTarget(pkg, targetPos, targetState, targetBE, facing, false);
+			return unpackResourceToTarget(pkg, targetPos, targetState, targetBE, facing, true)
+				&& unpackResourceToTarget(pkg, targetPos, targetState, targetBE, facing, false);
 		}
 		return unpackItemsToTarget(pkg, targetPos, targetState, targetBE, facing, true)
 			&& unpackItemsToTarget(pkg, targetPos, targetState, targetBE, facing, false);
@@ -322,28 +326,13 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 		return toUse.unpack(level, targetPos, targetState, facing, items, orderContext, simulate);
 	}
 
-	private boolean canDeliverSplitResults(List<ItemStack> packages, BlockPos targetPos, BlockState targetState,
+	private boolean isSolidLiquidMixedTarget(BlockPos targetPos, BlockState targetState,
 											 @Nullable BlockEntity targetBE, Direction facing) {
-		boolean hasResources = false;
-		boolean resourceAccepted = false;
-		boolean hasOrdinaryItems = false;
-		for (ItemStack pkg : packages) {
-			PackageInspection inspection = PackageResources.inspectPackage(pkg);
-			if (inspection.hasResources()) {
-				hasResources = true;
-				resourceAccepted |= unpackResourceToTarget(pkg, targetPos, targetState, targetBE, facing, true);
-			} else {
-				hasOrdinaryItems = true;
-			}
-		}
-		if (!hasResources || !resourceAccepted) {
-			return false;
-		}
-		if (!hasOrdinaryItems) {
-			return true;
-		}
-		return UnpackingHandler.REGISTRY.get(targetState) != null
+		boolean hasItemHandler = UnpackingHandler.REGISTRY.get(targetState) != null
 			|| level.getCapability(Capabilities.ItemHandler.BLOCK, targetPos, targetState, targetBE, facing) != null;
+		boolean hasFluidHandler = level.getCapability(
+			Capabilities.FluidHandler.BLOCK, targetPos, targetState, targetBE, facing) != null;
+		return hasItemHandler && hasFluidHandler;
 	}
 
 	@Override
