@@ -139,11 +139,6 @@
 			}
 		}
 	],
-	"display": {
-		"ground": {
-			"translation": [0, 7, 0]
-		}
-	},
 	"groups": [
 		{
 			"name": "rare_fluid_package",
