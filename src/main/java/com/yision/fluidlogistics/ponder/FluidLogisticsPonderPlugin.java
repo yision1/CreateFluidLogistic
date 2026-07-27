@@ -48,6 +48,10 @@ public class FluidLogisticsPonderPlugin implements PonderPlugin {
                 .addStoryBoard(FluidTransporterScenes.FLUID_TRANSPORTER,
                         FluidTransporterScenes::fluidTransporter);
 
+        registration.forComponents(AllBlocks.FLUID_PUMP)
+                .addStoryBoard(FluidPumpScenes.PUMP_FLOW, FluidPumpScenes::flow, FLUIDS, KINETIC_APPLIANCES)
+                .addStoryBoard(FluidPumpScenes.PUMP_SPEED, FluidPumpScenes::speed);
+
         registration.forComponents(AllBlocks.MECHANICAL_FLUID_GUN)
                 .addStoryBoard(MechanicalFluidGunScenes.MECHANICAL_FLUID_GUN_SETUP,
                         MechanicalFluidGunScenes::setup, FLUIDS, KINETIC_APPLIANCES);
@@ -69,9 +73,11 @@ public class FluidLogisticsPonderPlugin implements PonderPlugin {
                 .add(AllBlocks.MULTI_FLUID_ACCESS_PORT)
                 .add(AllBlocks.SMART_HOPPER)
                 .add(AllBlocks.FLUID_TRANSPORTER)
+                .add(AllBlocks.FLUID_PUMP)
                 .add(AllBlocks.MECHANICAL_FLUID_GUN);
 
         registration.addToTag(KINETIC_APPLIANCES)
+                .add(AllBlocks.FLUID_PUMP)
                 .add(AllBlocks.MECHANICAL_FLUID_GUN);
 
         registration.addToTag(ARM_TARGETS)

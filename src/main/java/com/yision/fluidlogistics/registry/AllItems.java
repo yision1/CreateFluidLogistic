@@ -34,7 +34,7 @@ public class AllItems {
     public static final ItemEntry<FluidPackageItem> FLUID_PACKAGE = REGISTRATE
             .item("fluid_package", FluidPackageItem::new)
             .properties(p -> p.stacksTo(1))
-            .tag(AllItemTags.PACKAGES.tag)
+            .tag(AllItemTags.PACKAGES.tag, AllItemTags.NOT_UPRIGHT_ON_BELT.tag)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();
@@ -43,7 +43,7 @@ public class AllItems {
             .item("fluid_package_exposed", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_EXPOSED_STYLE))
             .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
             .properties(p -> p.stacksTo(1))
-            .tag(AllItemTags.PACKAGES.tag)
+            .tag(AllItemTags.PACKAGES.tag, AllItemTags.NOT_UPRIGHT_ON_BELT.tag)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();
@@ -52,7 +52,7 @@ public class AllItems {
             .item("fluid_package_oxidized", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_OXIDIZED_STYLE))
             .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
             .properties(p -> p.stacksTo(1))
-            .tag(AllItemTags.PACKAGES.tag)
+            .tag(AllItemTags.PACKAGES.tag, AllItemTags.NOT_UPRIGHT_ON_BELT.tag)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();
@@ -61,7 +61,7 @@ public class AllItems {
             .item("fluid_package_weathered", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_WEATHERED_STYLE))
             .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
             .properties(p -> p.stacksTo(1))
-            .tag(AllItemTags.PACKAGES.tag)
+            .tag(AllItemTags.PACKAGES.tag, AllItemTags.NOT_UPRIGHT_ON_BELT.tag)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();

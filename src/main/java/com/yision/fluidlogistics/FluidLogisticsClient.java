@@ -9,6 +9,7 @@ import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointe
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerInteractionHandler;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageClientRendering;
 import com.yision.fluidlogistics.client.event.FluidSlotClickHandler;
+import com.yision.fluidlogistics.ponder.CopperBasinPonderPlugin;
 import net.createmod.catnip.render.DefaultSuperRenderTypeBuffer;
 import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import com.yision.fluidlogistics.ponder.CopperFrogportPonderPlugin;
@@ -60,6 +61,7 @@ public class FluidLogisticsClient {
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
         AllSpriteShifts.register();
+        PonderIndex.addPlugin(new CopperBasinPonderPlugin());
         PonderIndex.addPlugin(new CopperFrogportPonderPlugin());
         PonderIndex.addPlugin(new FluidLogisticsPonderPlugin());
         event.enqueueWork(() -> {
