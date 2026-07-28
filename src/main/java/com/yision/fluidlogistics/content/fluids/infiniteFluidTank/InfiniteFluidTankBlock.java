@@ -16,6 +16,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
@@ -59,10 +60,21 @@ public class InfiniteFluidTankBlock extends Block implements IWrenchable, IBE<In
 		FluidStack prevFluidInTank = tankCapability.getFluidInTank(0).copy();
 		FluidExchange exchange = null;
 
-		if (FluidHelper.tryEmptyItemIntoBE(level, player, hand, stack, be))
-			exchange = FluidExchange.ITEM_TO_TANK;
-		else if (be.isInfiniteMode() && FluidHelper.tryFillItemFromBE(level, player, hand, stack, be))
-			exchange = FluidExchange.TANK_TO_ITEM;
+		if (player.isCreative() && stack.getItem() instanceof BucketItem) {
+			FluidStack fluidInBucket = GenericItemEmptying.emptyItem(level, stack, true).getFirst();
+			if (InfiniteFluidSupplyRules.canEnterInfiniteTank(fluidInBucket)) {
+				if (!onClient)
+					be.getTankInventory().setContainedFluid(fluidInBucket);
+				exchange = FluidExchange.ITEM_TO_TANK;
+			}
+		}
+
+		if (exchange == null) {
+			if (FluidHelper.tryEmptyItemIntoBE(level, player, hand, stack, be))
+				exchange = FluidExchange.ITEM_TO_TANK;
+			else if (be.isInfiniteMode() && FluidHelper.tryFillItemFromBE(level, player, hand, stack, be))
+				exchange = FluidExchange.TANK_TO_ITEM;
+		}
 
 		if (exchange == null) {
 			if (GenericItemEmptying.canItemBeEmptied(level, stack)
