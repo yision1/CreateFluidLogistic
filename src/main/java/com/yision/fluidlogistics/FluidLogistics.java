@@ -1,6 +1,7 @@
 package com.yision.fluidlogistics;
 
 import com.mojang.logging.LogUtils;
+import com.simibubi.create.AllFluids;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPointType;
 import com.simibubi.create.api.stress.BlockStressValues;
 import com.simibubi.create.foundation.data.CreateRegistrate;
@@ -52,6 +53,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.bus.api.IEventBus;
@@ -61,6 +63,7 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
+import net.neoforged.neoforge.common.NeoForgeMod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -69,6 +72,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 
@@ -84,7 +88,7 @@ public class FluidLogistics {
     public static final Supplier<CreativeModeTab> FLUID_LOGISTICS_CREATIVE_TAB =
             CREATIVE_TABS.register("fluidlogistics_tab", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.fluidlogistics.fluidlogistics_tab"))
-                    .icon(() -> createWaterFluidPackage(Config.getFluidPerPackage()))
+                    .icon(() -> createRandomFluidPackage(Config.getFluidPerPackage()))
                     .build());
 
     public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(MODID)
@@ -234,7 +238,14 @@ public class FluidLogistics {
         FluidPumpNetworkUpdater.clearLoadedFluidPumpCounts();
     }
 
-    private static ItemStack createWaterFluidPackage(int amount) {
-        return FluidPackageContentHelper.createCanonicalPackage(new FluidStack(Fluids.WATER, amount));
+    private static ItemStack createRandomFluidPackage(int amount) {
+        Fluid fluid = switch (ThreadLocalRandom.current().nextInt(5)) {
+            case 0 -> Fluids.WATER;
+            case 1 -> Fluids.LAVA;
+            case 2 -> AllFluids.HONEY.get().getSource();
+            case 3 -> AllFluids.CHOCOLATE.get().getSource();
+            default -> NeoForgeMod.MILK.get();
+        };
+        return FluidPackageContentHelper.createCanonicalPackage(new FluidStack(fluid, amount));
     }
 }
