@@ -32,6 +32,10 @@ public interface PackageResourceType {
 
     boolean matches(ItemStack firstNormalizedKey, ItemStack secondNormalizedKey);
 
+    default int identityHash(ItemStack normalizedKey) {
+        return 0;
+    }
+
     int amountOf(ItemStack carrierStack);
 
     ItemStack createCarrier(ItemStack normalizedKey, int amount);

@@ -186,6 +186,16 @@ public final class PackageResourceRegistry {
         return readResource(carrierStack).map(PackageResource::key);
     }
 
+    public Optional<PackageResourceKey> keyOf(ItemStack carrierStack) {
+        Optional<PackageResourceType> typeResult = findType(carrierStack);
+        if (typeResult.isEmpty()) {
+            return Optional.empty();
+        }
+        PackageResourceType type = typeResult.orElseThrow();
+        ItemStack key = validateNormalizedKey(type, type.normalizeKey(carrierStack.copy()));
+        return Optional.of(new PackageResourceKey(type, key));
+    }
+
     public Optional<ItemStack> resolveRequestKey(ItemStack carrierOrSelector) {
         ensureFrozen();
         if (carrierOrSelector == null || carrierOrSelector.isEmpty()) {

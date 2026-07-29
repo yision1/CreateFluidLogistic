@@ -128,6 +128,11 @@ public final class FluidPackageResourceType {
         }
 
         @Override
+        public int identityHash(ItemStack normalizedKey) {
+            return ItemStack.hashItemAndComponents(normalizedKey);
+        }
+
+        @Override
         public int amountOf(ItemStack carrierStack) {
             if (!isValidCarrier(carrierStack)) {
                 throw new IllegalArgumentException("invalid fluid resource carrier");

@@ -6,6 +6,7 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import com.yision.fluidlogistics.content.logistics.packageResource.PackageResourceKey;
 import com.yision.fluidlogistics.content.logistics.packageResource.PackageResourceRegistry;
 
 import net.minecraft.network.chat.Component;
@@ -51,6 +52,10 @@ public final class PackageResources {
 
     public static Optional<ItemStack> normalizeKey(ItemStack carrierStack) {
         return REGISTRY.normalizeKey(carrierStack);
+    }
+
+    public static Optional<PackageResourceKey> keyOf(ItemStack carrierStack) {
+        return REGISTRY.keyOf(carrierStack);
     }
 
     public static Optional<ItemStack> resolveRequestKey(ItemStack carrierOrSelector) {
