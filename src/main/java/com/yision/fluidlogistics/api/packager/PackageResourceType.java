@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Contract;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
@@ -26,16 +27,19 @@ public interface PackageResourceType {
 
     Supplier<? extends Item> carrierItem();
 
+    @Contract(pure = true)
     boolean isValidCarrier(ItemStack stack);
 
     ItemStack normalizeKey(ItemStack stack);
 
     boolean matches(ItemStack firstNormalizedKey, ItemStack secondNormalizedKey);
 
+    @Contract(pure = true)
     default int identityHash(ItemStack normalizedKey) {
         return 0;
     }
 
+    @Contract(pure = true)
     int amountOf(ItemStack carrierStack);
 
     ItemStack createCarrier(ItemStack normalizedKey, int amount);

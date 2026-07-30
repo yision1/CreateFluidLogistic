@@ -123,7 +123,7 @@ public final class PackageResourceRegistry {
                 ItemStack suppliedKey = Objects.requireNonNull(
                         registration.resourceKey().get(), "request selector resource key");
                 PackageResourceType type = suppliedKey.isEmpty() ? null : carriers.get(suppliedKey.getItem());
-                if (type == null || !type.isValidCarrier(suppliedKey.copy())) {
+                if (type == null || !type.isValidCarrier(suppliedKey)) {
                     throw new IllegalStateException("request selector maps to an unregistered resource key");
                 }
                 ItemStack normalizedKey = validateNormalizedKey(
@@ -159,7 +159,7 @@ public final class PackageResourceRegistry {
             return Optional.empty();
         }
         PackageResourceType type = typesByCarrier.get(carrierStack.getItem());
-        if (type == null || !type.isValidCarrier(carrierStack.copy())) {
+        if (type == null || !type.isValidCarrier(carrierStack)) {
             return Optional.empty();
         }
         return Optional.of(type);
@@ -174,7 +174,7 @@ public final class PackageResourceRegistry {
     }
 
     private PackageResource readResource(PackageResourceType type, ItemStack carrierStack) {
-        int amount = type.amountOf(carrierStack.copy());
+        int amount = type.amountOf(carrierStack);
         if (amount <= 0) {
             throw new IllegalArgumentException("resource amount must be positive for " + type.id());
         }
@@ -568,7 +568,7 @@ public final class PackageResourceRegistry {
             PackageResourceType type, ItemStack key, Map<Item, PackageResourceType> carriers) {
         Objects.requireNonNull(key, "normalized key for " + type.id());
         if (key.isEmpty() || key.getCount() != 1 || carriers.get(key.getItem()) != type
-                || !type.isValidCarrier(key.copy()) || type.amountOf(key.copy()) != 1) {
+                || !type.isValidCarrier(key) || type.amountOf(key) != 1) {
             throw new IllegalStateException("invalid normalized key for " + type.id());
         }
         return key.copyWithCount(1);

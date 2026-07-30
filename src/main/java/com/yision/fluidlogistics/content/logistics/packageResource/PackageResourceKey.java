@@ -17,7 +17,7 @@ public final class PackageResourceKey {
     PackageResourceKey(PackageResourceType type, ItemStack normalizedKey) {
         this.type = Objects.requireNonNull(type, "type");
         this.normalizedKey = Objects.requireNonNull(normalizedKey, "normalizedKey").copyWithCount(1);
-        this.hash = 31 * System.identityHashCode(type) + type.identityHash(this.normalizedKey.copy());
+        this.hash = 31 * System.identityHashCode(type) + type.identityHash(this.normalizedKey);
     }
 
     @Override

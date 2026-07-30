@@ -47,7 +47,16 @@ public class CompressedTankItem extends Item {
     }
 
     public static boolean isFluidStack(ItemStack stack) {
-        return stack.getItem() instanceof CompressedTankItem && !getFluid(stack).isEmpty();
+        if (!(stack.getItem() instanceof CompressedTankItem)) {
+            return false;
+        }
+        FluidTankContent content = stack.get(AllDataComponents.FLUID_TANK_CONTENT);
+        return content != null && !content.isEmpty();
+    }
+
+    static int getFluidAmount(ItemStack stack) {
+        FluidTankContent content = stack.get(AllDataComponents.FLUID_TANK_CONTENT);
+        return content == null ? 0 : content.getAmount();
     }
 
     public static boolean matchesFluid(ItemStack stack, FluidStack fluid) {

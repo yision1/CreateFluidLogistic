@@ -18,7 +18,7 @@ public abstract class LogisticsManagerMixin {
             LogisticallyLinkedBehaviour link,
             CallbackInfoReturnable<InventoryIdentifier> cir) {
         ResourcePackagers.fromLink(link)
-                .map(packager -> packager.scan().storageIdentity())
+                .map(ResourcePackagers::storageIdentity)
                 .map(ResourcePackagerInventoryIdentifier::new)
                 .ifPresent(cir::setReturnValue);
     }

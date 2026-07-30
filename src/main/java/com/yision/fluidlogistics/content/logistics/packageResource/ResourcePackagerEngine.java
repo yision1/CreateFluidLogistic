@@ -98,26 +98,31 @@ public final class ResourcePackagerEngine {
         Objects.requireNonNull(packager, "packager");
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(normalizedKey, "normalizedKey");
-        return packager.resourceTypeId().equals(type.id()) && type.isValidCarrier(normalizedKey.copy());
+        return packager.resourceTypeId().equals(type.id()) && type.isValidCarrier(normalizedKey);
     }
 
     public static InventorySummary getAvailableResources(ResourcePackager packager) {
         RuntimeState state = state(packager);
-        ResourcePackager.Snapshot snapshot = Objects.requireNonNull(packager.scan(), "resource packager snapshot");
-        InventorySummary current = snapshot.resources();
-        validateSummary(packager, current);
-
-        InventorySummary previous;
-        synchronized (STATES_BY_OWNER) {
-            previous = state.storageIdentity() == snapshot.storageIdentity() ? state.summary() : null;
-            state.storageIdentity(snapshot.storageIdentity());
-            state.summary(current.copy());
+        InventorySummary current = refreshAvailableResources(packager, state);
+        if (current != null) {
+            return current;
         }
-        ResourcePackagerPromiseHelper.notifyNewArrivals(packager.owner(), previous, current);
-        return current;
+        synchronized (state) {
+            return state.summary().copy();
+        }
+    }
+
+    @Nullable
+    public static Object storageIdentity(ResourcePackager packager) {
+        RuntimeState state = state(packager);
+        refreshAvailableResources(packager, state);
+        synchronized (state) {
+            return state.storageIdentity();
+        }
     }
 
     public static void triggerStockCheck(ResourcePackager packager) {
+        invalidateAvailableResources(packager);
         getAvailableResources(packager);
     }
 
@@ -151,8 +156,9 @@ public final class ResourcePackagerEngine {
         if (simulate) {
             return true;
         }
-        int inserted = checkedTransfer(
-                packager.insert(key.copy(), amount, false), amount, "insert execution");
+        int inserted = packager.insert(key.copy(), amount, false);
+        invalidateAvailableResources(packager);
+        inserted = checkedTransfer(inserted, amount, "insert execution");
         if (inserted != amount) {
             throw new IllegalStateException("insert execution accepted " + inserted
                     + " after simulation accepted " + amount);
@@ -224,8 +230,9 @@ public final class ResourcePackagerEngine {
             return ExtractedPackage.EMPTY;
         }
         ItemStack prepared = PackageResources.createPackage(normalizedKey.copy(), simulated);
-        int extracted = checkedTransfer(
-                packager.extract(normalizedKey.copy(), simulated, false), simulated, "extract execution");
+        int extracted = packager.extract(normalizedKey.copy(), simulated, false);
+        invalidateAvailableResources(packager);
+        extracted = checkedTransfer(extracted, simulated, "extract execution");
         if (extracted <= 0) {
             return ExtractedPackage.EMPTY;
         }
@@ -276,6 +283,39 @@ public final class ResourcePackagerEngine {
         return transferred;
     }
 
+    @Nullable
+    private static InventorySummary refreshAvailableResources(
+            ResourcePackager packager, RuntimeState state) {
+        PackagerBlockEntity owner = packager.owner();
+        Level level = owner.getLevel();
+        long scanTick = level == null ? Long.MIN_VALUE : level.getGameTime();
+        synchronized (state) {
+            if (scanTick != Long.MIN_VALUE && state.scanTick() == scanTick && state.summary() != null) {
+                return null;
+            }
+
+            ResourcePackager.Snapshot snapshot = Objects.requireNonNull(
+                    packager.scan(), "resource packager snapshot");
+            InventorySummary current = snapshot.resources();
+            validateSummary(packager, current);
+
+            InventorySummary previous =
+                    state.storageIdentity() == snapshot.storageIdentity() ? state.summary() : null;
+            state.storageIdentity(snapshot.storageIdentity());
+            state.summary(current.copy());
+            state.scanTick(scanTick);
+            ResourcePackagerPromiseHelper.notifyNewArrivals(owner, previous, current);
+            return current;
+        }
+    }
+
+    private static void invalidateAvailableResources(ResourcePackager packager) {
+        RuntimeState state = state(packager);
+        synchronized (state) {
+            state.scanTick(Long.MIN_VALUE);
+        }
+    }
+
     private static void validateSummary(ResourcePackager packager, InventorySummary summary) {
         ResourceLocation expectedType = Objects.requireNonNull(
                 packager.resourceTypeId(), "resource packager type id");
@@ -319,6 +359,7 @@ public final class ResourcePackagerEngine {
         private Object storageIdentity;
         @Nullable
         private InventorySummary summary;
+        private long scanTick = Long.MIN_VALUE;
 
         private RuntimeState(WeakReference<ResourcePackager> packager) {
             this.packager = packager;
@@ -344,6 +385,14 @@ public final class ResourcePackagerEngine {
 
         private void summary(InventorySummary summary) {
             this.summary = summary;
+        }
+
+        private long scanTick() {
+            return scanTick;
+        }
+
+        private void scanTick(long scanTick) {
+            this.scanTick = scanTick;
         }
     }
 }

@@ -137,7 +137,7 @@ public final class FluidPackageResourceType {
             if (!isValidCarrier(carrierStack)) {
                 throw new IllegalArgumentException("invalid fluid resource carrier");
             }
-            return Math.multiplyExact(CompressedTankItem.getFluid(carrierStack).getAmount(), carrierStack.getCount());
+            return Math.multiplyExact(CompressedTankItem.getFluidAmount(carrierStack), carrierStack.getCount());
         }
 
         @Override
