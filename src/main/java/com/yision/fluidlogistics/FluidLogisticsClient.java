@@ -62,8 +62,8 @@ public class FluidLogisticsClient {
     static void onClientSetup(FMLClientSetupEvent event) {
         AllSpriteShifts.register();
         PonderIndex.addPlugin(new CopperBasinPonderPlugin());
-        PonderIndex.addPlugin(new CopperFrogportPonderPlugin());
         PonderIndex.addPlugin(new FluidLogisticsPonderPlugin());
+        PonderIndex.addPlugin(new CopperFrogportPonderPlugin());
         event.enqueueWork(() -> {
             RadialWrenchMenu
                 .registerBlacklistedBlock(AllBlocks.MECHANICAL_FLUID_GUN.getId());

@@ -31,6 +31,15 @@ public class FluidLogisticsPonderPlugin implements PonderPlugin {
                 .addStoryBoard(FluidPackagerScenes.FLUID_PACKAGER, FluidPackagerScenes::fluidPackager)
                 .addStoryBoard(FluidPackagerScenes.FLUID_PACKAGER_ADDRESS, FluidPackagerScenes::fluidPackagerAddress);
 
+        registration.forComponents(AllBlocks.FLUID_REPACKAGER)
+                .addStoryBoard(FluidRepackagerScenes.FLUID_REPACKAGER,
+                        FluidRepackagerScenes::fluidRepackager, HIGH_LOGISTICS);
+
+        registration.forComponents(AllBlocks.COPPER_FROGPORT)
+                .addStoryBoard(CopperFrogportScenes.PLACEMENT, CopperFrogportScenes::placement,
+                        storyboard -> storyboard.highlightTag(HIGH_LOGISTICS)
+                                .orderBefore(Create.ID, "package_frogport"));
+
         registration.forComponents(AllBlocks.SMART_FAUCET)
                 .addStoryBoard(SmartFaucetScenes.SMART_FAUCET, SmartFaucetScenes::smartFaucet);
 
@@ -40,6 +49,10 @@ public class FluidLogisticsPonderPlugin implements PonderPlugin {
         registration.forComponents(AllBlocks.MULTI_FLUID_ACCESS_PORT)
                 .addStoryBoard(MultiFluidAccessPortScenes.MULTI_FLUID_ACCESS_PORT,
                         MultiFluidAccessPortScenes::multiFluidAccessPort);
+
+        registration.forComponents(AllBlocks.MULTI_FLUID_TANK, AllBlocks.HORIZONTAL_MULTI_FLUID_TANK)
+                .addStoryBoard(MultiFluidTankScenes.STORAGE, MultiFluidTankScenes::storage, FLUIDS)
+                .addStoryBoard(MultiFluidTankScenes.SIZES, MultiFluidTankScenes::sizes);
 
         registration.forComponents(AllBlocks.SMART_HOPPER)
                 .addStoryBoard(SmartHopperScenes.SMART_HOPPER, SmartHopperScenes::smartHopper);
@@ -62,7 +75,8 @@ public class FluidLogisticsPonderPlugin implements PonderPlugin {
         PonderTagRegistrationHelper<ItemProviderEntry<?, ?>> registration = helper.withKeyFunction(RegistryEntry::getId);
 
         registration.addToTag(HIGH_LOGISTICS)
-                .add(AllBlocks.FLUID_PACKAGER);
+                .add(AllBlocks.FLUID_PACKAGER)
+                .add(AllBlocks.FLUID_REPACKAGER);
 
         registration.addToTag(LOGISTICS)
                 .add(AllBlocks.SMART_HOPPER);
@@ -71,6 +85,8 @@ public class FluidLogisticsPonderPlugin implements PonderPlugin {
                 .add(AllBlocks.SMART_FAUCET)
                 .add(AllBlocks.FAUCET)
                 .add(AllBlocks.MULTI_FLUID_ACCESS_PORT)
+                .add(AllBlocks.MULTI_FLUID_TANK)
+                .add(AllBlocks.HORIZONTAL_MULTI_FLUID_TANK)
                 .add(AllBlocks.SMART_HOPPER)
                 .add(AllBlocks.FLUID_TRANSPORTER)
                 .add(AllBlocks.FLUID_PUMP)

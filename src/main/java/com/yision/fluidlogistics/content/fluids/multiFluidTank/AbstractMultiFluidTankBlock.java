@@ -117,6 +117,8 @@ public abstract class AbstractMultiFluidTankBlock<T extends AbstractMultiFluidTa
 
 		if (stack.isEmpty())
 			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+		if (!player.isCreative())
+			return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
 
 		FluidExchange exchange = null;
 		T be = ConnectivityHandler.partAt(getBlockEntityType(), level, pos);
