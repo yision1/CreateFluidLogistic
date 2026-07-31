@@ -6,6 +6,7 @@ import com.tterrag.registrate.providers.ProviderType;
 import com.tterrag.registrate.util.entry.ItemEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.content.fluids.copperBucket.CopperBucketItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerItem;
 import com.yision.fluidlogistics.item.CompressedTankItem;
@@ -22,6 +23,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import static com.yision.fluidlogistics.FluidLogistics.REGISTRATE;
 
 public class AllItems {
+
+    public static final ItemEntry<CopperBucketItem> COPPER_BUCKET = REGISTRATE
+            .item("copper_bucket", CopperBucketItem::new)
+            .properties(p -> p.stacksTo(1))
+            .model(AssetLookup.existingItemModel())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .register();
 
     public static final ItemEntry<CompressedTankItem> COMPRESSED_STORAGE_TANK = REGISTRATE
             .item("compressed_storage_tank", CompressedTankItem::new)

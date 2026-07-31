@@ -7,6 +7,9 @@ import com.yision.fluidlogistics.api.packager.client.PackageResourceClient;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.FrogportSelectionHandler;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerModeManager;
 import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointerInteractionHandler;
+import com.yision.fluidlogistics.content.fluids.copperBucket.client.CopperBucketColor;
+import com.yision.fluidlogistics.content.fluids.copperBucket.client.CopperBucketModel;
+import com.yision.fluidlogistics.content.fluids.copperBucket.client.CopperBucketSpriteSource;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageClientRendering;
 import com.yision.fluidlogistics.client.event.FluidSlotClickHandler;
 import com.yision.fluidlogistics.ponder.CopperBasinPonderPlugin;
@@ -15,6 +18,7 @@ import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import com.yision.fluidlogistics.ponder.CopperFrogportPonderPlugin;
 import com.yision.fluidlogistics.ponder.FluidLogisticsPonderPlugin;
 import com.yision.fluidlogistics.registry.AllBlocks;
+import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.registry.AllPartialModels;
 import com.yision.fluidlogistics.registry.AllSpriteShifts;
 import com.yision.fluidlogistics.registry.AllFluidLogisticsParticleTypes;
@@ -38,7 +42,9 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.RegisterColorHandlersEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.neoforged.neoforge.client.event.RegisterSpriteSourceTypesEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
@@ -85,6 +91,25 @@ public class FluidLogisticsClient {
         }
 
         AllPartialModels.register();
+    }
+
+    @SubscribeEvent
+    static void onModifyBakingResult(ModelEvent.ModifyBakingResult event) {
+        ModelResourceLocation bucketLocation = ModelResourceLocation.inventory(AllItems.COPPER_BUCKET.getId());
+        var bucketModel = event.getModels().get(bucketLocation);
+        if (bucketModel != null) {
+            event.getModels().put(bucketLocation, new CopperBucketModel(bucketModel));
+        }
+    }
+
+    @SubscribeEvent
+    static void onRegisterItemColors(RegisterColorHandlersEvent.Item event) {
+        event.register(new CopperBucketColor(), AllItems.COPPER_BUCKET.get());
+    }
+
+    @SubscribeEvent
+    static void onRegisterSpriteSourceTypes(RegisterSpriteSourceTypesEvent event) {
+        event.register(FluidLogistics.asResource("copper_bucket"), CopperBucketSpriteSource.TYPE);
     }
 
     @SubscribeEvent

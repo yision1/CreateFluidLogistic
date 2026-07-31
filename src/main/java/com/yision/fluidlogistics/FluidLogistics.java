@@ -15,6 +15,7 @@ import com.yision.fluidlogistics.api.packager.PackageResourceTypes;
 import com.yision.fluidlogistics.api.handpointer.PackagerAddresses;
 import com.yision.fluidlogistics.api.handpointer.crafter.HandPointerCrafterAdapters;
 import com.yision.fluidlogistics.content.equipment.handPointer.CreateMechanicalCrafterAdapter;
+import com.yision.fluidlogistics.content.fluids.copperBucket.CopperBucketItem;
 import com.yision.fluidlogistics.content.fluids.waterContainingCopperCasing.WaterContainingCopperCasingFluidHandler;
 import com.yision.fluidlogistics.content.fluids.fluidPump.FluidPumpNetworkUpdater;
 import com.yision.fluidlogistics.content.logistics.fluidPackager.FluidPackagerBlockEntity;
@@ -68,6 +69,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.fluids.capability.templates.FluidHandlerItemStack;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -164,6 +166,10 @@ public class FluidLogistics {
         event.registerItem(Capabilities.FluidHandler.ITEM,
                 (stack, context) -> new CompressedTankFluidHandler(stack),
                 AllItems.COMPRESSED_STORAGE_TANK.get());
+        event.registerItem(Capabilities.FluidHandler.ITEM,
+                (stack, context) -> new FluidHandlerItemStack(
+                        () -> AllDataComponents.COPPER_BUCKET_CONTENT, stack, CopperBucketItem.CAPACITY),
+                AllItems.COPPER_BUCKET.get());
         event.registerItem(Capabilities.FluidHandler.ITEM,
                 (stack, context) -> new FluidPackageFluidHandler(stack),
                 AllItems.FLUID_PACKAGE.get(),

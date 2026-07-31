@@ -1,4 +1,5 @@
 {
+  "item.fluidlogistics.copper_bucket": "铜桶",
   "item.fluidlogistics.compressed_storage_tank": "压缩储罐",
   "item.fluidlogistics.compressed_storage_tank.tooltip.summary": "对着流体储罐右键即可_转移流体_并_销毁_压缩储罐",
   "item.fluidlogistics.phantom_chain": "幻缈锁链",

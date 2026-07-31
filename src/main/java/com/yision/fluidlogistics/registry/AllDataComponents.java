@@ -14,6 +14,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.fluids.SimpleFluidContent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
 public class AllDataComponents {
@@ -25,6 +26,12 @@ public class AllDataComponents {
             "fluid_tank_content",
             builder -> builder.persistent(FluidTankContent.CODEC)
                     .networkSynchronized(FluidTankContent.STREAM_CODEC)
+    );
+
+    public static final DataComponentType<SimpleFluidContent> COPPER_BUCKET_CONTENT = register(
+            "copper_bucket_content",
+            builder -> builder.persistent(SimpleFluidContent.CODEC)
+                    .networkSynchronized(SimpleFluidContent.STREAM_CODEC)
     );
 
     public static final DataComponentType<List<UUID>> HAND_POINTER_AUTHORIZED_NETWORKS = register(
