@@ -1,0 +1,8 @@
+{
+  "values": [
+    "fluidlogistics:fluid_package",
+    "fluidlogistics:fluid_package_exposed",
+    "fluidlogistics:fluid_package_oxidized",
+    "fluidlogistics:fluid_package_weathered"
+  ]
+}

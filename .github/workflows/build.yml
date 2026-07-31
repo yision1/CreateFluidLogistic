@@ -29,6 +29,8 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/1.20.1' }}
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
@@ -55,6 +57,8 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/1.20.1' }}
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew

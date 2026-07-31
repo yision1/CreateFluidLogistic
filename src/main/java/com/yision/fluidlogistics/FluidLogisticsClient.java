@@ -6,10 +6,15 @@ import com.yision.fluidlogistics.content.equipment.handPointer.client.HandPointe
 import com.yision.fluidlogistics.client.event.FluidSlotClickHandler;
 import com.yision.fluidlogistics.api.packager.PackageResourceTypes;
 import com.yision.fluidlogistics.api.packager.client.PackageResourceClient;
+import com.yision.fluidlogistics.content.fluids.copperBucket.client.CopperBucketColor;
+import com.yision.fluidlogistics.content.fluids.copperBucket.client.CopperBucketModel;
+import com.yision.fluidlogistics.content.fluids.copperBucket.client.CopperBucketSpriteSource;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.client.FluidPackageClientRendering;
+import com.yision.fluidlogistics.ponder.CopperBasinPonderPlugin;
 import com.yision.fluidlogistics.ponder.CopperFrogportPonderPlugin;
 import com.yision.fluidlogistics.ponder.FluidLogisticsPonderPlugin;
 import com.yision.fluidlogistics.registry.AllFluidLogisticsParticleTypes;
+import com.yision.fluidlogistics.registry.AllItems;
 import com.yision.fluidlogistics.registry.AllPartialModels;
 import com.yision.fluidlogistics.render.FactoryPanelFluidPreviewRenderer;
 import com.yision.fluidlogistics.render.FluidSlotAmountRenderer;
@@ -18,6 +23,7 @@ import net.createmod.catnip.render.SuperRenderTypeBuffer;
 import net.createmod.ponder.foundation.PonderIndex;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.PackType;
@@ -29,6 +35,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.client.event.ModelEvent;
+import net.minecraftforge.client.event.RegisterColorHandlersEvent;
 import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.event.AddPackFindersEvent;
@@ -47,8 +54,9 @@ public class FluidLogisticsClient {
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
-        PonderIndex.addPlugin(new CopperFrogportPonderPlugin());
+        PonderIndex.addPlugin(new CopperBasinPonderPlugin());
         PonderIndex.addPlugin(new FluidLogisticsPonderPlugin());
+        PonderIndex.addPlugin(new CopperFrogportPonderPlugin());
         PackageResourceClient.registerStockKeeperAmountRenderer(
             PackageResourceTypes.FLUID, FluidSlotAmountRenderer::renderInStockKeeper);
         PackageResourceClient.registerFactoryPanelPreviewRenderer(
@@ -61,6 +69,20 @@ public class FluidLogisticsClient {
         });
     }
 
+    @SubscribeEvent
+    static void onModifyBakingResult(ModelEvent.ModifyBakingResult event) {
+        ModelResourceLocation bucketLocation = new ModelResourceLocation(AllItems.COPPER_BUCKET.getId(), "inventory");
+        var bucketModel = event.getModels().get(bucketLocation);
+        if (bucketModel != null) {
+            event.getModels().put(bucketLocation, new CopperBucketModel(bucketModel));
+        }
+    }
+
+    @SubscribeEvent
+    static void onRegisterItemColors(RegisterColorHandlersEvent.Item event) {
+        event.register(new CopperBucketColor(), AllItems.COPPER_BUCKET.get());
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     static void onRegisterEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         FluidPackageClientRendering.registerEntityRenderers(event);
@@ -71,6 +93,8 @@ public class FluidLogisticsClient {
         if (event.getPackType() != PackType.CLIENT_RESOURCES) {
             return;
         }
+
+        CopperBucketSpriteSource.register();
 
         IModFile modFile = ModList.get().getModFileById(FluidLogistics.MODID).getFile();
         Path packPath = modFile.findResource("resourcepacks/cu_again_for_fluidlogistics");

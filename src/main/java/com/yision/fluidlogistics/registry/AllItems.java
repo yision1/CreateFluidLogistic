@@ -8,6 +8,7 @@ import com.tterrag.registrate.providers.ProviderType;
 import com.tterrag.registrate.util.entry.ItemEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import com.yision.fluidlogistics.FluidLogistics;
+import com.yision.fluidlogistics.content.fluids.copperBucket.CopperBucketItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.content.equipment.handPointer.HandPointerItem;
@@ -20,6 +21,13 @@ import static com.yision.fluidlogistics.FluidLogistics.REGISTRATE;
 
 public class AllItems {
 
+    public static final ItemEntry<CopperBucketItem> COPPER_BUCKET = REGISTRATE
+            .item("copper_bucket", CopperBucketItem::new)
+            .properties(p -> p.stacksTo(1))
+            .model(AssetLookup.existingItemModel())
+            .setData(ProviderType.LANG, NonNullBiConsumer.noop())
+            .register();
+
     public static final ItemEntry<CompressedTankItem> COMPRESSED_STORAGE_TANK = REGISTRATE
             .item("compressed_storage_tank", CompressedTankItem::new)
             .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
@@ -31,7 +39,7 @@ public class AllItems {
     public static final ItemEntry<FluidPackageItem> FLUID_PACKAGE = REGISTRATE
             .item("fluid_package", FluidPackageItem::new)
             .properties(p -> p.stacksTo(1))
-            .tag(AllItemTags.PACKAGES.tag)
+            .tag(AllItemTags.PACKAGES.tag, AllItemTags.NOT_UPRIGHT_ON_BELT.tag)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();
@@ -40,7 +48,7 @@ public class AllItems {
             .item("fluid_package_exposed", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_EXPOSED_STYLE))
             .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
             .properties(p -> p.stacksTo(1))
-            .tag(AllItemTags.PACKAGES.tag)
+            .tag(AllItemTags.PACKAGES.tag, AllItemTags.NOT_UPRIGHT_ON_BELT.tag)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();
@@ -49,7 +57,7 @@ public class AllItems {
             .item("fluid_package_oxidized", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_OXIDIZED_STYLE))
             .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
             .properties(p -> p.stacksTo(1))
-            .tag(AllItemTags.PACKAGES.tag)
+            .tag(AllItemTags.PACKAGES.tag, AllItemTags.NOT_UPRIGHT_ON_BELT.tag)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();
@@ -58,7 +66,7 @@ public class AllItems {
             .item("fluid_package_weathered", properties -> new FluidPackageItem(properties, FluidPackageItem.FLUID_WEATHERED_STYLE))
             .removeTab(ResourceKey.create(Registries.CREATIVE_MODE_TAB, FluidLogistics.asResource("fluidlogistics_tab")))
             .properties(p -> p.stacksTo(1))
-            .tag(AllItemTags.PACKAGES.tag)
+            .tag(AllItemTags.PACKAGES.tag, AllItemTags.NOT_UPRIGHT_ON_BELT.tag)
             .model(AssetLookup.existingItemModel())
             .setData(ProviderType.LANG, NonNullBiConsumer.noop())
             .register();

@@ -109,10 +109,13 @@ public final class FluidPackageResourceType {
 
         @Override
         public ItemStack normalizeKey(ItemStack stack) {
-            if (!isValidCarrier(stack)) {
+            if (stack == null || !(stack.getItem() instanceof CompressedTankItem)) {
                 throw new IllegalArgumentException("invalid fluid resource carrier");
             }
             FluidStack fluid = CompressedTankItem.getFluid(stack);
+            if (fluid.isEmpty()) {
+                throw new IllegalArgumentException("invalid fluid resource carrier");
+            }
             ItemStack normalized = new ItemStack(AllItems.COMPRESSED_STORAGE_TANK.get());
             CompressedTankItem.setFluid(normalized, FluidHelper.copyStackWithAmount(fluid, 1));
             return normalized;
@@ -129,11 +132,20 @@ public final class FluidPackageResourceType {
         }
 
         @Override
+        public int identityHash(ItemStack normalizedKey) {
+            return Objects.hash(normalizedKey.getItem(), normalizedKey.getTag());
+        }
+
+        @Override
         public int amountOf(ItemStack carrierStack) {
-            if (!isValidCarrier(carrierStack)) {
+            if (carrierStack == null || !(carrierStack.getItem() instanceof CompressedTankItem)) {
                 throw new IllegalArgumentException("invalid fluid resource carrier");
             }
-            return Math.multiplyExact(CompressedTankItem.getFluid(carrierStack).getAmount(), carrierStack.getCount());
+            FluidStack fluid = CompressedTankItem.getFluid(carrierStack);
+            if (fluid.isEmpty()) {
+                throw new IllegalArgumentException("invalid fluid resource carrier");
+            }
+            return Math.multiplyExact(fluid.getAmount(), carrierStack.getCount());
         }
 
         @Override

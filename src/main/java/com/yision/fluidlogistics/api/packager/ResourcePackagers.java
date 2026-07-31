@@ -47,6 +47,11 @@ public final class ResourcePackagers {
         return ResourcePackagerEngine.getAvailableResources(packager);
     }
 
+    @Nullable
+    public static Object storageIdentity(ResourcePackager packager) {
+        return ResourcePackagerEngine.storageIdentity(packager);
+    }
+
     public static void triggerStockCheck(ResourcePackager packager) {
         ResourcePackagerEngine.triggerStockCheck(packager);
     }

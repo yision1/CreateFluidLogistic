@@ -1,3 +1,6 @@
-- Add Copper Frogport
-- Update hand pointer to support mechanical crafter
-- Support packaging FE through FL-Addons
+- Add Copper Bucket
+- Add ponder to fluid pump, unpackager, multi-fluid Tank,
+- Update copper frogport ponder
+- Fix unpacker no longer working as before
+- Fix factory gauges with fluids have high μs/t
+- Fix fluid package rendered incorrectly in the depot/basin

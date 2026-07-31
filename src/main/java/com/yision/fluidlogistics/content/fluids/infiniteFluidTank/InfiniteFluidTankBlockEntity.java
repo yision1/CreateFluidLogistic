@@ -222,6 +222,15 @@ public class InfiniteFluidTankBlockEntity extends SmartBlockEntity implements IH
 			return fluid.isEmpty();
 		}
 
+		public boolean setContainedFluid(FluidStack stack) {
+			if (!InfiniteFluidSupplyRules.canEnterInfiniteTank(stack))
+				return false;
+			FluidStack contained = stack.copy();
+			contained.setAmount(capacity);
+			setFluid(contained);
+			return true;
+		}
+
 		public void clampToCapacity() {
 			if (!fluid.isEmpty() && fluid.getAmount() > capacity)
 				fluid.setAmount(capacity);

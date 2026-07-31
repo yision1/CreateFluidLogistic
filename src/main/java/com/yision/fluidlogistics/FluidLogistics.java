@@ -1,6 +1,7 @@
 package com.yision.fluidlogistics;
 
 import com.mojang.logging.LogUtils;
+import com.simibubi.create.AllFluids;
 import com.simibubi.create.content.kinetics.mechanicalArm.ArmInteractionPointType;
 import com.simibubi.create.api.stress.BlockStressValues;
 import com.simibubi.create.foundation.data.CreateRegistrate;
@@ -42,7 +43,9 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.crafting.CraftingHelper;
 import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
@@ -65,13 +68,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 
 @Mod(FluidLogistics.MODID)
 public class FluidLogistics
 {
     public static final String MODID = "fluidlogistics";
-    private static final Logger LOGGER = LogUtils.getLogger();
+    public static final Logger LOGGER = LogUtils.getLogger();
     private static final ResourceKey<CreativeModeTab> FLUID_LOGISTICS_TAB =
             ResourceKey.create(Registries.CREATIVE_MODE_TAB, asResource("fluidlogistics_tab"));
     private static final DeferredRegister<CreativeModeTab> CREATIVE_TABS =
@@ -80,7 +84,7 @@ public class FluidLogistics
     public static final RegistryObject<CreativeModeTab> FLUID_LOGISTICS_CREATIVE_TAB =
             CREATIVE_TABS.register("fluidlogistics_tab", () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.fluidlogistics.fluidlogistics_tab"))
-                    .icon(() -> createWaterFluidPackage(Config.getFluidPerPackage()))
+                    .icon(() -> createRandomFluidPackage(Config.getFluidPerPackage()))
                     .build());
 
     public static final CreateRegistrate REGISTRATE = CreateRegistrate.create(MODID)
@@ -156,8 +160,15 @@ public class FluidLogistics
         return ResourceLocation.fromNamespaceAndPath(MODID, path);
     }
 
-    private static ItemStack createWaterFluidPackage(int amount) {
-        return FluidPackageContentHelper.createCanonicalPackage(new FluidStack(Fluids.WATER, amount));
+    private static ItemStack createRandomFluidPackage(int amount) {
+        Fluid fluid = switch (ThreadLocalRandom.current().nextInt(5)) {
+            case 0 -> Fluids.WATER;
+            case 1 -> Fluids.LAVA;
+            case 2 -> AllFluids.HONEY.get().getSource();
+            case 3 -> AllFluids.CHOCOLATE.get().getSource();
+            default -> ForgeMod.MILK.get();
+        };
+        return FluidPackageContentHelper.createCanonicalPackage(new FluidStack(fluid, amount));
     }
 
     private void hideDisabledItems(final BuildCreativeModeTabContentsEvent event) {
