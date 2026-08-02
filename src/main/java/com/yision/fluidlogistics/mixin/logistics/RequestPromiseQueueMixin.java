@@ -53,7 +53,7 @@ public abstract class RequestPromiseQueueMixin {
             return;
         }
         PackageResources.keyOf(promise.promisedStack.stack).ifPresent(key ->
-                fluidlogistics$resourcePromises.computeIfAbsent(key, $ -> new ArrayList<>()).add(promise));
+                fluidlogistics$indexPromise(key, promise));
     }
 
     @Inject(
@@ -211,10 +211,22 @@ public abstract class RequestPromiseQueueMixin {
         if (promises != null) {
             for (RequestPromise promise : promises) {
                 PackageResources.keyOf(promise.promisedStack.stack).ifPresent(key ->
-                        fluidlogistics$resourcePromises.computeIfAbsent(key, $ -> new ArrayList<>()).add(promise));
+                        fluidlogistics$indexPromise(key, promise));
             }
         }
         fluidlogistics$indexedPromiseItems.add(carrierItem);
+    }
+
+    @Unique
+    private void fluidlogistics$indexPromise(PackageResourceKey key, RequestPromise promise) {
+        List<RequestPromise> promises = fluidlogistics$resourcePromises.computeIfAbsent(
+                key, ignored -> new ArrayList<>());
+        for (RequestPromise existing : promises) {
+            if (existing == promise) {
+                return;
+            }
+        }
+        promises.add(promise);
     }
 
     @Unique

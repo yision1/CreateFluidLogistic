@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
@@ -36,6 +37,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 @ApiStatus.Internal
 public final class ResourcePackagerEngine {
     private static final Map<PackagerBlockEntity, RuntimeState> STATES_BY_OWNER = new WeakHashMap<>();
+    private static final AtomicLong SUMMARY_OBSERVATIONS = new AtomicLong();
 
     private ResourcePackagerEngine() {
         throw new AssertionError("This class should not be instantiated");
@@ -166,7 +168,6 @@ public final class ResourcePackagerEngine {
         owner.previouslyUnwrapped = packageStack.copyWithCount(1);
         owner.animationInward = true;
         owner.animationTicks = PackagerBlockEntity.CYCLE;
-        triggerStockCheck(packager);
         owner.notifyUpdate();
         return true;
     }
@@ -301,10 +302,21 @@ public final class ResourcePackagerEngine {
 
             InventorySummary previous =
                     state.storageIdentity() == snapshot.storageIdentity() ? state.summary() : null;
+            long previousObservation = state.summaryObservation();
+            long currentObservation = SUMMARY_OBSERVATIONS.incrementAndGet();
+            InventorySummary stored = current.copy();
             state.storageIdentity(snapshot.storageIdentity());
-            state.summary(current.copy());
+            state.summary(stored);
             state.scanTick(scanTick);
-            ResourcePackagerPromiseHelper.notifyNewArrivals(owner, previous, current);
+            state.summaryObservation(currentObservation);
+            ResourcePackagerPromiseHelper.notifyNewArrivals(
+                    owner,
+                    packager.resourceTypeId(),
+                    snapshot.storageIdentity(),
+                    previous,
+                    previousObservation,
+                    currentObservation,
+                    stored);
             return current;
         }
     }
@@ -360,6 +372,7 @@ public final class ResourcePackagerEngine {
         @Nullable
         private InventorySummary summary;
         private long scanTick = Long.MIN_VALUE;
+        private long summaryObservation;
 
         private RuntimeState(WeakReference<ResourcePackager> packager) {
             this.packager = packager;
@@ -393,6 +406,14 @@ public final class ResourcePackagerEngine {
 
         private void scanTick(long scanTick) {
             this.scanTick = scanTick;
+        }
+
+        private long summaryObservation() {
+            return summaryObservation;
+        }
+
+        private void summaryObservation(long summaryObservation) {
+            this.summaryObservation = summaryObservation;
         }
     }
 }
