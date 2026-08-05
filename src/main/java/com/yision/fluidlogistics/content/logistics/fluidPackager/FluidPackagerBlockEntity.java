@@ -23,6 +23,7 @@ import com.yision.fluidlogistics.api.packager.PackageResourceTypes;
 import com.yision.fluidlogistics.api.packager.ResourcePackager;
 import com.yision.fluidlogistics.content.fluids.infiniteFluidTank.InfiniteFluidHandlerHelper;
 import com.yision.fluidlogistics.content.logistics.fluidPackage.CompressedTankItem;
+import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem;
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 
@@ -125,6 +126,14 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
     @Override
     public ResourceLocation resourceTypeId() {
         return PackageResourceTypes.FLUID;
+    }
+
+    @Override
+    public boolean unwrapBox(ItemStack box, boolean simulate) {
+        if (!FluidPackageItem.isFluidPackage(box)) {
+            return false;
+        }
+        return super.unwrapBox(box, simulate);
     }
 
     @Override
