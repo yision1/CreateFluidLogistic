@@ -22,6 +22,7 @@ import com.simibubi.create.content.logistics.packagePort.frogport.FrogportBlockE
 import com.simibubi.create.content.logistics.packager.IdentifiedInventory;
 import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
+import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour;
 import com.simibubi.create.content.logistics.packagerLink.LogisticallyLinkedBehaviour.RequestType;
 import com.simibubi.create.content.logistics.packagerLink.LogisticsManager;
 import com.simibubi.create.content.logistics.packagerLink.RequestPromise;
@@ -38,6 +39,8 @@ import com.yision.fluidlogistics.api.packager.PackageResources;
 import com.yision.fluidlogistics.api.packager.PackageResourceDisplay;
 import com.yision.fluidlogistics.api.packager.PackageResourceType;
 import com.yision.fluidlogistics.api.packager.ResourcePackagers;
+import com.yision.fluidlogistics.content.logistics.packageResource.ResourcePackagerEngine;
+import com.yision.fluidlogistics.content.logistics.packageResource.ResourcePackagerInventoryIdentifier;
 import com.yision.fluidlogistics.content.logistics.packageResource.ResourceRestockSettings;
 import com.yision.fluidlogistics.compat.cal.CalFactoryPanelCompat;
 import com.yision.fluidlogistics.util.ResourceGaugeHelper;
@@ -50,6 +53,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
+import net.neoforged.neoforge.items.ItemStackHandler;
 
 @Mixin(FactoryPanelBehaviour.class)
 public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
@@ -86,6 +90,9 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
     @Shadow(remap = false)
     private void sendEffect(FactoryPanelPosition fromPos, boolean success) {
     }
+
+    @Unique
+    private static final ItemStackHandler fluidlogistics$EMPTY_RESOURCE_HANDLER = new ItemStackHandler(0);
 
     @Unique
     private void fluidlogistics$disableCalFactoryPanelState() {
@@ -203,7 +210,8 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         }
         ItemStack normalizedKey = type.normalizeKey(filter.copy());
         if (ResourcePackagers.supports(packager, type, normalizedKey)) {
-            cir.setReturnValue(ResourcePackagers.getAvailableResources(packager));
+            owner.getAvailableItems();
+            cir.setReturnValue(ResourcePackagerEngine.getLastKnownResources(packager));
         }
     }
 
@@ -217,12 +225,27 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
         FactoryPanelBehaviour self = (FactoryPanelBehaviour) (Object) this;
         FactoryPanelBlockEntity panelBE = self.panelBE();
 
-        if (!panelBE.restocker || cir.getReturnValue() != 1) {
+        if (!panelBE.restocker) {
+            int unavailableResourceLinks = 0;
+            var presentLinks = LogisticallyLinkedBehaviour.getAllPresent(network, false);
+            for (LogisticallyLinkedBehaviour link : presentLinks) {
+                ResourcePackager packager = ResourcePackagers.fromLink(link).orElse(null);
+                Object storageIdentity = packager == null ? null : ResourcePackagers.storageIdentity(packager);
+                if (packager != null && storageIdentity == null) {
+                    unavailableResourceLinks++;
+                }
+            }
+            if (unavailableResourceLinks > 0) {
+                cir.setReturnValue(cir.getReturnValue() + unavailableResourceLinks);
+            }
             return;
         }
 
-        if (ResourcePackagers.ownerOf(panelBE.getRestockedPackager()).isPresent()) {
-            cir.setReturnValue(0);
+        ResourcePackager packager = ResourcePackagers
+                .ownerOf(panelBE.getRestockedPackager())
+                .orElse(null);
+        if (packager != null) {
+            cir.setReturnValue(ResourcePackagers.storageIdentity(packager) == null ? 1 : 0);
         }
     }
 
@@ -265,9 +288,14 @@ public abstract class FactoryPanelBehaviourMixin extends FilteringBehaviour
             return;
         }
 
-        IdentifiedInventory identifiedInventory = owner.targetInventory == null
-                ? null
-                : owner.targetInventory.getIdentifiedInventory();
+        Object storageIdentity = ResourcePackagers.storageIdentity(resourcePackager);
+        if (storageIdentity == null) {
+            ci.cancel();
+            return;
+        }
+        IdentifiedInventory identifiedInventory = new IdentifiedInventory(
+                new ResourcePackagerInventoryIdentifier(storageIdentity),
+                fluidlogistics$EMPTY_RESOURCE_HANDLER);
         int availableOnNetwork = LogisticsManager.getStockOf(network, item, identifiedInventory);
         if (availableOnNetwork == 0) {
             sendEffect(self.getPanelPosition(), false);

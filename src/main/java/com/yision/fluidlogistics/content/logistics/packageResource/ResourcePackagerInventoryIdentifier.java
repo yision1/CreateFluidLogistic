@@ -18,6 +18,10 @@ public final class ResourcePackagerInventoryIdentifier implements InventoryIdent
         return false;
     }
 
+    public boolean matches(Object storageIdentity) {
+        return this.storageIdentity == storageIdentity;
+    }
+
     @Override
     public boolean equals(Object obj) {
         return obj == this

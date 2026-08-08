@@ -15,6 +15,7 @@ import com.simibubi.create.content.logistics.packager.InventorySummary;
 import com.simibubi.create.content.logistics.packager.PackagerBlockEntity;
 import com.simibubi.create.foundation.advancement.AdvancementBehaviour;
 import com.simibubi.create.foundation.advancement.AllAdvancements;
+import com.simibubi.create.foundation.blockEntity.IMultiBlockEntityContainer;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.CapManipulationBehaviourBase.InterfaceProvider;
 import com.simibubi.create.foundation.blockEntity.behaviour.inventory.InvManipulationBehaviour;
@@ -138,7 +139,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
 
     @Override
     public Snapshot scan() {
-        IFluidHandler fluidHandler = fluidTarget.getInventory();
+        IFluidHandler fluidHandler = getFluidHandler();
         if (fluidHandler == null) {
             return Snapshot.empty(null);
         }
@@ -154,7 +155,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
         if (maxAmount <= 0 || !CompressedTankItem.isFluidStack(normalizedKey)) {
             return 0;
         }
-        IFluidHandler handler = fluidTarget.getInventory();
+        IFluidHandler handler = getFluidHandler();
         if (handler == null) {
             return 0;
         }
@@ -173,7 +174,7 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
         if (maxAmount <= 0 || !CompressedTankItem.isFluidStack(normalizedKey)) {
             return 0;
         }
-        IFluidHandler handler = fluidTarget.getInventory();
+        IFluidHandler handler = getFluidHandler();
         if (handler == null) {
             return 0;
         }
@@ -201,6 +202,34 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
             scanned.merge(key, amount, FluidPackagerBlockEntity::mergeFluidAmounts);
         }
         return scanned.isEmpty() ? Map.of() : scanned;
+    }
+
+    @Nullable
+    private IFluidHandler getFluidHandler() {
+        if (level == null) {
+            return null;
+        }
+        BlockPos targetPos = fluidTarget.getTarget().getConnectedPos();
+        if (!level.isLoaded(targetPos)) {
+            return null;
+        }
+        BlockEntity target = level.getBlockEntity(targetPos);
+        if (target instanceof IMultiBlockEntityContainer.Fluid multiblock) {
+            BlockEntity controller = multiblock.getControllerBE();
+            if (controller != null) {
+                IFluidHandler controllerHandler = level.getCapability(
+                        Capabilities.FluidHandler.BLOCK, controller.getBlockPos(), null);
+                if (controllerHandler != null) {
+                    return controllerHandler;
+                }
+            }
+        }
+        IFluidHandler fluidHandler = fluidTarget.getInventory();
+        if (fluidHandler == null) {
+            fluidTarget.findNewCapability();
+            fluidHandler = fluidTarget.getInventory();
+        }
+        return fluidHandler;
     }
 
     private static int mergeFluidAmounts(int existingAmount, int addedAmount) {
