@@ -174,14 +174,14 @@ public class SmartHopperBlockEntity extends SmartBlockEntity {
 			DirectBeltInputBehaviour beltBehaviour =
 				BlockEntityBehaviour.get(level, outputPos, DirectBeltInputBehaviour.TYPE);
 			if (beltBehaviour != null) {
-				if (!beltBehaviour.canInsertFromSide(facing.getOpposite())) {
+				if (!beltBehaviour.canInsertFromSide(facing)) {
 					continue;
 				}
-				ItemStack remainder = beltBehaviour.handleInsertion(toExtract, facing.getOpposite(), true);
+				ItemStack remainder = beltBehaviour.handleInsertion(toExtract, facing, true);
 				if (remainder.getCount() < toExtract.getCount()) {
 					int inserted = toExtract.getCount() - remainder.getCount();
 					ItemStack actualExtract = inventory.extractItem(slot, inserted, false);
-					ItemStack actualRemainder = beltBehaviour.handleInsertion(actualExtract, facing.getOpposite(), false);
+					ItemStack actualRemainder = beltBehaviour.handleInsertion(actualExtract, facing, false);
 					int actuallyInserted = actualExtract.getCount() - actualRemainder.getCount();
 					if (!actualRemainder.isEmpty()) {
 						returnItemToInternal(slot, actualRemainder);
