@@ -1,12 +1,13 @@
 package com.yision.fluidlogistics.content.fluids.fluidPump;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 
 import com.simibubi.create.content.fluids.FluidPropagator;
@@ -248,13 +249,13 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 				.getSecond()
 				.put(side.getOpposite(), !pull);
 
-			List<Pair<Integer, BlockPos>> frontier = new ArrayList<>();
+			Queue<Pair<Integer, BlockPos>> frontier = new ArrayDeque<>();
 			Set<BlockPos> visited = new HashSet<>();
 			int maxDistance = Config.getFluidPumpRange();
 			frontier.add(Pair.of(1, start.getConnectedPos()));
 
 			while (!frontier.isEmpty()) {
-				Pair<Integer, BlockPos> entry = frontier.remove(0);
+				Pair<Integer, BlockPos> entry = frontier.poll();
 				int distance = entry.getFirst();
 				BlockPos currentPos = entry.getSecond();
 
@@ -337,14 +338,7 @@ public class FluidPumpBlockEntity extends PumpBlockEntity {
 	}
 
 	private boolean isPumpTransferBehaviour(FluidTransportBehaviour behaviour) {
-		if (behaviour instanceof FluidPumpFluidTransferBehaviour)
-			return true;
-		try {
-			Class<?> pumpBehaviourClass = Class.forName("com.simibubi.create.content.fluids.pump.PumpBlockEntity$PumpFluidTransferBehaviour");
-			return pumpBehaviourClass.isInstance(behaviour);
-		} catch (ClassNotFoundException e) {
-			return false;
-		}
+		return behaviour.blockEntity instanceof PumpBlockEntity;
 	}
 
 	private boolean hasReachedValidEndpoint(LevelAccessor world, BlockFace blockFace, boolean pull) {

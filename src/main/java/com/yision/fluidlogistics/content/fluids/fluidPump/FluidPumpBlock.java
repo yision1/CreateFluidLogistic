@@ -216,20 +216,26 @@ public class FluidPumpBlock extends PumpBlock {
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
 		BlockState toPlace = ProperWaterloggedBlock.withWater(context.getLevel(), defaultBlockState(),
 			context.getClickedPos());
-		Direction targetOutputDirection = getTargetFluidDirection(context);
-		Direction topDirection = chooseModelTop(context, targetOutputDirection.getAxis());
+		boolean isShiftKeyDown = context.getPlayer() != null && context.getPlayer()
+			.isShiftKeyDown();
+		Direction preferredShaftDirection = getPreferredFacing(context);
+		Axis preferredShaftAxis = preferredShaftDirection != null && !isShiftKeyDown
+			? preferredShaftDirection.getAxis()
+			: null;
+		Direction targetOutputDirection = getTargetFluidDirection(context, preferredShaftAxis);
+		Direction topDirection = chooseModelTop(context, targetOutputDirection.getAxis(), preferredShaftAxis);
 
-		return getPlacementStateForOutput(toPlace, targetOutputDirection, topDirection);
+		return getPlacementStateForOutput(toPlace, targetOutputDirection, topDirection, preferredShaftAxis);
 	}
 
-	private Direction getTargetFluidDirection(BlockPlaceContext context) {
+	private Direction getTargetFluidDirection(BlockPlaceContext context, Axis excludedAxis) {
 		Level level = context.getLevel();
 		BlockPos pos = context.getClickedPos();
 		boolean isShiftKeyDown = context.getPlayer() != null && context.getPlayer()
 			.isShiftKeyDown();
 
-		Axis preferredAxis = getPreferredFluidConnectionAxis(level, pos, null);
-		Axis placementAxis = preferredAxis != null ? preferredAxis : getPlacedFluidAxis(context);
+		Axis preferredAxis = getPreferredFluidConnectionAxis(level, pos, null, excludedAxis);
+		Axis placementAxis = preferredAxis != null ? preferredAxis : getPlacedFluidAxis(context, excludedAxis);
 		Direction nearestLookingDirection = getNearestLookingDirectionOnAxis(context, placementAxis);
 		Direction targetDirection = isShiftKeyDown ? nearestLookingDirection : nearestLookingDirection.getOpposite();
 
@@ -239,12 +245,20 @@ public class FluidPumpBlock extends PumpBlock {
 		return targetDirection;
 	}
 
-	private Axis getPlacedFluidAxis(BlockPlaceContext context) {
+	private Axis getPlacedFluidAxis(BlockPlaceContext context, Axis excludedAxis) {
+		Axis placementAxis;
 		if (context.getClickedFace()
 			.getAxis()
 			.isHorizontal())
-			return Axis.Y;
-		return getNearestHorizontalLookingDirection(context).getAxis();
+			placementAxis = Axis.Y;
+		else
+			placementAxis = getNearestHorizontalLookingDirection(context).getAxis();
+		if (placementAxis != excludedAxis)
+			return placementAxis;
+		for (Direction direction : context.getNearestLookingDirections())
+			if (direction.getAxis() != excludedAxis)
+				return direction.getAxis();
+		throw new IllegalStateException("No available fluid axis.");
 	}
 
 	private Direction getNearestHorizontalLookingDirection(BlockPlaceContext context) {
@@ -300,7 +314,16 @@ public class FluidPumpBlock extends PumpBlock {
 		return level.getCapability(Capabilities.FluidHandler.BLOCK, pos, null) != null;
 	}
 
-	private Direction chooseModelTop(BlockPlaceContext context, Axis fluidAxis) {
+	private Direction chooseModelTop(BlockPlaceContext context, Axis fluidAxis, Axis shaftAxis) {
+		if (shaftAxis != null) {
+			Axis topAxis = getRemainingAxis(fluidAxis, shaftAxis);
+			if (topAxis == Axis.Y)
+				return context.getClickedFace() == Direction.DOWN ? Direction.DOWN : Direction.UP;
+			if (context.getClickedFace()
+				.getAxis() == topAxis)
+				return context.getClickedFace();
+			return getNearestLookingDirectionOnAxis(context, topAxis).getOpposite();
+		}
 		if (fluidAxis == Axis.Y)
 			return chooseVerticalModelTop(context);
 		return context.getClickedFace() == Direction.DOWN ? Direction.DOWN : Direction.UP;
@@ -315,8 +338,10 @@ public class FluidPumpBlock extends PumpBlock {
 	}
 
 	private static BlockState getPlacementStateForOutput(BlockState state, Direction targetOutputDirection,
-													  Direction preferredTopDirection) {
-		Axis shaftAxis = getShaftAxisForPlacement(targetOutputDirection.getAxis(), preferredTopDirection);
+												  Direction preferredTopDirection, Axis preferredShaftAxis) {
+		Axis shaftAxis = preferredShaftAxis != null
+			? preferredShaftAxis
+			: getShaftAxisForPlacement(targetOutputDirection.getAxis(), preferredTopDirection);
 		return withTopAndShaft(state, preferredTopDirection, shaftAxis);
 	}
 
@@ -494,17 +519,19 @@ public class FluidPumpBlock extends PumpBlock {
 		Direction targetDirection = getNearestLookingDirectionOnAxis(placer, fluidAxis);
 		targetDirection = isShiftKeyDown ? targetDirection : targetDirection.getOpposite();
 
-		Axis preferredAxis = getPreferredFluidConnectionAxis(level, pos, fluidAxis);
+		Axis preferredAxis = getPreferredFluidConnectionAxis(level, pos, fluidAxis, null);
 		if (preferredAxis != null && preferredAxis != targetDirection.getAxis() && !isShiftKeyDown)
 			return getBestConnectedDirectionOnAxis(level, pos, preferredAxis, targetDirection);
 
 		return targetDirection;
 	}
 
-	private Axis getPreferredFluidConnectionAxis(Level level, BlockPos pos, Axis allowedAxis) {
+	private Axis getPreferredFluidConnectionAxis(Level level, BlockPos pos, Axis allowedAxis, Axis excludedAxis) {
 		Axis preferredAxis = null;
 		for (Direction d : Iterate.directions) {
 			if (allowedAxis != null && d.getAxis() != allowedAxis)
+				continue;
+			if (d.getAxis() == excludedAxis)
 				continue;
 			BlockPos adjPos = pos.relative(d);
 			BlockState adjState = level.getBlockState(adjPos);

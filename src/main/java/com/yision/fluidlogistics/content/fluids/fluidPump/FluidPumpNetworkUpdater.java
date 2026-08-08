@@ -1,9 +1,10 @@
 package com.yision.fluidlogistics.content.fluids.fluidPump;
 
-import java.util.ArrayDeque;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 
@@ -25,6 +26,41 @@ import net.minecraft.world.level.block.state.BlockState;
 public class FluidPumpNetworkUpdater {
 
 	private static final Map<ResourceKey<Level>, Integer> LOADED_FLUID_PUMPS = new HashMap<>();
+
+	public static final class PropagationContext {
+
+		private final int pumpRange;
+		private final boolean extendsCreateRange;
+		private final Queue<Pair<Integer, BlockPos>> frontier = new PriorityQueue<>(
+			Comparator.comparingInt(pair -> pair.getFirst()));
+		private final Map<BlockPos, Integer> bestDistances = new HashMap<>();
+		private final Map<BlockPos, Boolean> pressureBeforeCreate = new HashMap<>();
+
+		private PropagationContext(int pumpRange) {
+			this.pumpRange = pumpRange;
+			extendsCreateRange = pumpRange > FluidPropagator.getPumpRange();
+		}
+
+		public void recordCreatePipe(BlockPos pos, int distance, FluidTransportBehaviour pipe) {
+			if (!extendsCreateRange)
+				return;
+			pressureBeforeCreate.put(pos, hasAnyInitializedPressure(pipe));
+			bestDistances.merge(pos, distance, Math::min);
+		}
+
+		public boolean shouldContinueFromCreateCutoff(int distance) {
+			return extendsCreateRange && distance < pumpRange;
+		}
+
+		public void addCutoff(BlockPos pos, int distance) {
+			frontier.add(Pair.of(distance, pos));
+		}
+
+		private boolean hadPressureBeforeCreate(BlockPos pos, FluidTransportBehaviour pipe) {
+			Boolean pressure = pressureBeforeCreate.get(pos);
+			return pressure != null ? pressure : hasAnyInitializedPressure(pipe);
+		}
+	}
 
 	public static void onFluidPumpLoaded(Level level) {
 		if (level.isClientSide)
@@ -50,23 +86,28 @@ public class FluidPumpNetworkUpdater {
 		return LOADED_FLUID_PUMPS.getOrDefault(level.dimension(), 0) > 0;
 	}
 
-	public static void propagateChangedPipeForFluidPumps(LevelAccessor world, BlockPos pipePos, BlockState pipeState) {
-		if (!shouldRun(world))
-			return;
+	public static PropagationContext getOrCreateContext(LevelAccessor world, PropagationContext context) {
+		if (context != null)
+			return context;
+		return shouldRun(world) ? new PropagationContext(Config.getFluidPumpRange()) : null;
+	}
 
-		Queue<Pair<Integer, BlockPos>> frontier = new ArrayDeque<>();
-		Set<BlockPos> visited = new HashSet<>();
+	public static void finishPropagationForFluidPumps(LevelAccessor world, PropagationContext context) {
+		if (context == null)
+			return;
+		if (context.frontier.isEmpty())
+			return;
 		Set<Pair<FluidPumpBlockEntity, Direction>> discoveredPumps = new HashSet<>();
 
-		frontier.add(Pair.of(0, pipePos));
-
-		while (!frontier.isEmpty()) {
-			Pair<Integer, BlockPos> pair = frontier.poll();
+		while (!context.frontier.isEmpty()) {
+			Pair<Integer, BlockPos> pair = context.frontier.poll();
+			int distance = pair.getFirst();
 			BlockPos currentPos = pair.getSecond();
-			if (visited.contains(currentPos))
+			Integer bestDistance = context.bestDistances.get(currentPos);
+			if (bestDistance != null && bestDistance <= distance)
 				continue;
-			visited.add(currentPos);
-			BlockState currentState = currentPos.equals(pipePos) ? pipeState : world.getBlockState(currentPos);
+			context.bestDistances.put(currentPos, distance);
+			BlockState currentState = world.getBlockState(currentPos);
 			FluidTransportBehaviour pipe = FluidPropagator.getPipe(world, currentPos);
 			if (pipe == null)
 				continue;
@@ -85,16 +126,18 @@ public class FluidPumpNetworkUpdater {
 						discoveredPumps.add(Pair.of(fluidPump, direction.getOpposite()));
 					continue;
 				}
-				if (visited.contains(target))
-					continue;
 				FluidTransportBehaviour targetPipe = FluidPropagator.getPipe(world, target);
 				if (targetPipe == null)
 					continue;
-				Integer distance = pair.getFirst();
-				if (distance >= Config.getFluidPumpRange() && !hasAnyInitializedPressure(targetPipe))
+				if (distance >= context.pumpRange && !context.hadPressureBeforeCreate(target, targetPipe))
 					continue;
-				if (targetPipe.canHaveFlowToward(targetState, direction.getOpposite()))
-					frontier.add(Pair.of(distance + 1, target));
+				if (!targetPipe.canHaveFlowToward(targetState, direction.getOpposite()))
+					continue;
+				int nextDistance = distance + 1;
+				Integer targetBestDistance = context.bestDistances.get(target);
+				if (targetBestDistance != null && targetBestDistance <= nextDistance)
+					continue;
+				context.frontier.add(Pair.of(nextDistance, target));
 			}
 		}
 
