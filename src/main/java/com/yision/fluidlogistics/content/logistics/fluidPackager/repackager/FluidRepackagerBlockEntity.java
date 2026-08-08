@@ -9,6 +9,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
 import com.simibubi.create.api.packager.unpacking.UnpackingHandler;
+import com.simibubi.create.compat.Mods;
+import com.simibubi.create.compat.computercraft.events.PackageEvent;
 import com.simibubi.create.content.logistics.BigItemStack;
 import com.simibubi.create.content.logistics.box.PackageItem;
 import com.simibubi.create.content.logistics.crate.BottomlessItemHandler;
@@ -26,6 +28,7 @@ import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageCont
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 
+import dan200.computercraft.api.peripheral.PeripheralCapability;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
@@ -64,6 +67,14 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 				return be.externalItemHandler;
 			}
 		);
+
+		if (Mods.COMPUTERCRAFT.isLoaded()) {
+			event.registerBlockEntity(
+				PeripheralCapability.get(),
+				AllBlockEntities.FLUID_REPACKAGER.get(),
+				(be, context) -> be.computerBehaviour.getPeripheralCapability()
+			);
+		}
 	}
 
 	@Override
@@ -124,6 +135,7 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 			return true;
 		}
 
+		computerBehaviour.prepareComputerEvent(new PackageEvent(box, "package_received"));
 		previouslyUnwrapped = box.copyWithCount(1);
 		animationInward = true;
 		animationTicks = CYCLE;
@@ -160,6 +172,7 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 			return true;
 		}
 
+		computerBehaviour.prepareComputerEvent(new PackageEvent(box, "package_received"));
 		previouslyUnwrapped = boxToInsert;
 		animationInward = true;
 		animationTicks = CYCLE;
@@ -205,6 +218,7 @@ public class FluidRepackagerBlockEntity extends PackagerBlockEntity
 			}
 
 			targetInv.extractItem(slot, 1, false);
+			computerBehaviour.prepareComputerEvent(new PackageEvent(extracted, "package_received"));
 
 			if (mixedTarget) {
 				previouslyUnwrapped = extracted.copyWithCount(1);

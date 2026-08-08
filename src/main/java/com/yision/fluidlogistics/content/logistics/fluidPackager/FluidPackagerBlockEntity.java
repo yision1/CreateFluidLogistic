@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.compat.Mods;
 import com.simibubi.create.compat.computercraft.ComputerCraftProxy;
 import com.simibubi.create.content.contraptions.actors.psi.PortableFluidInterfaceBlockEntity;
 import com.simibubi.create.content.logistics.BigItemStack;
@@ -28,6 +29,7 @@ import com.yision.fluidlogistics.content.logistics.fluidPackage.FluidPackageItem
 import com.yision.fluidlogistics.registry.AllBlockEntities;
 import com.yision.fluidlogistics.util.IPackagerOverrideData;
 
+import dan200.computercraft.api.peripheral.PeripheralCapability;
 import net.createmod.catnip.data.Iterate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -58,6 +60,13 @@ public class FluidPackagerBlockEntity extends PackagerBlockEntity
                 Capabilities.ItemHandler.BLOCK,
                 AllBlockEntities.FLUID_PACKAGER.get(),
                 (be, context) -> be.inventory);
+
+        if (Mods.COMPUTERCRAFT.isLoaded()) {
+            event.registerBlockEntity(
+                    PeripheralCapability.get(),
+                    AllBlockEntities.FLUID_PACKAGER.get(),
+                    (be, context) -> be.computerBehaviour.getPeripheralCapability());
+        }
     }
 
     @Override

@@ -18,6 +18,7 @@ repositories {
     }
 
     maven { url = "https://maven.createmod.net" }
+    maven { url = "https://maven.squiddev.cc" }
     maven { url = "https://mvn.devos.one/snapshots" }
     maven { url = "https://maven.blamejared.com" }
     maven {
@@ -109,6 +110,8 @@ dependencies {
     implementation("com.tterrag.registrate:Registrate:${registrate_version}")
     implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
     implementation("com.simibubi.create:create-${minecraft_version}:${create_version}") { transitive = false }
+    compileOnly("cc.tweaked:cc-tweaked-${minecraft_version}-core-api:${cc_tweaked_version}")
+    compileOnly("cc.tweaked:cc-tweaked-${minecraft_version}-forge-api:${cc_tweaked_version}")
     compileOnly("mezz.jei:jei-${jei_minecraft_version}-neoforge:${jei_version}")
     localRuntime("mezz.jei:jei-${jei_minecraft_version}-neoforge:${jei_version}")
     compileOnly("dev.emi:emi-neoforge:${emi_version}:api")
